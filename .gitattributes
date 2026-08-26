@@ -1,0 +1,19 @@
+# 行尾策略。
+#
+# 为什么需要：本机 core.autocrlf=true。没有这份文件时，Git 会在检出时把所有文本
+# 转成 CRLF —— 包括 .githooks/pre-push。那是个 #!/bin/sh 脚本，带 \r 时 Git Bash
+# 会报 `bad interpreter: /bin/sh^M` 直接不执行，**文档准出检查就静默失效了**，
+# 而且不会有任何提示。这正是「守卫必须能自证，不能悄悄空转」要防的情况。
+#
+# 仓库内一律存 LF（`text=auto`），工作区也一律用 LF（`eol=lf`）。
+# Markdown、Python 与 sh 在 Windows 上用 LF 都没问题，VS Code 默认也认。
+* text=auto eol=lf
+
+# 例外：批处理文件在 Windows 上必须是 CRLF，否则 cmd 解析会出错。
+# 目前仓库里没有，先写在这里免得以后有人加了再踩一次。
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# 显式钉住钩子脚本。上面的通配已经覆盖，这一行是为了让意图可见 ——
+# 有人将来改通配规则时，能看到这个文件的行尾不是可以随便动的。
+.githooks/* text eol=lf
