@@ -1,0 +1,12 @@
+# Python 工具产物
+__pycache__/
+*.pyc
+
+# 编辑器与操作系统
+.vs/
+.vscode/
+.idea/
+*.swp
+*.bak
+.DS_Store
+Thumbs.db
