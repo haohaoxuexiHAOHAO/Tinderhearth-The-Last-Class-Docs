@@ -1,0 +1,29 @@
+#!/bin/sh
+# 推送前文档准出检查（GOVERNANCE §7）。
+#
+# 启用（一次性，在本仓库根执行）：
+#     git config core.hooksPath .githooks
+# 紧急绕过：
+#     git push --no-verify
+#
+# 为什么放在 pre-push 而不是 pre-commit：
+# 单人开发时提交很碎，整库检查绑在每次提交上属粒度错配；推送才是「要给出去了」的节点。
+# Kiro 的 Stop hook 已经在每轮对话结束时跑过一次，这里是兜底。
+
+set -e
+
+cd "$(git rev-parse --show-toplevel)"
+
+if command -v python >/dev/null 2>&1; then
+    PY=python
+elif command -v python3 >/dev/null 2>&1; then
+    PY=python3
+else
+    # 明确打印少验了什么，不假装通过。
+    echo "[WARN] 未找到 python，跳过文档检查（未验证：文件头 / 配额 / 断链 / 归档边界 / 状态页结构）"
+    exit 0
+fi
+
+echo "[..] 运行文档准出检查"
+"$PY" tools/check_docs.py
+echo "[OK] 文档检查通过"
