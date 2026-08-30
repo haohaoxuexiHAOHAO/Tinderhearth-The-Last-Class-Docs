@@ -86,6 +86,14 @@ def stage() -> None:
 def main() -> int:
     ap = argparse.ArgumentParser(description="中文像素字体的实机可读性对比（ART-2）")
     ap.add_argument("--shots", action="store_true", help="自动出图后退出，不进交互")
+    ap.add_argument("--measure", action="store_true",
+                    help="量像素块边长后退出（UI-4：判定字形是块状还是被重新光栅化）")
+    ap.add_argument("--canvas-items", action="store_true",
+                    help="用 canvas_items 拉伸模式而不是 viewport")
+    ap.add_argument("--loose-oversampling", action="store_true",
+                    help="反证用：故意不钉 oversampling=1.0")
+    ap.add_argument("--linear-filter", action="store_true",
+                    help="反证用：把纹理过滤改成线性，确认块状会塌")
     ap.add_argument("--clean", action="store_true", help="删掉 temp 下铺开的工程后退出")
     args = ap.parse_args()
 
@@ -123,13 +131,33 @@ def main() -> int:
 
     stage()
     cmd = [str(godot), "--path", str(WORK_DIR)]
-    if args.shots:
-        cmd += ["--", "--shots"]
+    passthrough = [flag for flag, on in
+                   (("--shots", args.shots), ("--measure", args.measure),
+                    ("--canvas-items", args.canvas_items),
+                    ("--loose-oversampling", args.loose_oversampling),
+                    ("--linear-filter", args.linear_filter)) if on]
+    if passthrough:
+        cmd += ["--", *passthrough]
     say(f"启动：{' '.join(cmd)}")
     # 引擎自己的输出直通终端；工程侧的结论由它写进 out/font-compare.log（UTF-8）。
     code = subprocess.run(cmd, check=False).returncode
 
     out = WORK_DIR / "out"
+    if args.measure:
+        # 结论由工程侧写进 out/font-compare.log（UTF-8），从文件读，不靠管道。
+        log = out / "font-compare.log"
+        if not log.is_file():
+            say("[FAIL] 没拿到工程侧日志，量测判定未完成")
+            say(f"日志 {flush_log().relative_to(ROOT)}")
+            print("EXIT=1")
+            return 1
+        for line in log.read_text(encoding="utf-8").splitlines():
+            if line.startswith("[量]") or line.startswith("  扫描") or line.startswith("拉伸"):
+                say(line)
+        say(f"日志 {flush_log().relative_to(ROOT)}")
+        print(f"EXIT={0 if code == 0 else 1}")
+        return 0 if code == 0 else 1
+
     shots = sorted(out.glob("*.png")) if out.is_dir() else []
     say(f"Godot 退出码 {code}｜出图 {len(shots)} 张在 {out}")
     if args.shots and not shots:

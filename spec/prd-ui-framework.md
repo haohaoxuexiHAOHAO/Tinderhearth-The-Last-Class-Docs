@@ -197,7 +197,9 @@ last_verified: 2026-08-30
 
 ## 8. 技术考虑
 
-**唯一的技术未知项**：`canvas_items` 拉伸模式下 12px 字是否仍是块状像素。ADR-0008 的十项字体属性与整数网格实测都是在 `stretch/mode="viewport"` 下做的（2026-08-30，`tools/font_preview.py`）。`canvas_items` 会按最终屏幕尺寸光栅化字形，理论上把字体 `oversampling` 钉在 `1.0` 能得到块状结果，但**这一组合未实测**。验证办法：US-002 的两条判据；不成立时的回退是改用 `viewport` 模式，代价是要重新确认 `aspect="expand"` 的可视区域伸缩行为是否仍满足正典那条零成本约束。
+**技术未知项（`US-002`，2026-08-30 已验完，结论如下）**：`canvas_items` 拉伸模式下 12px 字**仍是块状**，×2／×3／×4 的最小同色跑长恰为 2／3／4。所以不必回退 `viewport`。
+
+**承重项与立项时的推测不同**：当时以为靠字体的 `oversampling=1.0`，实测是**最近邻纹理过滤**在起作用 —— 不钉 `oversampling` 结果逐字节不变，而把纹理过滤改成线性则三档最小跑长全部塌到 1。这条对后续界面有直接后果：`default_texture_filter=0` 不只是给精灵用的，它同时是文字清晰的唯一依靠，**任何界面节点局部覆盖 `texture_filter` 都会静默毁掉文字**（已记 `ENG-13`）。
 
 **已实测可用**（2026-08-30，Godot 4.7.2）：`FontFile` 的十项像素完美属性全部存在；`Window.content_scale_stretch = INTEGER` 配 `CONTENT_SCALE_MODE_VIEWPORT` 与 `ASPECT_KEEP` 时整数缩放成立，全屏自动挑最大整数倍并留黑边。这两条来自 `tools/font-preview/` 那套工程的实际运行。
 

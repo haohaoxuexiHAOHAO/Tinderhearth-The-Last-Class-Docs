@@ -145,6 +145,16 @@ def _ark_zip(px: int) -> str:
             f"ark-pixel-font-{px}px-proportional-ttf-v{ARK_TAG}.zip")
 
 
+def _only(cands: list[Candidate], keep: str | None) -> list[Candidate]:
+    """只留一个候选。选定款定下来之后，日常重跑不必再拉另外六个源的 200 多 MB。"""
+    if keep is None:
+        return cands
+    hit = [c for c in cands if c.id == keep]
+    if not hit:
+        raise SystemExit(f"[FAIL] --only {keep} 不在候选表里：{[c.id for c in cands]}")
+    return hit
+
+
 def _fusion_zip(px: int) -> str:
     return (f"https://github.com/TakWolf/fusion-pixel-font/releases/download/{FUSION_TAG}/"
             f"fusion-pixel-font-{px}px-proportional-ttf-v{FUSION_TAG}.zip")
@@ -705,6 +715,8 @@ def main() -> int:
     ap.add_argument("--licenses", action="store_true", help="只核授权，不下载字体")
     ap.add_argument("--offline", action="store_true", help="不联网，只量已下载的字体")
     ap.add_argument("--select", default=None, help="临时按某个候选 id 执行硬要求")
+    ap.add_argument("--only", default=None,
+                    help="只处理一个候选 id（选定款定下后日常重跑用，省掉另外六个源）")
     ap.add_argument("--clean", action="store_true", help="删掉 temp 下的下载物后退出")
     args = ap.parse_args()
 
@@ -717,8 +729,12 @@ def main() -> int:
         print("EXIT=0")
         return 0
 
+    scope = _only(CANDIDATES, args.only)
     selected = args.select or SELECTED
-    say(f"候选 {len(CANDIDATES)} 款｜下载物落 {WORK_DIR}")
+    if args.only:
+        note(f"--only {args.only}：只处理 1 款（登记 {len(CANDIDATES)} 款）。"
+             f"**这不是一次完整审计**，换版本或复核授权时要跑全量")
+    say(f"候选 {len(scope)} 款｜下载物落 {WORK_DIR}")
     if selected:
         say(f"选定款 {selected}：对 {'、'.join(REQUIRE_FULL)} 执行全覆盖硬要求")
     else:
@@ -730,9 +746,9 @@ def main() -> int:
         note("--offline：跳过授权核实。**跳过不等于核过**")
         licenses_checked = 0
     else:
-        licenses_checked = check_licenses(CANDIDATES)
+        licenses_checked = check_licenses(scope)
         say("")
-        for cand in CANDIDATES:
+        for cand in scope:
             if not cand.upstream:
                 continue
             say(f"{cand.name} 的上游字形来源（{len(cand.upstream)} 环）")
@@ -747,7 +763,7 @@ def main() -> int:
             say(f"  {label}：{len(chars)} 个（{how}）")
 
         say("\n── 覆盖与度量 ──────────────────────────────────────")
-        for cand in CANDIDATES:
+        for cand in scope:
             if not cand.fonts:
                 note(f"{cand.name}：{cand.verdict or '未登记字体文件，跳过量测'}")
                 continue
@@ -767,13 +783,13 @@ def main() -> int:
 
     say("\n── 覆盖量 ──────────────────────────────────────────")
     say(f"核了 {licenses_checked} 份许可证原文"
-        f"（登记 {sum(len(c.licenses) for c in CANDIDATES)} 份）；"
+        f"（本轮范围内登记 {sum(len(c.licenses) for c in scope)} 份）；"
         f"上游 {upstream_checked} 环"
-        f"（登记 {sum(len(c.upstream) for c in CANDIDATES)} 环）；"
+        f"（登记 {sum(len(c.upstream) for c in scope)} 环）；"
         f"量了 {measured} 个字体文件"
-        f"（登记 {sum(len(c.fonts) for c in CANDIDATES)} 个下载源）；"
+        f"（登记 {sum(len(c.fonts) for c in scope)} 个下载源）；"
         f"语料 {len(corpora)} 份")
-    if selected and not any(c.id == selected for c in CANDIDATES):
+    if selected and not any(c.id == selected for c in scope):
         fail(f"选定款 {selected} 不在候选表里 —— 登记了检查目标却没执行")
     if selected and corpora:
         done = [name for name in REQUIRE_FULL if name in corpora]

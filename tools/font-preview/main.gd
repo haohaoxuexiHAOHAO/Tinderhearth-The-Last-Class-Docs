@@ -54,6 +54,9 @@ var _sheet_mode := false
 var _sheet_size := Vector2i(480, 240)
 var _measured := {}
 var _log: PackedStringArray = []
+## 拉伸模式。`viewport` 先画逻辑分辨率再整数放大；`canvas_items` 按最终屏幕尺寸画字形。
+## 两者对像素字的结果不同，这正是 `UI-4` 要量的东西。
+var _stretch_canvas := false
 
 
 func _ready() -> void:
@@ -72,8 +75,22 @@ func _ready() -> void:
 		get_tree().quit(1)
 		return
 
+	var args := OS.get_cmdline_user_args()
+	_stretch_canvas = "--canvas-items" in args
+	if "--linear-filter" in args:
+		# 反证用：把本节点的纹理过滤改成线性。字形图集被画布变换放大时若走线性插值，
+		# 边缘会出现渐变像素，最小同色跑长应当掉到 1。
+		texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		_say("[反证] 本次纹理过滤改为线性")
+	_say("拉伸模式 %s" % ("canvas_items" if _stretch_canvas else "viewport"))
+
 	_apply_window()
-	if "--shots" in OS.get_cmdline_user_args():
+	if "--measure" in args:
+		await _measure_pixel_blocks()
+		_flush()
+		get_tree().quit(0)
+		return
+	if "--shots" in args:
 		await _shoot_all()
 		_flush()
 		get_tree().quit(0)
@@ -102,6 +119,11 @@ func _make_font(path: String, label: String) -> FontFile:
 		"keep_rounding_remainders": false,
 		"oversampling": 1.0,
 	}
+	# 反证用：故意不钉 oversampling，看像素块会不会塌。见 _measure_pixel_blocks 的注释。
+	if "--loose-oversampling" in OS.get_cmdline_user_args():
+		wanted.erase("oversampling")
+		_say("  [反证] 本次**不设** oversampling，看块状会不会塌")
+
 	var have := {}
 	for prop in font.get_property_list():
 		have[prop["name"]] = true
@@ -140,7 +162,8 @@ func _measure(entry: Dictionary) -> String:
 func _apply_window() -> void:
 	var res: Vector2i = _sheet_size if _sheet_mode else RESOLUTIONS[_res_i]
 	var win := get_window()
-	win.content_scale_mode = Window.CONTENT_SCALE_MODE_VIEWPORT
+	win.content_scale_mode = (Window.CONTENT_SCALE_MODE_CANVAS_ITEMS if _stretch_canvas
+		else Window.CONTENT_SCALE_MODE_VIEWPORT)
 	win.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_KEEP
 	win.content_scale_stretch = Window.CONTENT_SCALE_STRETCH_INTEGER
 	win.content_scale_size = res
@@ -296,6 +319,56 @@ func _shoot_all() -> void:
 	await RenderingServer.frame_post_draw
 	await _shoot_current()
 	_sheet_mode = false
+
+
+## 量像素块边长（`UI-4`）。
+##
+## 判据不是"看着像块状"，而是**最小连续同色跑长必须等于缩放倍数**。12px 的字在 ×3 下若
+## 仍是块状，每个字形像素都摊成 3×3，那么任意一行里最短的一段同色像素也是 3；一旦字形被
+## 按 36px 重新光栅化，就会出现 1 到 2 像素宽的笔画，最小跑长立刻掉下来。
+##
+## 只量 canvas_items：viewport 模式下"先画小图再整数放大"是模式本身保证的，没什么可量。
+func _measure_pixel_blocks() -> void:
+	for scale in [2, 3, 4]:
+		_scale = scale
+		_font_i = 0                     # 固定用 12px 那款
+		_apply_window()
+		queue_redraw()
+		await RenderingServer.frame_post_draw
+		await RenderingServer.frame_post_draw
+		var img := get_viewport().get_texture().get_image()
+		var res: Vector2i = RESOLUTIONS[_res_i]
+		var expect := Vector2i(res.x * scale, res.y * scale) if _stretch_canvas else res
+		var min_run := _min_color_run(img)
+		var verdict := "块状（每个字形像素摊成 %d×%d）" % [scale, scale] if min_run == scale \
+			else "**不是块状** —— 最小跑长 %d，字形没整块摊开（被插值或按最终尺寸重画）" % min_run
+		_say("[量] 模式 %s｜缩放 x%d｜取回图 %dx%d（期望 %dx%d）｜最小同色跑长 %d → %s" % [
+			"canvas_items" if _stretch_canvas else "viewport", scale,
+			img.get_width(), img.get_height(), expect.x, expect.y, min_run, verdict])
+
+
+## 扫全图每一行，取「非背景色的连续同色段」里最短的那个长度。
+func _min_color_run(img: Image) -> int:
+	var w := img.get_width()
+	var h := img.get_height()
+	var best := w
+	var scanned := 0
+	for y in range(0, h):
+		var run := 0
+		var prev := Color(0, 0, 0, 0)
+		for x in range(w):
+			var c := img.get_pixel(x, y)
+			if x > 0 and c.is_equal_approx(prev):
+				run += 1
+				continue
+			# 段结束：只统计非背景段，且不含贴左右边界的段（它们可能被裁断）
+			if run > 0 and not prev.is_equal_approx(BG) and x - run > 0:
+				best = mini(best, run)
+				scanned += 1
+			run = 1
+			prev = c
+	_say("  扫描 %d 行，统计到 %d 段非背景像素" % [h, scanned])
+	return best
 
 
 func _say(text: String) -> void:
