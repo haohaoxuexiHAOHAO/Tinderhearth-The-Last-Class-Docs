@@ -9,6 +9,7 @@
     python tools/check_docs.py            # 全量检查，退出码 = FAIL 数量（上限 1）
     python tools/check_docs.py --report    # 只打规模趋势表，不判定
     python tools/check_docs.py --changed-only   # 只检查 git 里有改动的 md（给 hook 用）
+    python tools/check_docs.py --fix-eol   # 只把行尾改回 .gitattributes 声明的样子
 
 输出约定（CONVENTIONS §17 的通用规则）：
     固定 UTF-8；每条问题打成 [FAIL] 或 [WARN]；末尾打一行 EXIT= 摘要。
@@ -79,6 +80,15 @@ CELL_LIMITS = {
     "archive/history/变更日志归档.md": 220,
 }
 
+# ── 行尾（ENG-9）──────────────────────────────────────────────────────
+# 策略本身不在这里复述：`.gitattributes` 是行尾策略的唯一权威源，在 Python 里再写
+# 一份 glob 表就是第二处会漂移的说法。改了 `.gitattributes`，本检查自动跟着变。
+#
+# 二进制判定门槛，与 git 自己的做法一致：前若干字节内出现 NUL 就当二进制、不做行尾
+# 规范化。这条不是可选的 —— 实测 `git check-attr eol -- x.png` 因为 `*` 通配也返回
+# `lf`，没有二进制判定的话，仓库里加一张 PNG（文件头就含 `\r\n`）就会误报。
+BINARY_SNIFF_BYTES = 8000
+
 FRONT_MATTER_RE = re.compile(r"\A---\r?\n(.*?)\r?\n---\r?\n", re.DOTALL)
 MD_LINK_RE = re.compile(r"(?<!!)\[[^\]]*\]\(([^)\s#]+)(#[^)\s]*)?\)")
 
@@ -114,12 +124,17 @@ class Report:
     def __init__(self) -> None:
         self.fails: list[str] = []
         self.warns: list[str] = []
+        # 覆盖量自报行。不是问题，但必须打出来，否则看不出某条检查是不是在空转。
+        self.notes: list[str] = []
 
     def fail(self, where: str, msg: str) -> None:
         self.fails.append(f"[FAIL] {where}：{msg}")
 
     def warn(self, where: str, msg: str) -> None:
         self.warns.append(f"[WARN] {where}：{msg}")
+
+    def note(self, msg: str) -> None:
+        self.notes.append(msg)
 
 
 def parse_front_matter(text: str) -> dict | None:
@@ -195,6 +210,97 @@ def git_changed_markdown() -> list[Path] | None:
         if name.endswith(".md"):
             result.append(ROOT / name)
     return result
+
+
+def git_managed_files() -> list[str] | None:
+    """git 会管的文件：已跟踪 + 未被忽略的未跟踪。返回 None 表示问不出来。
+
+    用 git 枚举而不是自己遍历目录，是为了让 `.gitignore` 自动生效 —— 否则
+    `__pycache__/`、`.vs/` 之类的产物都会被拖进行尾检查。`-z` 分隔避免中文名被
+    `core.quotepath` 转义成八进制（这个坑见 git_changed_markdown 的注释）。
+    """
+    try:
+        out = subprocess.run(
+            ["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard"],
+            cwd=ROOT, capture_output=True, check=True,
+        ).stdout
+    except (subprocess.CalledProcessError, FileNotFoundError, OSError):
+        return None
+    seen: set[str] = set()
+    result: list[str] = []
+    for raw in out.split(b"\0"):
+        if not raw:
+            continue
+        name = raw.decode("utf-8", errors="replace")
+        if name not in seen:          # 已跟踪与未跟踪两份清单可能有重复
+            seen.add(name)
+            result.append(name)
+    return result
+
+
+def git_eol_policy(paths: list[str]) -> dict[str, str] | None:
+    """问 git 每个路径解析后的 `eol` 属性（`lf`／`crlf`／`unspecified`）。
+
+    这是把 `.gitattributes` 当权威源的关键一步：规则解析交给 git，本脚本只负责
+    比对实际字节。输出格式是 `<路径> NUL eol NUL <值> NUL` 三元组（已实测）。
+    """
+    if not paths:
+        return {}
+    payload = b"\0".join(p.encode("utf-8") for p in paths) + b"\0"
+    try:
+        out = subprocess.run(
+            ["git", "check-attr", "-z", "--stdin", "eol"],
+            cwd=ROOT, input=payload, capture_output=True, check=True,
+        ).stdout
+    except (subprocess.CalledProcessError, FileNotFoundError, OSError):
+        return None
+    fields = out.split(b"\0")
+    policy: dict[str, str] = {}
+    for i in range(0, len(fields) - 2, 3):
+        name = fields[i].decode("utf-8", errors="replace")
+        policy[name] = fields[i + 2].decode("utf-8", errors="replace")
+    return policy
+
+
+def eol_targets() -> tuple[list[tuple[str, str, bytes]], int, int] | None:
+    """收集有行尾要求的文本文件：[(相对路径, 期望行尾, 内容)]，外加两个跳过计数。
+
+    返回 None 表示策略问不出来 —— 调用方必须判失败，不能当通过。
+    """
+    paths = git_managed_files()
+    if paths is None:
+        return None
+    policy = git_eol_policy(paths)
+    if policy is None:
+        return None
+
+    targets: list[tuple[str, str, bytes]] = []
+    binary = unset = 0
+    for rel in paths:
+        want = policy.get(rel, "unspecified")
+        if want not in ("lf", "crlf"):
+            unset += 1
+            continue
+        try:
+            with (ROOT / rel).open("rb") as fh:
+                head = fh.read(BINARY_SNIFF_BYTES)
+                if b"\0" in head:
+                    binary += 1        # 二进制不做行尾规范化，也别整份读进来
+                    continue
+                data = head + fh.read()
+        except OSError:
+            continue                   # 已删除但还在索引里的路径，交给 git 自己报
+        targets.append((rel, want, data))
+    return targets, binary, unset
+
+
+def count_eol_violations(want: str, data: bytes) -> tuple[int, int]:
+    """按期望行尾数出违反处数：(不该有的 CRLF 或 LF, 不该有的单独 CR)。"""
+    crlf = data.count(b"\r\n")
+    lone_cr = data.count(b"\r") - crlf
+    if want == "lf":
+        return crlf, lone_cr
+    return data.count(b"\n") - crlf, lone_cr
 
 
 def quota_for(doc: Doc) -> tuple[int, int, int, int]:
@@ -387,6 +493,85 @@ def check_reachable(docs: list[Doc], rep: Report) -> None:
         rep.warn(d.rel, "从 README.md 无法经链接到达（接入文档地图，或确认它确实只是被引用的附件）")
 
 
+def check_line_endings(rep: Report) -> None:
+    r"""工作区行尾必须符合 `.gitattributes`（WORKFLOW §6，`ENG-9`）。
+
+    为什么需要：`.gitattributes` 钉了 `* text=auto eol=lf`，却没有任何检查能发现
+    工作区违反它 —— 有声明、无执行体。2026-08-29 实测编辑工具把
+    `reference/踩坑记录.md` 从 191 行纯 LF 整份转成 201 行全 CRLF，全程无提示
+    （踩坑记录 28）。单份 md 是低危，提交时索引会被规范化；**同一机制作用在
+    `.githooks/pre-push` 上就是高危** —— 那是 `#!/bin/sh` 脚本，带 `\r` 时
+    Git Bash 报 `bad interpreter: /bin/sh^M` 直接不执行，**文档准出检查静默失效**。
+
+    为什么不用 `git diff --check`：它对行尾只给 warning，退出码仍是 0，
+    当不了门禁。而且它只看有 diff 的部分，未跟踪的新文件根本不进它的视野。
+
+    两个方向都判：`eol=lf` 的文件里不许有 `\r`，`eol=crlf` 的（`*.bat`／`*.cmd`）
+    里不许有裸 `\n`。只守一半等于只执行了半份 `.gitattributes`。
+    """
+    collected = eol_targets()
+    if collected is None:
+        rep.fail("行尾守卫", "问不出 git 的文件清单或 `eol` 属性，这一轮行尾守卫"
+                            "**没有执行**（不是通过）—— 确认装了 git 且在仓库内运行")
+        return
+    targets, binary, unset = collected
+
+    for rel, want, data in targets:
+        bad_eol, lone_cr = count_eol_violations(want, data)
+        if not bad_eol and not lone_cr:
+            continue
+        parts = []
+        if bad_eol:
+            parts.append(f"{bad_eol} 处 {'CRLF' if want == 'lf' else '单独的 LF'}")
+        if lone_cr:
+            parts.append(f"{lone_cr} 处单独的 CR")
+        rep.fail(rel, f"行尾应为 {want.upper()}（`.gitattributes` 声明 eol={want}），"
+                      f"实测有 {'、'.join(parts)}；"
+                      f"跑 `python tools/check_docs.py --fix-eol` 改回来")
+
+    # 自报覆盖量：一个文本文件都没检到就是空转。这种情况必须判失败 ——
+    # 「跑过了、没报错」比守卫不存在更坏，因为它让人以为有护栏。
+    if not targets:
+        rep.fail("行尾守卫", "一个有行尾要求的文本文件都没检到，"
+                            "说明文件清单或 `eol` 属性解析坏了")
+    rep.note(f"行尾覆盖量：检查 {len(targets)} 个文本文件"
+             f"（跳过 {binary} 个二进制、{unset} 个未声明 eol）")
+
+
+def fix_line_endings() -> int:
+    """把行尾改回 `.gitattributes` 声明的样子。
+
+    为什么做成入口而不是每次现场写脚本：这件事已经发生过一次（`GP-1` 验收时用
+    临时 Python 脚本修完就删），必然还会再发生。WORKFLOW §5 说会做第二次的操作
+    要落成 `tools/` 下的入口。和检查共用同一套策略解析，两者不可能各说一套。
+    """
+    collected = eol_targets()
+    if collected is None:
+        print("[FAIL] 问不出 git 的文件清单或 `eol` 属性，没有改动任何文件")
+        print("EXIT=1")
+        return 1
+    targets, binary, unset = collected
+
+    fixed = 0
+    for rel, want, data in targets:
+        bad_eol, lone_cr = count_eol_violations(want, data)
+        if not bad_eol and not lone_cr:
+            continue
+        normalized = data.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+        if want == "crlf":
+            normalized = normalized.replace(b"\n", b"\r\n")
+        (ROOT / rel).write_bytes(normalized)
+        print(f"[FIX] {rel}：{bad_eol + lone_cr} 处 → {want.upper()}")
+        fixed += 1
+
+    print(f"覆盖量：检查 {len(targets)} 个文本文件"
+          f"（跳过 {binary} 个二进制、{unset} 个未声明 eol），改写 {fixed} 个")
+    if fixed == 0:
+        print("[OK] 行尾本来就是对的，没有改动任何文件")
+    print("EXIT=0")
+    return 0
+
+
 def print_report(docs: list[Doc]) -> None:
     print(f"{'文档':<52}{'行':>6}{'字符':>9}  配额")
     print("-" * 88)
@@ -403,7 +588,12 @@ def main() -> int:
     ap = argparse.ArgumentParser(description="设计仓文档准出检查")
     ap.add_argument("--report", action="store_true", help="只打规模趋势表，不判定")
     ap.add_argument("--changed-only", action="store_true", help="只检查有改动的 md（给 hook 用）")
+    ap.add_argument("--fix-eol", action="store_true",
+                    help="把行尾改回 .gitattributes 声明的样子，不做其他检查")
     args = ap.parse_args()
+
+    if args.fix_eol:
+        return fix_line_endings()
 
     all_docs = collect(changed_only=False)
     if args.report:
@@ -423,10 +613,13 @@ def main() -> int:
         check_links(doc, rep)
         check_archive_boundary(doc, rep)
         check_cells(doc, rep)
-    # 全库级检查始终看全量，否则「第二台账」「断号」「入口可达」根本查不出来
+    # 全库级检查始终看全量，否则「第二台账」「断号」「入口可达」根本查不出来。
+    # 行尾也在这一档：被静默转成 CRLF 的往往正是你以为自己没碰过的文件，
+    # 而且它覆盖 md 之外的 sh 与 py —— 按改动清单裁剪等于放走高危的那一类。
     check_single_ledger(all_docs, rep)
     check_issue_ids(all_docs, rep)
     check_reachable(all_docs, rep)
+    check_line_endings(rep)
 
     for line in rep.warns:
         print(line)
@@ -443,6 +636,8 @@ def main() -> int:
                   f"说明路径解析有问题：{missing[:5]}")
             rep.fails.append("覆盖量自检失败")
         print(f"覆盖量：改动 {scanned} 份 / 全库 {len(all_docs)} 份")
+    for line in rep.notes:
+        print(line)
 
     print(f"\n结果：扫描 {scanned} 份文档（全库 {len(all_docs)} 份）"
           f"／{len(rep.fails)} 项必须修复／{len(rep.warns)} 条提示")

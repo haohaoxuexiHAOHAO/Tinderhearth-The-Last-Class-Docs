@@ -54,6 +54,6 @@ last_verified: 2026-08-25
 - 需求流水线（先写文档再改）：按 [WORKFLOW §1](./WORKFLOW.md) 走 `/prd → /prd-to-spec → /to-issues → 实现 → /review-it → /ship-it → /verify-round → /ship-archive`。**PRD 未经作者确认前不改代码**，这是流水线唯一的强制闸门。
 - 新设计：从 [设计模板](./templates/DESIGN.md) 开始；跨域取舍：从 [ADR 模板](./templates/ADR.md) 开始；拆条目：从 [issue 模板](./templates/ISSUE.md) 开始。
 - 进度不单独维护状态页：它就是 issue 文件里的验收勾选框。Git 负责变更历史，不在活文档追加流水账。
-- 改完文档后运行 `python tools/check_docs.py`，检查文件头、规模配额、断链、归档边界、入口可达性与单一台账；退出码非零表示存在必须修复的问题。查看规模趋势用 `python tools/check_docs.py --report`。
+- 改完文档后运行 `python tools/check_docs.py`，检查文件头、规模配额、断链、归档边界、入口可达性、单一台账与工作区行尾；退出码非零表示存在必须修复的问题。查看规模趋势用 `python tools/check_docs.py --report`；行尾不合规用 `python tools/check_docs.py --fix-eol` 按 `.gitattributes` 改回来。
 - 改了上面那个检查器之后，跑 `python tools/selfcheck_docs_guard.py` 自证：它造真实缺陷形状的违反、确认拦得住、再还原复验，并自报覆盖量。
 - 本机 Godot 工具链：`python tools/setup_godot.py --check` 体检已装版本；升级用 `--version <版本号>`，下载、核对官方 SHA512、解压、装导出模板、跑 `--version` 自证一步做完；清理旧版本用 `--prune <版本号>`，默认只预演，加 `--yes` 才真删。版本基线见 [ADR-0005](./decisions/ADR-0005-技术基线.md)。

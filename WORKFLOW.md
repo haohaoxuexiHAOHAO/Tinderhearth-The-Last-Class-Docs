@@ -112,6 +112,7 @@ PRD／SPEC／issue 的「待确认问题」一节不计入配额。确需超限�
 | 规则 | 执行体 |
 | --- | --- |
 | 文件头、配额、断链、归档边界、逐格限制、入口可达、单一台账 | `python tools/check_docs.py` |
+| 工作区行尾符合 `.gitattributes` | 同上（`--fix-eol` 按声明改回来）。`git diff --check` 当不了守卫，理由见[踩坑记录 28](./reference/踩坑记录.md) |
 | 上面那个检查器本身没退化 | `python tools/selfcheck_docs_guard.py` |
 | 一轮对话结束时复查文档 | `.kiro/hooks/docs-gate.json` |
 | 推送前复查文档 | `.githooks/pre-push` |
