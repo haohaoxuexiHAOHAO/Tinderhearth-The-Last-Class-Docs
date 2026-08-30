@@ -117,6 +117,7 @@ PRD／SPEC／issue 的「待确认问题」一节不计入配额。确需超限�
 | 文件头、配额、断链、归档边界、逐格限制、入口可达、单一台账 | `python tools/check_docs.py` |
 | 代码仓：构建、测试、导出与产物校验串成一条，门禁只调它 | 代码仓 `python tools/verify.py`（`ENG-3`）。测试比对条数、导出解包看清单，退出码之外另有量具 |
 | 上面那个验收入口本身没退化 | 代码仓 `python tools/selfcheck_verify.py`（注入真实缺陷形状、还原后复验、自报覆盖量） |
+| 数值模型的六条正典前提与附加约束仍成立 | `python tools/simulate_week.py`（`GP-2`）。改参数就重跑；`--check-doc` 另核设计文件与参数表没分叉 |
 | 工作区行尾符合 `.gitattributes` | 同上（`--fix-eol` 按声明改回来）。`git diff --check` 当不了守卫，理由见[踩坑记录 28](./reference/踩坑记录.md) |
 | 上面那个检查器本身没退化 | `python tools/selfcheck_docs_guard.py` |
 | 一轮对话结束时复查文档 | `.kiro/hooks/docs-gate.json` |

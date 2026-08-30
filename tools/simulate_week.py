@@ -108,6 +108,23 @@ def check(tag: str, name: str, ok: bool, detail: str, blame: str = "") -> None:
     CHECKS.append(Check(tag, name, ok, detail, blame))
 
 
+def check_cross_plan(partial: bool, tag: str, name: str, ok: bool,
+                     detail: str, blame: str, why_unjudgeable: str) -> None:
+    """登记一条**跨计划聚合**的判定。
+
+    这类判定（「至少两种安排成立」、「按最快的那份计划算还债天数」）只在跑了全部计划时
+    才有意义；只跑一份时它们必然不成立，而那种失败与数值无关。报出来的后果很具体：
+    读者会学会忽略 FAIL —— 那比没有判定更坏。所以局部范围里改成「未判」并写明原因。
+
+    新增跨计划判定时走这个入口，别再各自打补丁 —— 本轮已经因此撞过两次（P1 与 C9）。
+    """
+    if partial:
+        check(tag, f"{name}（局部范围未判）", True,
+              f"{detail}。**这条没判**：{why_unjudgeable}", blame)
+    else:
+        check(tag, name, ok, detail, blame)
+
+
 # ── 属性派生与战力 ────────────────────────────────────────────────────
 @dataclass
 class Sheet:
@@ -367,17 +384,28 @@ def simulate(p: Params, plan_name: str) -> SimResult:
 
 # ── 六条数值前提 ──────────────────────────────────────────────────────
 def check_premises(p: Params, sims: dict[str, SimResult], sheets: dict) -> None:
-    # P1：19 游戏小时装得下，且至少两种成立的一日安排
+    # P1：19 游戏小时装得下，且至少两种成立的一日安排。
+    # 「至少两种」这半条只有在跑了全部计划时才判得了；只跑一份时它必然不成立，
+    # 那种失败与数值无关，报出来只会训练人忽略 FAIL。所以局部范围里改判「跑过的都成立」，
+    # 并在判定文字里写明这一轮没覆盖哪半条。
     feasible = [name for name, r in sims.items()
                 if not r.overtime_days and not r.overstamina_days
                 and not r.student_overstamina]
-    check("P1", "19 小时与体力预算装得下，且至少两种安排成立",
-          len(feasible) >= 2,
-          f"成立的安排 {feasible}；不成立的 "
-          f"{ {n: {'超时': r.overtime_days, '超体力': r.overstamina_days,
-                   '学员超体力': r.student_overstamina}
-              for n, r in sims.items() if n not in feasible} }",
-          "actions.* 的 hours 与 stamina / stamina.per_vit")
+    broken = {n: {"超时": r.overtime_days, "超体力": r.overstamina_days,
+                  "学员超体力": r.student_overstamina}
+              for n, r in sims.items() if n not in feasible}
+    total_plans = len(p("week_plan.plans"))
+    partial = len(sims) < total_plans
+    # 跑过的计划本身超时超体力，是真失败，局部范围也照判。
+    check("P1a", "跑过的每份安排都装得进 19 小时与体力上限",
+          not broken,
+          f"跑了 {list(sims)}；成立 {feasible}；不成立 {broken}",
+          "actions 一节的 hours 与 stamina / stamina.per_vit")
+    check_cross_plan(partial, "P1b", "至少两种一日安排成立",
+                     len(feasible) >= 2,
+                     f"成立的安排 {feasible}（参数表共 {total_plans} 份计划）",
+                     "week_plan.plans",
+                     f"只跑了 {len(sims)}/{total_plans} 份，不带 --plan 才判得了")
 
     # P2：至少一种作物生长周期 ≤ 4 天
     crops = p("farm.crops")
@@ -490,13 +518,14 @@ def check_premises(p: Params, sims: dict[str, SimResult], sheets: dict) -> None:
     sorties_per_day = 1.5
     days_to_cap = sorties / sorties_per_day
     ratio_goals = days_to_cap / days_to_repay if days_to_repay else float("inf")
-    check("C9", "练满与还清债务落在同一量级（天数比 0.5–2 倍）",
-          0.5 <= ratio_goals <= 2.0,
-          f"满级需 {sheets['total_exp']:.0f} 经验 = {sorties:.0f} 次低难度出征"
-          f"≈ {days_to_cap:.0f} 天（按每天 {sorties_per_day} 次）；"
-          f"还债需 {days_to_repay:.0f} 天（按「{best.plan}」的日净收入 {net_per_day:.1f} 银）；"
-          f"比 {ratio_goals:.2f}",
-          "growth.exp_curve_base / growth.exp_curve_exponent / economy.debt_principal_silver")
+    check_cross_plan(
+        partial, "C9", "练满与还清债务落在同一量级（天数比 0.5–2 倍）",
+        0.5 <= ratio_goals <= 2.0,
+        f"满级需 {sheets['total_exp']:.0f} 经验 = {sorties:.0f} 次低难度出征 ≈ "
+        f"{days_to_cap:.0f} 天（按每天 {sorties_per_day} 次）；还债需 {days_to_repay:.0f} 天"
+        f"（按「{best.plan}」的日净收入 {net_per_day:.1f} 银）；比 {ratio_goals:.2f}",
+        "growth.exp_curve_base / growth.exp_curve_exponent / economy.debt_principal_silver",
+        "还债天数按收入最高的那份计划算，只跑一份时这个基准是任意的")
 
     # 附加：容量必须造成一次取舍，但不频繁被迫丢弃
     kinds = p("capacity.expected_sortie_item_kinds")
@@ -636,7 +665,14 @@ def main() -> int:
         f"{len(next(iter(sims.values())).rows)} 天")
     say(f"结果：{len(CHECKS) - len(bad)}/{len(CHECKS)} 条通过"
         f"／{len(bad)} 条不成立{('：' + '、'.join(bad)) if bad else ''}")
-    say("[OK] 六条数值前提与全部附加约束都成立" if not bad else "[FAIL] 有不成立的判定")
+    unjudged = [c.tag for c in CHECKS if "局部范围未判" in c.name]
+    if bad:
+        say("[FAIL] 有不成立的判定")
+    elif unjudged:
+        say(f"[WARN] 只跑了 {len(sims)}/{len(p('week_plan.plans'))} 份计划，"
+            f"{unjudged} 未判 —— 这不是一次完整判定，验收要不带 --plan 跑")
+    else:
+        say("[OK] 全部数值前提与附加约束都成立")
     say(f"日志 {flush_log().relative_to(ROOT)}")
     print(f"EXIT={1 if bad else 0}")
     return 1 if bad else 0

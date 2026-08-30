@@ -1,11 +1,13 @@
 ---
 type: workdoc
-status: testing
+status: archived
 owner: project
 last_verified: 2026-08-30
 ---
 
 # GP-2：数值模型
+
+> **本文件已归档，只读，不得作为现行依据。** 现行的公式与判据见[数值模型](../../design/数值模型.md)，当前实测值跑 `python tools/simulate_week.py`。现行待办见[台账](../../spec/issues/README.md)。
 
 ## 目标
 
@@ -13,7 +15,7 @@ last_verified: 2026-08-30
 
 ## 来源
 
-- PRD：[`prd-numeric-model.md`](../prd-numeric-model.md)（`approved`）的 `US-001` 至 `US-011`
+- PRD：[`prd-numeric-model.md`](./prd-numeric-model.md)（`approved`）的 `US-001` 至 `US-011`
 - 六条数值前提出自[玩法定位 · 留给 `GP-2` 的数值前提](../../canon/gameplay/玩法定位.md)
 
 **本条不按「一条用户故事一条 issue」拆开**，因为那条规则的前提「每条能独立实现」在这里不成立：属性公式要等战力差目标、开局配置要等时间与体力预算、定价幅度要等作物周期与委托报酬。七天推演的全部价值就在于这些量互相耦合，拆开会得到一组互相阻塞的条目。
@@ -31,7 +33,7 @@ last_verified: 2026-08-30
 | 公式、判据与理由 | [`design/数值模型.md`](../../design/数值模型.md)（长期常驻，不上升进正典） |
 | 全部值 | [`design/numeric-model-params.json`](../../design/numeric-model-params.json)（唯一值来源） |
 | 推演入口 | `tools/simulate_week.py`（含 `--curves`、`--set`、`--check-doc`） |
-| 七天推演结论 | [`spec/推演-numeric-model.md`](../推演-numeric-model.md) |
+| 七天推演结论 | [`推演-numeric-model.md`](./推演-numeric-model.md) |
 
 ## 验收标准
 
@@ -99,7 +101,7 @@ last_verified: 2026-08-30
 
 ### 七天推演（US-010）
 
-- [x] 逐日四条曲线 × 2 份计划 × 7 天，见[推演件](../推演-numeric-model.md)
+- [x] 逐日四条曲线 × 2 份计划 × 7 天，见[推演件](./推演-numeric-model.md)
 - [x] 六条前提逐条判定，失败时指出该改哪个参数
 - [x] 推演由 `python tools/simulate_week.py` 重算，不是手工表格
 - [x] 改参数后重跑，曲线随之变化（三条失败路径已实测）
@@ -159,8 +161,35 @@ last_verified: 2026-08-30
 
 ## 验证结果
 
-> 由 `/verify-round` 填写。**只写实际运行过的内容。**
+2026-08-30。改动类型是「纯文档 + 新增一个设计期守卫」，所以跑文档检查加守卫自证；**代码仓本轮未动，没跑 `verify.py`**。
 
 | 命令 | 结果 | 判定 |
 | --- | --- | --- |
-|  |  |  |
+| 设计仓 `python tools/check_docs.py` | 38 份文档／0 FAIL／1 WARN；行尾覆盖 46 个文本文件、0 未声明 | 过。WARN 是既有的 `学习CSharp` 700 行，`DOC-4` 已判可接受 |
+| 设计仓 `python tools/simulate_week.py` | 16/16 通过（7 条数值前提 + 9 条附加约束），读 87 个参数路径，推演 2 计划 × 7 天 | 过 |
+| 设计仓 `python tools/simulate_week.py --check-doc` | 带点反引号片段 46 个／认出路径 44 个／对上 44 个 | 过 |
+| 设计仓 `git diff --check` | 无输出、退出码 0 | 过。行尾另由 `check_docs.py` 按 `.gitattributes` 判 |
+| 代码仓 `git status` | 干净（超边界改动已撤回） | 过 |
+| 工作区根 `temp/` | 只剩 `README.md` | 过 |
+
+**守卫自证**（新增守卫必须用真实缺陷形状撞过，[WORKFLOW §6](../../WORKFLOW.md)）：
+
+| 注入 | 期望 | 实测 |
+| --- | --- | --- |
+| `--set farm.crops.速生叶菜.grow_days=6` | `P2` 判失败 | `P2` 与 `P3` 双失败（首收推到第 7 天、缓冲 −1.33 天、第 5–6 天断粮），13/15 |
+| `--set economy.treatment_fast_silver=90` | `P5` 判失败 | `P5` 失败，指出 3.60 倍超过 2 倍上限 |
+| `--set economy.no_such_key=1` | 报错不补默认值 | 「路径不存在（缺在 `no_such_key`）」，退出码 1 |
+| `--set economy.start_silver=`（空值） | 报错不崩 | 「没给值」，退出码 1 |
+| 设计文件插一个参数表没有的路径 | `--check-doc` 判失败 | 失败并指名，验完删除 |
+| `--plan 均衡`（局部范围） | 跨计划判定应「未判」而非失败 | `P1b`、`C9` 标未判，打 `[WARN]`，退出码 0 |
+
+最后一条是自证过程中撞出来的**真缺陷**：原先 `--plan` 只跑一份计划时，`P1`「至少两种安排」与 `C9`「按最快计划算还债天数」会结构性失败 —— 那种 FAIL 与数值无关，报出来只会训练人忽略失败。已抽出 `check_cross_plan()` 统一处理，并在它的文档注释里写明「新增跨计划判定走这个入口，别再各自打补丁」。
+
+**未验证的，逐条说清：**
+
+- **战斗数值一次都没实跑。** `C1`、`C3`、`C4`、`C6` 全是纸面算式。实机手感要等战斗实现。
+- **推演是期望值推演。** 战利品与伤病按期望折算，没做方差；单次运气差的一天会比表里紧。
+- **只推了七天、两份计划。** 换季、跨季枯死、学员陆续加入、债务开始计息都在七天之外。
+- **学员派工里加工与训练的产出没折算成银**，所以「均衡」计划的真实收益高于表上的 277 银，高多少未算。
+
+**判定：本轮可以收。**
