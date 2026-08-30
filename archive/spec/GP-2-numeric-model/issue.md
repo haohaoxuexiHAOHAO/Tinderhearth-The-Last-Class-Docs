@@ -7,7 +7,7 @@ last_verified: 2026-08-30
 
 # GP-2：数值模型
 
-> **本文件已归档，只读，不得作为现行依据。** 现行的公式与判据见[数值模型](../../design/数值模型.md)，当前实测值跑 `python tools/simulate_week.py`。现行待办见[台账](../../spec/issues/README.md)。
+> **本文件已归档，只读，不得作为现行依据。** 现行的公式与判据见[数值模型](../../../design/数值模型.md)，当前实测值跑 `python tools/simulate_week.py`。现行待办见[台账](../../../spec/issues/README.md)。
 
 ## 目标
 
@@ -15,8 +15,8 @@ last_verified: 2026-08-30
 
 ## 来源
 
-- PRD：[`prd-numeric-model.md`](./prd-numeric-model.md)（`approved`）的 `US-001` 至 `US-011`
-- 六条数值前提出自[玩法定位 · 留给 `GP-2` 的数值前提](../../canon/gameplay/玩法定位.md)
+- PRD：[`prd.md`](./prd.md)（`approved`）的 `US-001` 至 `US-011`
+- 六条数值前提出自[玩法定位 · 留给 `GP-2` 的数值前提](../../../canon/gameplay/玩法定位.md)
 
 **本条不按「一条用户故事一条 issue」拆开**，因为那条规则的前提「每条能独立实现」在这里不成立：属性公式要等战力差目标、开局配置要等时间与体力预算、定价幅度要等作物周期与委托报酬。七天推演的全部价值就在于这些量互相耦合，拆开会得到一组互相阻塞的条目。
 
@@ -30,10 +30,10 @@ last_verified: 2026-08-30
 
 | 产出 | 落点 |
 | --- | --- |
-| 公式、判据与理由 | [`design/数值模型.md`](../../design/数值模型.md)（长期常驻，不上升进正典） |
-| 全部值 | [`design/numeric-model-params.json`](../../design/numeric-model-params.json)（唯一值来源） |
+| 公式、判据与理由 | [`design/数值模型.md`](../../../design/数值模型.md)（长期常驻，不上升进正典） |
+| 全部值 | [`design/numeric-model-params.json`](../../../design/numeric-model-params.json)（唯一值来源） |
 | 推演入口 | `tools/simulate_week.py`（含 `--curves`、`--set`、`--check-doc`） |
-| 七天推演结论 | [`推演-numeric-model.md`](./推演-numeric-model.md) |
+| 七天推演结论 | [`推演.md`](./推演.md) |
 
 ## 验收标准
 
@@ -101,7 +101,7 @@ last_verified: 2026-08-30
 
 ### 七天推演（US-010）
 
-- [x] 逐日四条曲线 × 2 份计划 × 7 天，见[推演件](./推演-numeric-model.md)
+- [x] 逐日四条曲线 × 2 份计划 × 7 天，见[推演件](./推演.md)
 - [x] 六条前提逐条判定，失败时指出该改哪个参数
 - [x] 推演由 `python tools/simulate_week.py` 重算，不是手工表格
 - [x] 改参数后重跑，曲线随之变化（三条失败路径已实测）
@@ -172,7 +172,7 @@ last_verified: 2026-08-30
 | 代码仓 `git status` | 干净（超边界改动已撤回） | 过 |
 | 工作区根 `temp/` | 只剩 `README.md` | 过 |
 
-**守卫自证**（新增守卫必须用真实缺陷形状撞过，[WORKFLOW §6](../../WORKFLOW.md)）：
+**守卫自证**（新增守卫必须用真实缺陷形状撞过，[WORKFLOW §6](../../../WORKFLOW.md)）：
 
 | 注入 | 期望 | 实测 |
 | --- | --- | --- |
