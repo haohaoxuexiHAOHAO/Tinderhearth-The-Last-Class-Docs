@@ -15,7 +15,10 @@ last_verified: 2026-08-26
 | --- | --- | --- |
 | `prd-<slug>.md` | 需求文档：US-NNN 用户故事、FR-N 功能需求、验收清单、非目标 | `/prd` |
 | `spec-<slug>.md` | 技术规格：场景与节点结构、数据约定、状态机、失败处理、测试映射 | `/prd-to-spec` |
+| `推演-<slug>.md` | 纸面推演：把循环手算一遍找漏，验收用。归档时随需求一起移走 | 无（按需手写） |
 | [`issues/`](./issues/README.md) | 可实现条目，一条一个文件；索引即待办台账 | `/to-issues` |
+
+**当前没有进行中的需求。** 新需求走 `/prd` 立项；下一件事从[待办台账](./issues/README.md)挑。
 
 `<slug>` 是简短英文标识，全小写、连字符分隔，例如 `gameplay-positioning`、`combat-feel-tuning`。
 
