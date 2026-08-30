@@ -118,6 +118,7 @@ PRD／SPEC／issue 的「待确认问题」一节不计入配额。确需超限�
 | 代码仓：构建、测试、导出与产物校验串成一条，门禁只调它 | 代码仓 `python tools/verify.py`（`ENG-3`）。测试比对条数、导出解包看清单，退出码之外另有量具 |
 | 上面那个验收入口本身没退化 | 代码仓 `python tools/selfcheck_verify.py`（注入真实缺陷形状、还原后复验、自报覆盖量） |
 | 数值模型的六条正典前提与附加约束仍成立 | `python tools/simulate_week.py`（`GP-2`）。改参数就重跑；`--check-doc` 另核设计文件与参数表没分叉 |
+| 选定字体的授权没变、上游字形来源仍可查、文案里的字没缺 | `python tools/audit_fonts.py`（`ART-2`／[ADR-0008](./decisions/ADR-0008-中文像素字体选型.md)）。许可证 SHA256 与关键句、上游七环、语料覆盖 |
 | 工作区行尾符合 `.gitattributes` | 同上（`--fix-eol` 按声明改回来）。`git diff --check` 当不了守卫，理由见[踩坑记录 28](./reference/踩坑记录.md) |
 | 上面那个检查器本身没退化 | `python tools/selfcheck_docs_guard.py` |
 | 一轮对话结束时复查文档 | `.kiro/hooks/docs-gate.json` |

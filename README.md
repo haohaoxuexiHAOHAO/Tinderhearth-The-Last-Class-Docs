@@ -57,4 +57,5 @@ last_verified: 2026-08-25
 - 进度不单独维护状态页：它就是 issue 文件里的验收勾选框。Git 负责变更历史，不在活文档追加流水账。
 - 改完文档后运行 `python tools/check_docs.py`，检查文件头、规模配额、断链、归档边界、入口可达性、单一台账与工作区行尾；退出码非零表示存在必须修复的问题。查看规模趋势用 `python tools/check_docs.py --report`；行尾不合规用 `python tools/check_docs.py --fix-eol` 按 `.gitattributes` 改回来。
 - 改了上面那个检查器之后，跑 `python tools/selfcheck_docs_guard.py` 自证：它造真实缺陷形状的违反、确认拦得住、再还原复验，并自报覆盖量。
+- 中文像素字体（[ADR-0008](./decisions/ADR-0008-中文像素字体选型.md)）：`python tools/audit_fonts.py` 核授权原文与上游字形来源、量字形覆盖与字宽行高；`python tools/font_preview.py` 把字渲进 Godot 看实机效果（可读性只能人判），两者都用 `--clean` 收尾。
 - 本机 Godot 工具链：`python tools/setup_godot.py --check` 体检已装版本；升级用 `--version <版本号>`，下载、核对官方 SHA512、解压、装导出模板、跑 `--version` 自证一步做完；清理旧版本用 `--prune <版本号>`，默认只预演，加 `--yes` 才真删。版本基线见 [ADR-0005](./decisions/ADR-0005-技术基线.md)。
