@@ -2,6 +2,10 @@
 __pycache__/
 *.pyc
 
+# 工具日志。tools/simulate_week.py 自己写 UTF-8 日志到这里（不靠 shell 重定向）。
+# 它们是某一次运行的证据而不是仓库内容，要留证就把结论写进推演件。
+/logs/
+
 # 编辑器与操作系统
 .vs/
 .vscode/

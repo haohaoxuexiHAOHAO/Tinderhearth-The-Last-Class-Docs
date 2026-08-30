@@ -1,0 +1,198 @@
+{
+  "//": "《火种：最后一届》数值模型参数表（GP-2）。这是全部数值的唯一来源。",
+  "//权威性": "design/数值模型.md 解释公式与理由，本文件持有值。两处不一致时以本文件为准，并跑 python tools/simulate_week.py --check-doc 找出分叉。",
+  "//单位": "时间=游戏小时(h)，最小粒度 0.5；体力=点(EN)；金钱=银币(银)，1 金=100 银，1 银=10 铜；粮食=份，每人每天 1 份。",
+  "//命名": "作物与素材用暂用名（速生叶菜、块根等）。正式命名归 NR-1 与 ART 侧，本轮不占用。",
+
+  "meta": {
+    "version": 1,
+    "last_verified": "2026-08-30",
+    "scale_choice": "HP 三位数、伤害两位数（作者 2026-08-30 选定）",
+    "power_gap_target": [4.0, 6.0]
+  },
+
+  "time": {
+    "day_start_hour": 6.5,
+    "day_hard_end_hour": 25.5,
+    "playable_hours": 19.0,
+    "late_night_start": 22.0,
+    "late_night_heavy_start": 24.0,
+    "season_days": 30
+  },
+
+  "stamina": {
+    "base": 40,
+    "per_vit": 6,
+    "meal_full": 0,
+    "meal_missing": -20,
+    "housing_by_level": [0, 10, 20],
+    "health_normal": 0,
+    "health_light_injury": -15,
+    "health_heavy_injury": -30,
+    "late_night_light": -15,
+    "late_night_heavy": -30
+  },
+
+  "attributes": {
+    "start_protagonist": { "str": 5, "agi": 5, "vit": 5, "int": 5 },
+    "start_student": { "str": 4, "agi": 4, "vit": 5, "int": 4 },
+    "level_cap": 20,
+    "attr_points_per_level": 2,
+    "attr_point_cap_from_embers": 6
+  },
+
+  "derived": {
+    "hp_base": 80, "hp_per_vit": 12,
+    "mp_base": 20, "mp_per_int": 5,
+    "sp_base": 40, "sp_per_vit": 3,
+    "atk_base": 20, "atk_per_str": 3.0,
+    "def_base": 3, "def_per_vit": 0.8,
+    "def_softening_k": 60,
+    "crit_base": 0.03, "crit_per_agi": 0.007, "crit_cap": 0.35, "crit_multiplier": 1.5,
+    "dodge_base": 0.02, "dodge_per_agi": 0.004, "dodge_cap": 0.20,
+    "carry_base": 6, "carry_per_str": 0.4,
+    "atk_speed_base": 1.2, "atk_speed_per_agi": 0.02,
+    "read_speed_base": 1.0, "read_speed_per_int": 0.04
+  },
+
+  "move_multipliers": {
+    "//": "主角是低伤连击加辅助定位，伤害来自学员（人物正典）。倍率因此显著低。",
+    "protagonist_light": 0.35,
+    "protagonist_heavy": 0.60,
+    "student_light": 0.90,
+    "student_heavy": 1.50
+  },
+
+  "resources": {
+    "mp_per_light_hit": 3,
+    "light_hits_per_second": 1.5,
+    "perfect_guard_mp": 2,
+    "perfect_guard_hp_ratio": 0.02,
+    "perfect_guard_opportunities_per_second": 0.5,
+    "sp_dodge": 12,
+    "sp_guard_per_second": 8,
+    "stagger_sp_refund_ratio": 0.35
+  },
+
+  "growth": {
+    "exp_curve_base": 60,
+    "exp_curve_exponent": 1.35,
+    "talent_nodes_total": 12,
+    "talent_points_cap": 6,
+    "talent_points_from_levels": 2,
+    "talent_points_from_training": 4,
+    "training_days_per_talent_point": 6,
+    "exp_per_sortie_low": 60,
+    "exp_per_training_day": 12,
+    "benched_exp_ratio": 0.4,
+    "skill_use_value_per_hit": 1,
+    "skill_use_value_tiers": [40, 120, 260]
+  },
+
+  "actions": {
+    "//": "耗时与耗体力。主角亲自劳作效率高于派工，但花他自己的体力。",
+    "water_plot": { "hours": 0.5, "stamina": 4 },
+    "tend_plot_self": { "hours": 1.0, "stamina": 8 },
+    "tend_plot_self_spirit_hand": { "hours": 1.0, "stamina": 16, "plots": 2 },
+    "read_skillbook_segment": { "hours": 2.0, "stamina": 8 },
+    "craft_batch": { "hours": 1.5, "stamina": 10 },
+    "train_session": { "hours": 2.0, "stamina": 12 },
+    "sortie_gather": { "hours": 4.0, "stamina": 25 },
+    "sortie_clear": { "hours": 5.0, "stamina": 30 },
+    "sortie_escort": { "hours": 6.0, "stamina": 35 }
+  },
+
+  "assignments": {
+    "//": "学员派工：一天一个工位，消耗该学员体力。",
+    "planting": { "stamina": 25, "plots_tended": 1 },
+    "crafting": { "stamina": 30, "batches": 1 },
+    "training": { "stamina": 40 },
+    "reading": { "stamina": 20, "segments": 3 },
+    "nursing": { "stamina": 25, "recovery_days": 1 }
+  },
+
+  "skillbook": {
+    "segments_per_book": 6,
+    "price_silver": 80
+  },
+
+  "farm": {
+    "starting_plot_cells": 12,
+    "crops": {
+      "速生叶菜": { "grow_days": 3, "seed_silver": 3, "yield_per_cell": 2, "sell_silver": 8, "food": true, "seasons": ["春"] },
+      "块根": { "grow_days": 6, "seed_silver": 5, "yield_per_cell": 3, "sell_silver": 14, "food": true, "seasons": ["春", "秋"] },
+      "谷物": { "grow_days": 5, "seed_silver": 4, "yield_per_cell": 3, "sell_silver": 12, "food": true, "seasons": ["夏"] },
+      "药草": { "grow_days": 8, "seed_silver": 9, "yield_per_cell": 2, "sell_silver": 26, "food": false, "seasons": ["春", "夏", "秋", "冬"] }
+    }
+  },
+
+  "economy": {
+    "start_silver": 60,
+    "start_food": 14,
+    "debt_principal_silver": 20000,
+    "debt_quarterly_rate": 0.015,
+    "debt_first_season_free": true,
+    "food_per_person_per_day": 1,
+    "food_buy_silver": 6,
+    "mission_reward_silver": { "gather": 25, "clear": 35, "escort": 45 },
+    "mission_loot_expected_silver": { "gather": 18, "clear": 22, "escort": 26 },
+    "mission_tier_reward_multiplier": { "普通": 1.0, "精英": 1.6, "噩梦": 2.5 },
+    "treatment_fast_silver": 40,
+    "treatment_fast_days": 1,
+    "treatment_slow_days": 4,
+    "injury_probability_low_mission": 0.15,
+    "consumable_expected_silver_per_sortie": 6
+  },
+
+  "pricing": {
+    "//": "成交价 = 基础价 × 需求系数 × 供给系数。每层都必须可命名、可解释（手环可查）。",
+    "demand_preferred": 1.35,
+    "demand_normal": 1.0,
+    "demand_oversupplied": 0.85,
+    "supply_batch_threshold": 10,
+    "supply_step_decay": 0.08,
+    "supply_floor": 0.6
+  },
+
+  "materials": {
+    "buyable_basic": ["木料", "石料", "粗布"],
+    "crafted_only": ["加固木梁", "灵能导线"],
+    "craft_recipes": {
+      "加固木梁": { "inputs": { "木料": 3 }, "hours": 1.5, "sell_silver": 22 },
+      "灵能导线": { "inputs": { "石料": 2, "粗布": 1 }, "hours": 1.5, "sell_silver": 30 }
+    }
+  },
+
+  "capacity": {
+    "backpack_slots_by_level": [16, 20, 24, 28],
+    "warehouse_slots_by_level": [40, 70, 110],
+    "stack_limit_default": 20,
+    "expected_sortie_item_kinds": 14
+  },
+
+  "week_plan": {
+    "//": "参考七天玩法。推演按它逐日记账；换一份计划就是换一种一日安排。",
+    "students_at_start": 2,
+    "housing_level_at_start": 1,
+    "plans": {
+      "均衡": [
+        { "day": 1, "protagonist": ["tend_plot_self", "sortie_gather"], "sow": { "速生叶菜": 8, "药草": 4 }, "assignments": { "s1": "planting", "s2": "reading" } },
+        { "day": 2, "protagonist": ["water_plot", "sortie_clear"], "assignments": { "s1": "planting", "s2": "crafting" } },
+        { "day": 3, "protagonist": ["water_plot", "sortie_clear", "read_skillbook_segment"], "assignments": { "s1": "planting", "s2": "training" } },
+        { "day": 4, "protagonist": ["water_plot", "sortie_gather"], "assignments": { "s1": "planting", "s2": "crafting" } },
+        { "day": 5, "protagonist": ["water_plot", "sortie_clear"], "sow": { "速生叶菜": 8 }, "assignments": { "s1": "planting", "s2": "reading" } },
+        { "day": 6, "protagonist": ["water_plot", "sortie_escort"], "assignments": { "s1": "planting", "s2": "training" } },
+        { "day": 7, "protagonist": ["water_plot", "sortie_clear", "craft_batch"], "assignments": { "s1": "planting", "s2": "crafting" } }
+      ],
+      "重出征": [
+        { "day": 1, "protagonist": ["tend_plot_self", "sortie_gather", "sortie_gather"], "sow": { "速生叶菜": 12 }, "assignments": { "s1": "planting", "s2": "planting" } },
+        { "day": 2, "protagonist": ["water_plot", "sortie_clear", "sortie_gather"], "assignments": { "s1": "planting", "s2": "crafting" } },
+        { "day": 3, "protagonist": ["water_plot", "sortie_clear"], "assignments": { "s1": "planting", "s2": "training" } },
+        { "day": 4, "protagonist": ["water_plot", "sortie_escort"], "assignments": { "s1": "planting", "s2": "crafting" } },
+        { "day": 5, "protagonist": ["water_plot", "sortie_clear", "sortie_gather"], "sow": { "速生叶菜": 12 }, "assignments": { "s1": "planting", "s2": "reading" } },
+        { "day": 6, "protagonist": ["water_plot", "sortie_escort"], "assignments": { "s1": "planting", "s2": "training" } },
+        { "day": 7, "protagonist": ["water_plot", "sortie_clear", "sortie_gather"], "assignments": { "s1": "planting", "s2": "crafting" } }
+      ]
+    }
+  }
+}

@@ -18,7 +18,7 @@ last_verified: 2026-08-26
 | `推演-<slug>.md` | 纸面推演：把循环手算一遍找漏，验收用。归档时随需求一起移走 | 无（按需手写） |
 | [`issues/`](./issues/README.md) | 可实现条目，一条一个文件；索引即待办台账 | `/to-issues` |
 
-**当前进行中**：[`prd-numeric-model.md`](./prd-numeric-model.md) —— 数值模型（`GP-2`），`approved`（2026-08-30 作者确认）。
+**当前进行中**：[`prd-numeric-model.md`](./prd-numeric-model.md) —— 数值模型（`GP-2`），`approved`（2026-08-30 作者确认）。配套[推演](./推演-numeric-model.md)与条目 [`issue-GP-2`](./issues/issue-GP-2-numeric-model.md)。
 
 `<slug>` 是简短英文标识，全小写、连字符分隔，例如 `gameplay-positioning`、`combat-feel-tuning`。
 

@@ -33,6 +33,7 @@ last_verified: 2026-08-25
 | 美术与文案 | [像素绘制原则](./production/像素绘制原则.md) · [文案写作规范](./production/文案写作规范.md) |
 | 学习与排错 | [C# 学习](./reference/学习CSharp-Java程序员向.md) · [踩坑记录](./reference/踩坑记录.md) |
 | 需求与待办 | [spec/](./spec/README.md)（进行中需求）· [待办台账](./spec/issues/README.md)（唯一待办索引） |
+| 数值 | [数值模型](./design/数值模型.md)（公式与判据）· 值在 `design/numeric-model-params.json`，推演入口 `python tools/simulate_week.py` |
 | 流程与设计 | [WORKFLOW](./WORKFLOW.md)（工作流规则）· [专项设计](./design/README.md)（活跃方案） |
 | 决策与历史 | [ADR 索引](./decisions/README.md)（含工程性取舍，代码仓库不另设决策目录）· [历史归档](./archive/README.md)（只读，含变更日志） |
 
