@@ -2,7 +2,7 @@
 type: workdoc
 status: draft
 owner: project
-last_verified: 2026-08-30
+last_verified: 2026-08-31
 ---
 
 # UI-4：`canvas_items` 下 12px 像素字的实测与结论回写
@@ -31,7 +31,7 @@ last_verified: 2026-08-30
 - [x] 结论写回 [ADR-0008](../../decisions/ADR-0008-中文像素字体选型.md)「未验证（一）」段
 - [x] 成立，**不需要**回退 `viewport` 模式
 - [x] **反证两次**，确认承重项是哪个：不钉 `oversampling=1.0` 结果逐字节不变；纹理过滤改线性则三档最小跑长全塌到 1、非背景段数从 7982／15972 涨到 31458／125652
-- [ ] 作者实机确认（跟 `UI-8` 的 HUD 一起看，那时屏幕上才有成段中文）
+- [x] 作者实机确认（作者 2026-08-31 实机确认：动态下 12px 中文块状可读，未发现问题）
 
 复现：`python tools/font_preview.py --measure --canvas-items`，反证加 `--linear-filter` 或 `--loose-oversampling`。
 
