@@ -48,7 +48,7 @@ last_verified: 2026-08-26
 
 | id | 优先级 | 待办 | 备注 |
 | --- | --- | --- | --- |
-| `UI-3` | **最高** | 逻辑分辨率与缩放链路落进工程 | [文件](./issue-UI-3-logical-resolution.md)。640×360、`scale_mode="integer"`、最近邻过滤三项都还没设（2026-08-30 读 `project.godot` 实测），不设第一张素材进去就是糊的且不报错。`UI-1` 其余条目都依赖它 |
+| `UI-3` | **最高** | 逻辑分辨率与缩放链路落进工程 | [文件](./issue-UI-3-logical-resolution.md)。**九条验收全过，待归档**（作者 2026-08-31 实机确认）：`project.godot` 四项配置就位，四档 16:9 窗口经 `check_scaling.py --exported` 验为整数缩放。判据守不变量（`expand` 下逻辑宽是变量、非定值，见踩坑 42），不守定值 2／3／4／6。`UI-1` 其余条目都依赖它，随 `UI-1` 收口一并归档 |
 | `UI-4` | 高 | `canvas_items` 下 12px 像素字的实测与结论回写 | [文件](./issue-UI-4-pixel-text-canvas-items.md)。依赖 `UI-3`。**本轮唯一技术未知项**：[ADR-0008](../../decisions/ADR-0008-中文像素字体选型.md) 那套字体实测是在 `stretch/mode="viewport"` 下做的，工程用 `canvas_items`，后者按屏幕尺寸光栅化字形。不成立会推翻整套渲染配置，所以排在相机与界面之前 |
 | `UI-5` | 中 | 相机五项行为 | [文件](./issue-UI-5-camera.md)。**八条验收全过，待归档**（作者 2026-08-31 实机确认）：几何落 `rules/Ui/CameraRig.cs`、节点落 `src/World/GameCamera.cs`（`sealed`，两种视角共用），守卫 `tools/check_camera.py` 加自证 `selfcheck_camera.py`，验收脚手架 `src/World/CameraHarness.cs`（`UI-8` 的 HUD 加在它上面）。"共用同一份实现"的执行体是静态核唯一 `Camera2D` 派生类型加行为核两视角判据名字集合全等。手感六个数按第一版定，后续调整见 `UI-12` |
 | `UI-6` | 中 | 界面层级、导航栈与手环容器骨架，含栅格与边距规范 | [文件](./issue-UI-6-ui-skeleton.md)。依赖 `UI-3`。手环取"统一容器带标签页"（作者 2026-08-30 定），关卡内操作页禁用、查看页可用。交出栅格、内边距、间距、安全边距四个数与图标档位给 `DOC-2` |
