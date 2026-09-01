@@ -2,7 +2,7 @@
 type: backlog
 status: active
 owner: project
-last_verified: 2026-08-26
+last_verified: 2026-09-01
 ---
 
 # 待办台账
@@ -48,25 +48,16 @@ last_verified: 2026-08-26
 
 | id | 优先级 | 待办 | 备注 |
 | --- | --- | --- | --- |
-| `UI-3` | **最高** | 逻辑分辨率与缩放链路落进工程 | [文件](./issue-UI-3-logical-resolution.md)。**九条验收全过，待归档**（作者 2026-08-31 实机确认）：`project.godot` 四项配置就位，四档 16:9 窗口经 `check_scaling.py --exported` 验为整数缩放。判据守不变量（`expand` 下逻辑宽是变量、非定值，见踩坑 42），不守定值 2／3／4／6。`UI-1` 其余条目都依赖它，随 `UI-1` 收口一并归档 |
-| `UI-4` | 高 | `canvas_items` 下 12px 像素字的实测与结论回写 | [文件](./issue-UI-4-pixel-text-canvas-items.md)。**八条验收全过，待归档**（作者 2026-08-31 实机确认动态下 12px 中文块状可读）：实测 `canvas_items` 下 12px 字仍块状（×2／×3／×4 最小同色跑长 2／3／4），承重项是最近邻纹理过滤（非 oversampling，两次反证），结论已回写 ADR-0008。局部覆盖 `texture_filter` 会毁字的守卫归 `ENG-13`。依赖 `UI-3`，随 `UI-1` 收口一并归档 |
-| `UI-5` | 中 | 相机五项行为 | [文件](./issue-UI-5-camera.md)。**八条验收全过，待归档**（作者 2026-08-31 实机确认）：几何落 `rules/Ui/CameraRig.cs`、节点落 `src/World/GameCamera.cs`（`sealed`，两种视角共用），守卫 `tools/check_camera.py` 加自证 `selfcheck_camera.py`，验收脚手架 `src/World/CameraHarness.cs`（`UI-8` 的 HUD 加在它上面）。"共用同一份实现"的执行体是静态核唯一 `Camera2D` 派生类型加行为核两视角判据名字集合全等。手感六个数按第一版定，后续调整见 `UI-12` |
-| `UI-6` | 中 | 界面层级、导航栈与手环容器骨架，含栅格与边距规范 | [文件](./issue-UI-6-ui-skeleton.md)。**十一条验收全过，待归档**（作者 2026-08-31 随 UI-8 实机确认）：层级定义在 `rules/Ui/UiLayer.cs` 一处（10 的间隔编号）、导航栈逐层返回、手环统一容器带标签页（关卡内操作页禁用）、暂停由导航栈整体决定。栅格 8／内边距 4／间距 4-8／安全边距 8／图标 16-32 已交付 `DOC-2`。依赖 `UI-3`，随 `UI-1` 收口一并归档 |
-| `UI-7` | 中 | 输入映射：键鼠与手柄，6 技能位走修饰键组合 | [文件](./issue-UI-7-input-mapping.md)。**六条验收全过，待归档**（作者 2026-08-31 确认，手柄呈现经脚手架 G 键预览）：修饰键取两个扳机、闪避冲刺拆两键（作者 2026-08-30 定、正典同日改）、技能轮盘排除；默认绑定不写 `[input]` 段、走规则层纯数据，守卫 `check_input_map.py`＋自证。`UI-8` 依赖本条。`GP-9`（闪避方向）与 `UI-11`（面板输入遮挡）从本条撞出、各自记账。随 `UI-1` 收口一并归档 |
-| `UI-8` | 中 | 关卡 HUD 的屏幕空间部分 | [文件](./issue-UI-8-hud-screen-space.md)。**八条机器判据＋作者实机全过，待归档**（2026-08-31：键鼠确认 12px 动态可读、HUD 不压中部；手柄呈现经脚手架 `G` 键预览确认）。技能栏去数字去记号列两步收紧到 112×24、占屏 9.05%→7.43%；目标态调试键 `F8`→`O` 加守卫 `check_harness_debug_keys` 与自证；字体算发行例外已定案（见 `ENG-12`）。放置四角贴边、占位色板照用（归 `DOC-2` 定稿），字体与 `Theme` 随本条进仓、`ART-3` 一起做掉。`UI-1` 的样板界面，随其收口一并归档 |
-| `UI-9` | 中 | 世界空间 UI：读条、精英血条、伤害数字 | [文件](./issue-UI-9-world-space-ui.md)。依赖 `UI-6`，与 `UI-8` 可并行。[战斗与关卡](../../canon/gameplay/战斗与关卡.md)明确否掉"读条画在界面角落"，要求画在执行者身上 |
-| `UI-10` | 中 | `UI-1` 的端到端验证 | [文件](./issue-UI-10-e2e.md)。依赖本轮全部条目 |
 | `UI-12` | 低 | 相机手感数值的后续调整 | **第一版已定**（作者 2026-08-31 用 `UI-5` 的验收脚手架逐项试过跟随、震动、推镜、演出归还，六个数按那一版通过）。值在代码仓 `rules/Ui/CameraFeel.cs`，量纲与允许区间有规则层测试盯着，所以调值不改结构。本条留着是因为手感会随战斗实现变（顿帧与击退一进来，震动幅度大概要重调）—— 那时按本条改，不必重开需求。刻意**不进** `design/数值模型.md`：那份持有的是进得了不等式判据的平衡量，相机手感一条公式都不进 |
 | `UI-11` | 中 | 不暂停的面板打开时玩法动作该不该屏蔽 | `UI-7` 实现时撞出来的，跨 `UI-6` 的导航栈与 `UI-7` 的输入门面，故不在 `UI-7` 顺手定。形状：手柄的确认与返回补在下面键与右面键上，而那两个位同时是跳跃与闪避；面板里由拿到焦点的控件消费 `ui_accept`，**但消费不清轮询状态**（`UI-7` 实测）。于是关卡内打开背包（正典要求不暂停）时按确认会既点按钮又跳。正确行为不显然：世界还在跑，跳跃该不该仍然可用？定了之后落点是 `InputRouter` 的遮挡判定，与修饰键那套共用一个门面 |
-| `UI-1` | 中 | 确定逻辑分辨率与界面结构 | **进行中。** PRD 为 [`prd-ui-framework.md`](../prd-ui-framework.md)（2026-08-30 作者确认 `approved`），上游约束、六项立项决定与非目标都在那份，本行不复述。已拆成 `UI-3`–`UI-10` 与 `ART-4`、`ENG-10`、`ENG-12`。取 640×360、骨架加一个样板界面、手柄修饰键、手环统一容器四项已定。`DOC-2` 卡在本条 |
+| `UI-1` | 中 | 确定逻辑分辨率与界面结构 | **已归档（2026-09-01）。** 归档件在 [`archive/spec/UI-1-ui-framework/`](../../archive/spec/UI-1-ui-framework/)（**历史背景·非依据**）。现行事实：逻辑分辨率 640×360 在 `project.godot`；规则层实现在代码仓 `rules/Ui/`；守卫在 `tools/verify.py` 与各专项守卫。`DOC-2`（色彩定稿）仍依赖本条已交付的排版单位 |
 | `UI-2` | 低 | 其他宽高比与设备的适配（Steam Deck 等） | 依赖 `UI-1`。**明确后置**：第一优先只保证 Steam 的 Windows PC 端。Steam Deck 是 16:10（1280×800），只支持 16:9 的游戏在上面会有黑边。两条零成本前提已在[玩法定位](../../canon/gameplay/玩法定位.md)守住：`project.godot` 的 `aspect="expand"` 保持不动、界面用锚点与容器而非绝对坐标 —— 做到这两条，本条就是调参数而不是重排全部界面 |
 
 ## 美术与音频
 
 | id | 优先级 | 待办 | 备注 |
 | --- | --- | --- | --- |
-| `ART-3` | 中 | 字体随发行必须附 OFL 许可证与版权声明的守卫 | **已实现待归档**（2026-08-31 随 `UI-8` 字体进仓那轮做掉，不记账 —— 只记账的话从字体进仓那天起发行包就是「有字体没许可证」，那不是将来的风险而是当下的缺陷）。落成代码仓 `tools/verify.py` 解包清单那一步的判据「包里出现 `.fontdata`／`.ttf`／`.otf` 就必须有 `assets/fonts/LICENSE-OFL.txt`」，用 `selfcheck_verify.py` 的「把许可证从 `include_filter` 去掉」自证过。OFL 第 3 条（改字形或子集化后不得沿用原名）**机器判不了**，写进素材登记表授权栏作人工验收，且本项目不做子集化 |
-| `ART-4` | 高 | 占位素材生成器与素材槽位登记表 | [文件](./issue-ART-4-placeholder-assets.md)。**十二条验收全过，待归档**（作者 2026-08-31 实机确认布局、补下载件来源 URL）：生成器 `tools/gen_placeholders.py` 产 24 槽位（逐字节确定）、登记表 `tools/asset-registry.json` 锁尺寸帧数、校验 delegate 给 `ENG-10`。发行包只允许作者自绘素材（守卫 `ENG-12`），4 个 samurai 下载件带来源与授权、不进包。曾阻塞 `UI-8` 与 `ENG-10`（均已完成），随 `UI-1` 收口一并归档 |
+| `ART-3` | 中 | 字体随发行必须附 OFL 许可证与版权声明的守卫 | **已归档（2026-09-01，随 `UI-1` 收口）。** 现行事实：`verify.py` 的 `manifest_report`（判据「包里有字体必须有 `LICENSE-OFL.txt`」）；守卫在 `tools/selfcheck_verify.py` 22 条用例内；归档件在 [`archive/spec/UI-1-ui-framework/`](../../archive/spec/UI-1-ui-framework/)（**历史背景·非依据**） |
 | `ART-5` | 中 | 下载素材里的柔和投影怎么处理 | [文件](./issue-ART-5-soft-shadow-policy.md)。`UI-5` 收 `fantansy lands` 时撞出来的：五张图全带柔和投影，而[像素绘制原则 §9](../../production/像素绘制原则.md) 把硬 alpha 定为**绝对规则**，`ENG-10` 当场拦下。**每个下载包都会复发**，所以要定一次。四条候选与各自代价在 issue 里 |
 | `ART-1` | 中 | 音频：BGM 与音效 | **玩法定位已就绪。** 连击类动作战斗对打击音反馈依赖很高，没有音效手感是残的 —— 但音频不属于玩法定位，已明确排出其范围。需覆盖：打击与受击反馈、技能、界面、环境与昼夜、季节 BGM |
 
@@ -75,9 +66,6 @@ last_verified: 2026-08-26
 | id | 优先级 | 待办 | 备注 |
 | --- | --- | --- | --- |
 | `ENG-4` | 中 | 代码仓建立 `CONVENTIONS.md` | 依赖 `ENG-2`。[C# 学习](../../reference/学习CSharp-Java程序员向.md)的命名与风格部分以它为准 |
-| `ENG-10` | 高 | 假像素守卫：半透明像素、错误缩放与槽位登记比对 | [文件](./issue-ENG-10-fake-pixel-guard.md)。**已实现待归档**：落成代码仓 `tools/check_assets.py`，接成 `verify.py` 的第一步。四类检查（半透明像素、整图放大件、登记表双向比对、纹理导入参数）加一个误判方向（纯色图不得判成放大件），自证 16/16 条按预期拦下。校验只有一份实现 —— 生成器改为调它 |
-| `ENG-12` | 中 | 发行包只许含作者自绘素材的导出守卫 | [文件](./issue-ENG-12-placeholder-export-guard.md)。**七条验收全过，待归档**（2026-08-31 实现）：落成代码仓 `verify.py` 的 `audit_release_assets`，接在导出步解包清单里（不新增并行门禁）；按登记表「可进发行包」字段判、不按路径（字体是永久依赖、两档都放行）；分日常（放行占位件、报「还有 N 个待替换」、拦未登记）与 `--release`（占位件下载件一律不许）两档；自证 3 条接进 `selfcheck_verify.py`（20/20）。依赖 `ART-4`（已完成），随 `UI-1` 收口一并归档 |
-| `ENG-13` | 中 | 界面节点不得局部覆盖 `texture_filter` 的守卫 | [文件](./issue-ENG-13-texture-filter-guard.md)。**六条验收全过，待归档**（2026-08-31）：落成 `check_assets.py` 的 `check_texture_filter`（接 `verify.py` 第一步静态扫描）—— 扫 `.tscn`／`.tres` 与 `src`／`rules` C# 的 `texture_filter` 覆盖，干净仓扫 42 份 0 覆盖；自证 2 条进 `selfcheck_verify.py`（22/22）。加扫 C# 超原范围（见 issue 偏离）。随 `UI-1` 归档 |
 | `ENG-11` | 中 | 行尾守卫覆盖到代码仓 | 依赖 `ENG-2`。代码仓 `.gitattributes` 也声明 `* text=auto eol=lf`，但 `ENG-9` 的守卫长在设计仓 `check_docs.py` 里、`ROOT` 钉死在设计仓，**代码仓现在没有任何行尾守卫**。同一机制在代码仓更危险：`.sh` 与 git 钩子带 `\r` 会静默不执行（[踩坑记录 28](../../reference/踩坑记录.md)）。2026-08-30 用一次性命令核过两次（最近一次 40 个已跟踪文本文件、含 `\r` 的 0 个），但一次性命令不是守卫。二选一：抽成两仓共用的入口，或在代码仓建等价入口、接进已就位的 `tools/verify.py`（`ENG-3`） |
 | `ENG-8` | 中 | Steam 集成选型与兼容性验证 | 依赖 `ENG-2`。上架 Steam 需要成就、云存档，可能还有创意工坊（mod 分发）。**不自造绑定**，候选：`Godot.Steamworks.NET`（对 C# 工程最贴，但只声明支持 4.4+）、`Godot-Facepunch.Steamworks`、`GodotSteam`（最知名但面向 GDScript，从 C# 调不顺手）、`Foundation for Steamworks`。**四者均未在 Godot 4.7.2 上验证**，须先实测再选。另需定存档路径与云同步冲突处理 |
 | `ENG-7` | 中 | 存档要能容忍缺失的 mod 内容，并明确提示玩家 | 依赖 `ENG-2` 与 `ENG-5`。玩家装 mod 加了角色、存档、再卸载 mod，那个角色在存档里就是悬空引用。**不许静默丢数据，也不许崩档** —— 载入时要列出「因缺少 mod 而不可用」的角色与物品，让玩家自己决定是装回去还是继续。同一套容错也覆盖 mod 版本升级导致的字段变化 |
@@ -115,3 +103,13 @@ last_verified: 2026-08-26
 | `ENG-3` | 2026-08-30 | [WORKFLOW §6](../../WORKFLOW.md) 执行体表两行；[踩坑记录 29、33 的守卫字段与新增 35、36](../../reference/踩坑记录.md)；用法见代码仓 `README.md`「怎么验收」，入口是 `tools/verify.py` 与 `tools/selfcheck_verify.py` |
 | `GP-2` | 2026-08-30 | [数值模型](../../design/数值模型.md) 的公式与 16 条判据（**永久留 `design/`，不上升进正典**）；值在 `design/numeric-model-params.json`；[WORKFLOW §6](../../WORKFLOW.md) 执行体表加一行；[踩坑记录 37](../../reference/踩坑记录.md)。当前实测值跑 `python tools/simulate_week.py` |
 | `ART-2` | 2026-08-30 | [ADR-0008](../../decisions/ADR-0008-中文像素字体选型.md)（选型、授权、渲染配置、子集化与给 `UI-1` 的三条输入）；[玩法定位 · 像素基准](../../canon/gameplay/玩法定位.md) 的字号与整数缩放两句；[WORKFLOW §6](../../WORKFLOW.md) 执行体表加一行。守卫跑 `python tools/audit_fonts.py`，看字体跑 `python tools/font_preview.py`。遗留在 `ART-3` |
+| `UI-1` | 2026-09-01 | [`archive/spec/UI-1-ui-framework/`](../../archive/spec/UI-1-ui-framework/)（**历史背景·非依据**）；逻辑分辨率 640×360 在 `project.godot`；规则层在代码仓 `rules/Ui/`；门禁 `tools/verify.py` ＋各专项守卫（`check_scaling/camera/hud/worldui/input_map`）；UImetrics 与 HUD 占位色板待 `DOC-2` 定稿 |
+| `UI-3` | 2026-09-01 | 同 `UI-1`。`project.godot` 四项配置；守卫 `tools/check_scaling.py` |
+| `UI-4` | 2026-09-01 | 同 `UI-1`。结论在 [ADR-0008](../../decisions/ADR-0008-中文像素字体选型.md)「承重项是最近邻纹理过滤」；守卫 `ENG-13` |
+| `UI-5` | 2026-09-01 | 同 `UI-1`。实现在代码仓 `rules/Ui/CameraRig.cs`、`src/World/GameCamera.cs`；守卫 `tools/check_camera.py` |
+| `UI-6` | 2026-09-01 | 同 `UI-1`。层级定义在 `rules/Ui/UiLayer.cs`；排版单位在 `rules/Ui/UiMetrics.cs`（栅格 8/内边距 4/安全边距 8/图标 16-32） |
+| `UI-7` | 2026-09-01 | 同 `UI-1`。实现在代码仓 `rules/Ui/InputBindings.cs` 等五文件；守卫 `tools/check_input_map.py` |
+| `UI-8` | 2026-09-01 | 同 `UI-1`。HUD 实现 `rules/Ui/HudLayout.cs`、`src/UI/LevelHud.cs`；守卫 `tools/check_hud.py`；占位色板 `rules/Ui/HudPalette.cs` 待 `DOC-2` 定稿 |
+| `UI-9` | 2026-09-01 | 同 `UI-1`。实现在 `rules/Ui/WorldUiLayout.cs`、`src/UI/WorldSpaceUi.cs`；守卫 `tools/check_worldui.py` |
+| `UI-10` | 2026-09-01 | 同 `UI-1`。端到端测试 `tests/Ui/E2ETests.cs` 23 条；`verify.py` 191/191 |
+| `ART-3` | 2026-09-01 | 同 `UI-1`。判据在 `tools/verify.py` 的 `manifest_report`（包含字体必须有 LICENSE-OFL.txt） |

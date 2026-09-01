@@ -1,9 +1,11 @@
 ---
 type: workdoc
-status: done
+status: archived
 owner: project
 last_verified: 2026-09-01
 ---
+
+> **只读归档。** 此文件是 `UI-1` 于 2026-09-01 归档时的历史记录。现行事实见台账[已归档编号](../../spec/issues/README.md)对应行与代码仓实现文件。**不得修改此文件的正文内容。**
 
 # UI-10：`UI-1` 的端到端验证
 
