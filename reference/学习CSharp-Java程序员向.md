@@ -668,7 +668,7 @@ private static void Shuffle<T>(IList<T> list, Random rng) { ... }   // <T> 在�
 
 除前文内容外，当前代码还使用下面几种写法：
 
-**`yield return`：惰性序列迭代器。** `StationManager.LearnableSkillsFor`、`EquipmentLoadout.FunctionalAffixes` 等入口会逐个产生结果：
+**`yield return`：惰性序列迭代器。** 技能图鉴、装备词缀等入口常用「逐个产出」代替「一次性建列表」：
 
 ```csharp
 public IEnumerable<Skill> LearnableSkillsFor(string studentId)
@@ -676,25 +676,132 @@ public IEnumerable<Skill> LearnableSkillsFor(string studentId)
     var rec = FindStudent(studentId);
     if (rec == null) yield break;                    // 提前结束序列
     foreach (var sk in SkillCatalog.LearnableSkillsFor(studentId))
-        if (!rec.HasSkill(sk.Id)) yield return sk;   // 逐个产出、不一次性建列表
+        if (!rec.HasSkill(sk.Id)) yield return sk;   // 逐个产出
 }
 ```
 
 `yield return` = 惰性生成序列（遍历到哪算到哪），`yield break` 提前终止。相当于 Java 手写 `Iterator` 或 Stream 惰性求值，被语法糖化。
 
-- **`async` / `await`**：异步等待计时器或帧信号，例如 `AudioManager`、`BattlePresentationDirector`、`SceneSmoke`；等待期间不阻塞主线程。
-- **`using` 与 `IDisposable`**：作用域结束时自动释放资源；`using (Core.Perf.Measure(...))` 用它结束计时。
-- **扩展方法**：给现有类型增加调用形式；`DialogUtil.Present(this AcceptDialog ...)` 让弹窗可写成 `dialog.Present(parent)`。
+- **`async` / `await`**：异步等待计时器或帧信号；等待期间不阻塞主线程。Godot 里常用于音频管理器、战斗演出导演等需要「等若干帧再做下一件事」的场景。
+- **`using` 与 `IDisposable`**：作用域结束时自动释放资源；性能计时器常用它结束测量。
+- **扩展方法**：给现有类型增加调用形式；让弹窗可写成 `dialog.Present(parent)` 而非 `DialogHelper.Present(dialog, parent)`。
 - **局部函数**：在方法内部声明只供该流程使用的函数；弹窗常用 `void Rerender()` 收拢重绘步骤。
-- **`record` / `record struct`**：按数据值表达相等性的简洁类型；项目目录定义中已有多处使用。
+- **`record` / `record struct`**：按数据值表达相等性的简洁类型；项目数据目录定义中已有多处使用。
+
+---
+
+## 十九、C# 13 新增特性（.NET 9，2024 年 11 月）
+
+### `params` 集合（不再只限数组）
+
+C# 12 之前 `params` 只能修饰数组参数；C# 13 起可以修饰任意集合类型：
+
+```csharp
+// C# 13：params 可以是 List、Span、IEnumerable……
+void Log(params ReadOnlySpan<string> messages) { ... }
+void AddAll(params IEnumerable<int> values) { ... }
+```
+
+对 Java 程序员：Java 的可变参数 `String... args` 等价于 `params string[]`，C# 13 把这个能力推广到所有集合类型，同时避免了 `params array` 每次调用都分配堆数组的问题（`Span` 变体可走栈分配）。
+
+### `partial` 属性与索引器
+
+C# 10 就有 `partial` 方法；C# 13 把 `partial` 扩展到属性和索引器，允许声明与实现分布在不同的 `partial` 文件里：
+
+```csharp
+// 声明半（通常由代码生成器输出）
+public partial int Count { get; set; }
+
+// 实现半（手写）
+public partial int Count
+{
+    get => _items.Count;
+    set => throw new NotSupportedException();
+}
+```
+
+本项目 Godot 节点类都是 `partial`（源生成器需要）；如果将来有代码生成器在这些类上输出属性声明，实现就走这条路。
+
+### `ref struct` 可实现接口
+
+C# 12 及以前，`ref struct`（如 `Span<T>`）不能实现接口，因为接口装箱到堆会使 `ref struct` 的栈约束失效。C# 13 允许 `ref struct` 实现接口，但调用时要求泛型约束里有 `allows ref struct`，防止意外装箱：
+
+```csharp
+ref struct MyBuffer : IDisposable
+{
+    public void Dispose() { ... }
+}
+
+// 调用侧要声明 T allows ref struct 才能以接口方式使用
+void Process<T>(T buffer) where T : IDisposable, allows ref struct { ... }
+```
+
+实用场景：高性能路径里需要统一接口但又不想堆分配时。本项目目前不涉及，但遇到 `allows ref struct` 约束时知道它的来源。
+
+---
+
+## 二十、C# 14 新增特性（.NET 10，2025 年 11 月）
+
+### `field` 关键字——直接访问自动属性的后备字段
+
+这是 C# 14 最实用的一条。以前自动属性 `{ get; set; }` 的后备字段是编译器生成的，代码里无法直接用；想加验证逻辑就必须把属性改成手写的完整形式。`field` 关键字解决了这个问题：
+
+```csharp
+// C# 14 之前：想加范围验证，必须手写后备字段
+private int _hp;
+public int Hp
+{
+    get => _hp;
+    set => _hp = Math.Clamp(value, 0, MaxHp);
+}
+
+// C# 14：用 field 关键字，不需要声明 _hp
+public int Hp
+{
+    get;
+    set => field = Math.Clamp(value, 0, MaxHp);
+}
+```
+
+`field` 只在属性访问器的方法体内有效，指向该属性的编译器生成后备字段。对 Java 程序员：相当于在 setter 里直接写 `this.hp = ...` 而不用再声明一个 `private int hp`。
+
+### 扩展成员（Extension Members）
+
+C# 3 的扩展方法只能扩展方法；C# 14 把它推广到扩展属性、扩展运算符等，语法也改成了更清晰的块形式：
+
+```csharp
+// C# 14 新语法：扩展块，可以同时放多个扩展成员
+extension(StudentRecord rec)
+{
+    // 扩展属性
+    public bool IsActive => rec.Status == StudentStatus.Active;
+
+    // 扩展方法（与旧语法 this 参数等价，但可以和扩展属性同块）
+    public string DisplayName() => $"{rec.Name}（{rec.Role}）";
+}
+```
+
+旧的 `static class` + `this` 参数写法仍然有效；新块语法更适合同时给一个类型加多个成员的场景。
+
+### `nameof` 支持实例成员
+
+C# 14 之前，`nameof` 用于实例成员时必须有实例或类型前缀（`nameof(rec.Name)` 或写成静态访问路径）；C# 14 允许在静态上下文里对实例成员直接用 `nameof`：
+
+```csharp
+// C# 14：不需要实例，直接写成员名
+string propName = nameof(StudentRecord.Name);  // 之前也行
+// 现在还允许在不能持有实例的上下文（如 Attribute 参数）里引用实例属性名
+```
+
+对 Java：相当于 Java 反射里的 `field.getName()` 但在编译期完成、重构时自动跟踪改名。
 
 ---
 
 ## 附：读本项目代码的建议路径
 
-1. 先读一个**纯逻辑小类**感受属性/表达式体/LINQ：`scripts/items/Backpack.cs`。
-2. 再读**枚举 + switch 表达式**：`scripts/combat/Skill.cs` 的 `AutoDescription`。
-3. 读**事件解耦**：`scripts/combat/BattleManager.cs` 的 `event` 声明 + `?.Invoke`，对照 `scenes/combat/BattleScene.cs` 的 `+=` 订阅。
-4. 读**空安全实战**：`scenes/station/StationScene.Muster.cs` 的 `SelectedStudent()` 返回 `StudentRecord?` 后如何判空。
+1. 先读一个**纯逻辑小类**感受属性/表达式体/LINQ，例如规则层里任意一个数据定义类（`rules/Foundation/` 下的内容定义）。
+2. 再读**枚举 + switch 表达式**的实际用法，在战斗或成长规则里找一个有分支逻辑的方法。
+3. 读**事件解耦**：`rules/` 里的事件声明与 `src/` 里的订阅，看两者如何不互相引用。
+4. 读**空安全实战**：找一个返回可空值的方法（方法名含 `?` 返回类型），看调用侧如何判空再使用。
 
 遇到不认识的写法，先回本文查；查不到就往本文补一条（活文档）。
