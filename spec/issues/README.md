@@ -77,7 +77,7 @@ last_verified: 2026-09-02
 | id | 优先级 | 待办 | 备注 |
 | --- | --- | --- | --- |
 | `DOC-1` | 中 | 复核[踩坑记录](../../reference/踩坑记录.md)前 25 条并补 C# 13／14 特性 | **已完成（2026-09-02）。** 踩坑记录：首轮删 5 条（2026-08-31），深复核替换前作类名为通用描述（2026-09-01），`last_verified` 更新至 2026-09-02。C# 学习文档：§19（C# 13）与 §20（C# 14）已补入，`last_verified` 更新至 2026-09-02，前言注记「C# 13 与 14 新增特性已补入」及 `CONVENTIONS.md` 已建立。 |
-| `DOC-2` | 低 | 补界面色彩、尺寸与放置清单 | 依赖 `UI-1`。**尺寸那一半已交付**：栅格 8、内边距 4、间距 4／8、安全边距 8、图标 16／32、侧视视野 320×180，列在 [`issue-UI-6`](./issue-UI-6-ui-skeleton.md)，实现在代码仓 `rules/Ui/UiMetrics.cs`。**色彩与放置在 [`issue-UI-8`](./issue-UI-8-hud-screen-space.md) 里各走了一步**：HUD 有一套标为占位的色板（`rules/Ui/HudPalette.cs`），放置定为四角贴边加技能位横排，均作者 2026-08-31 定，依据与取舍在那份里。本条剩下的是把色板定稿、推广到其余界面 |
+| `DOC-2` | 低 | 补界面色彩、尺寸与放置清单 | 依赖 `UI-1`。**尺寸那一半已交付**：栅格 8、内边距 4、间距 4／8、安全边距 8、图标 16／32、侧视视野 320×180，列在 `issue-UI-6`（已归档），实现在代码仓 `rules/Ui/UiMetrics.cs`。**色彩与放置在 `issue-UI-8`（已归档）里各走了一步**：HUD 有一套标为占位的色板（`rules/Ui/HudPalette.cs`），放置定为四角贴边加技能位横排，均作者 2026-08-31 定，依据与取舍在那份里。本条剩下的是把色板定稿、推广到其余界面 |
 | `DOC-3` | 低 | 补齐代码侧技能：`code-to-spec`、`refactor`、`smell`、`modern-csharp`、`graph` | 依赖 `ENG-2`。现在写只能凭空假设代码结构，违反「结论必须有依据」。`modern-csharp` 对应上游 `modern-go`，921 行 Go 规则需全部重写 |
 | `DOC-5` | 低 | 配额表的行数上限对列表型文档校准不准 | [WORKFLOW §3](../../WORKFLOW.md#3-配额) 的行数与字符数上限隐含假设了散文密度。实测：`spec/prd-gameplay-positioning.md` 曾 349 行仅 12,693 字符、一度触发硬上限 FAIL（软上限 20,000），平均 36 字／行 —— 列表与表格型文档必然先撞行数而字符数还剩一半。修法候选：表格与列表行折算、或按字符数为主判定。改的是配额表定义，须走 [ADR 模板](../../templates/ADR.md)，不许为了让某份文档过关而抬数字 |
 | `DOC-8` | 中 | 给「管道读中文输出」加执行体 | **已完成（2026-09-01）。** 在 `.kiro/hooks/command_guard.py` 加了一条「命令同时含管道与 python/git → 转作者确认」规则；自证见 `selfcheck_command_guard.py` 的两条新用例（管道+python、管道+git）；踩坑记录 27 的守卫字段同步更新。32 项断言全通过 |
@@ -113,3 +113,7 @@ last_verified: 2026-09-02
 | `UI-9` | 2026-09-01 | 同 `UI-1`。实现在 `rules/Ui/WorldUiLayout.cs`、`src/UI/WorldSpaceUi.cs`；守卫 `tools/check_worldui.py` |
 | `UI-10` | 2026-09-01 | 同 `UI-1`。端到端测试 `tests/Ui/E2ETests.cs` 23 条；`verify.py` 191/191 |
 | `ART-3` | 2026-09-01 | 同 `UI-1`。判据在 `tools/verify.py` 的 `manifest_report`（包含字体必须有 LICENSE-OFL.txt） |
+| `ART-4` | 2026-09-01 | 同 `UI-1`。占位素材生成器 `tools/gen_placeholders.py` 与槽位登记表 `tools/asset-registry.json`（代码仓，带 `.gdignore` 不进包）；双向比对由 `check_assets.py` 执行 |
+| `ENG-10` | 2026-09-01 | 同 `UI-1`。假像素守卫 `tools/check_assets.py`（代码仓，接进 `verify.py` 首步，查半透明像素／假放大／登记比对）；自证 `tools/selfcheck_verify.py` |
+| `ENG-12` | 2026-09-01 | 同 `UI-1`。发行导出守卫在 `tools/verify.py` 的 `manifest_report`／`audit_release_assets`（`--release` 下非自绘素材进包即失败）；自证 `tools/selfcheck_verify.py` |
+| `ENG-13` | 2026-09-01 | 同 `UI-1`。texture_filter 覆盖守卫在 `tools/check_assets.py` 的 `check_texture_filter`（扫 `.tscn`／`.tres`／C# 局部覆盖）；自证 `tools/selfcheck_verify.py` |

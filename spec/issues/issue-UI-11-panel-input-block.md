@@ -1,6 +1,6 @@
 ---
 type: workdoc
-status: done
+status: accepted
 owner: project
 last_verified: 2026-09-02
 ---

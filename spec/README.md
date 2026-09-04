@@ -18,7 +18,7 @@ last_verified: 2026-08-26
 | `推演-<slug>.md` | 纸面推演：把循环手算一遍找漏，验收用。归档时随需求一起移走 | 无（按需手写） |
 | [`issues/`](./issues/README.md) | 可实现条目，一条一个文件；索引即待办台账 | `/to-issues` |
 
-**当前进行中**：[`prd-ui-framework.md`](./prd-ui-framework.md) —— `UI-1` 逻辑分辨率与界面结构骨架，`status: approved`（2026-08-30 作者确认，可以开工）。
+**当前进行中**：无。上一个需求 `UI-1`（逻辑分辨率与界面结构骨架）已于 2026-09-01 归档（[台账已归档编号](./issues/README.md)）。按下节约定，`spec/` 下没有 `prd-*.md` 就是「当前无活跃需求」的信号，下一个需求由 `/prd` 立项。
 
 `<slug>` 是简短英文标识，全小写、连字符分隔，例如 `gameplay-positioning`、`combat-feel-tuning`。
 
