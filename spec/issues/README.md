@@ -117,3 +117,4 @@ last_verified: 2026-09-02
 | `ENG-10` | 2026-09-01 | 同 `UI-1`。假像素守卫 `tools/check_assets.py`（代码仓，接进 `verify.py` 首步，查半透明像素／假放大／登记比对）；自证 `tools/selfcheck_verify.py` |
 | `ENG-12` | 2026-09-01 | 同 `UI-1`。发行导出守卫在 `tools/verify.py` 的 `manifest_report`／`audit_release_assets`（`--release` 下非自绘素材进包即失败）；自证 `tools/selfcheck_verify.py` |
 | `ENG-13` | 2026-09-01 | 同 `UI-1`。texture_filter 覆盖守卫在 `tools/check_assets.py` 的 `check_texture_filter`（扫 `.tscn`／`.tres`／C# 局部覆盖）；自证 `tools/selfcheck_verify.py` |
+| `GP-9` | 2026-09-01 | 闪避取方向读「按下瞬间的输入状态」定稿（否掉「短窗口最后有效方向」）。现行事实在[战斗与关卡 · 按键与连击](../../canon/gameplay/战斗与关卡.md)；实现落点：闪避状态机直取 `InputRouter` 当前轮询状态，不加缓冲窗口 |
