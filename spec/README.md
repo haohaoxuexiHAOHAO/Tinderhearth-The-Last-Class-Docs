@@ -18,7 +18,7 @@ last_verified: 2026-08-26
 | `推演-<slug>.md` | 纸面推演：把循环手算一遍找漏，验收用。归档时随需求一起移走 | 无（按需手写） |
 | [`issues/`](./issues/README.md) | 可实现条目，一条一个文件；索引即待办台账 | `/to-issues` |
 
-**当前进行中**：[`prd-combat-feel-core.md`](./prd-combat-feel-core.md) —— 战斗手感核心（进攻侧竖切片 + 帧调优工具），`status: approved`（2026-09-04 立项并经作者确认，可开工）。上一个需求 `UI-1` 已于 2026-09-01 归档。
+**当前进行中**：[`prd-combat-feel-core.md`](./prd-combat-feel-core.md) —— 战斗手感核心（进攻侧竖切片 + 帧调优工具），`status: approved`（2026-09-04 立项并经作者确认，可开工）。技术规格见 [`spec-combat-feel-core.md`](./spec-combat-feel-core.md)（`draft`，待拆 `/to-issues`）。上一个需求 `UI-1` 已于 2026-09-01 归档。
 
 `<slug>` 是简短英文标识，全小写、连字符分隔，例如 `gameplay-positioning`、`combat-feel-tuning`。
 
