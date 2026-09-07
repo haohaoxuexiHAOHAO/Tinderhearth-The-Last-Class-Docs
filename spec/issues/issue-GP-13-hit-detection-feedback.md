@@ -2,7 +2,7 @@
 type: workdoc
 status: draft
 owner: project
-last_verified: 2026-09-04
+last_verified: 2026-09-07
 ---
 
 # GP-13：引擎层命中检测与打击反馈四件套

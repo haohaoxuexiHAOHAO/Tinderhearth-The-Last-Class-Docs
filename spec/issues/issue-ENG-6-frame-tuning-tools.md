@@ -2,7 +2,7 @@
 type: workdoc
 status: draft
 owner: project
-last_verified: 2026-09-04
+last_verified: 2026-09-07
 ---
 
 # ENG-6：帧级调优工具选型与最小自建

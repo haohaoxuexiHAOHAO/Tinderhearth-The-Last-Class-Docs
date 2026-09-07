@@ -2,7 +2,7 @@
 type: workdoc
 status: draft
 owner: project
-last_verified: 2026-09-04
+last_verified: 2026-09-07
 ---
 
 # GP-12：引擎层主角节点与占位动画

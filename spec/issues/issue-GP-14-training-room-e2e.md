@@ -2,7 +2,7 @@
 type: workdoc
 status: draft
 owner: project
-last_verified: 2026-09-04
+last_verified: 2026-09-07
 ---
 
 # GP-14：训练房场景与端到端

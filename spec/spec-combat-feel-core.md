@@ -2,7 +2,7 @@
 type: workdoc
 status: draft
 owner: project
-last_verified: 2026-09-04
+last_verified: 2026-09-07
 ---
 
 # SPEC：战斗手感核心（进攻侧竖切片 + 帧调优工具）
