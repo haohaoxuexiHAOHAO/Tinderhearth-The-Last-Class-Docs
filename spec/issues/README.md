@@ -28,8 +28,8 @@ last_verified: 2026-09-02
 
 | id | 优先级 | 待办 | 备注 |
 | --- | --- | --- | --- |
-| `GP-10` | 高 | 规则层：主角运动学与轻重连段状态机 | 本 PRD（`combat-feel-core`）起点，无依赖，**下一件**。运动学 + 段—相连段状态机 + `CombatFeel` 常量，脱引擎可单测；手感值属 `GP-6`、不进 `GP-2`。源 SPEC §3/§4.2/§5。详见 [`issue-GP-10`](./issue-GP-10-combat-motion-combo-rules.md) |
-| `GP-11` | 中 | 规则层：统一状态载体与命中结算 | 依赖 `GP-10`。硬直/无敌走一套最小状态载体（落实正典「统一状态系统现在就成立」）；命中结算按轻重给击退/硬直/顿帧。可单测。详见 [`issue-GP-11`](./issue-GP-11-status-carrier-hit-resolution.md) |
+| `GP-10` | 中 | 规则层：主角运动学与轻重连段状态机 | **已完成（2026-09-07）。** 现行事实在代码仓 `rules/Combat/`（`CombatInput`/`CombatFeel`/`MotorState`/`ComboStateMachine`）+ `tests/Combat/` 24 条单测；`verify.py` 6/6 全过。详见 [`issue-GP-10`](./issue-GP-10-combat-motion-combo-rules.md) |
+| `GP-11` | 高 | 规则层：统一状态载体与命中结算 | 依赖 `GP-10`（已完成），**下一件**。硬直/无敌走一套最小状态载体（落实正典「统一状态系统现在就成立」）；命中结算按轻重给击退/硬直/顿帧。可单测。详见 [`issue-GP-11`](./issue-GP-11-status-carrier-hit-resolution.md) |
 | `GP-12` | 中 | 引擎层：主角节点驱动 + samurai 占位动画 | 依赖 `GP-10`、`GP-11`。读 `InputRouter` 驱动状态机，`ART-4` samurai 表建 `SpriteFrames`，缺帧记账。含作者实机。详见 [`issue-GP-12`](./issue-GP-12-player-actor-engine.md) |
 | `GP-13` | 中 | 引擎层：命中检测 + 打击反馈四件套 + 木桩 | 依赖 `GP-12`。判定框仅 Active 帧开；顿帧/闪白/击退/屏幕震动（复用 `GameCamera.Rig.Shake`，`ShakeEnabled` 关则零位移）。含作者实机。详见 [`issue-GP-13`](./issue-GP-13-hit-detection-feedback.md) |
 | `GP-14` | 中 | 训练房场景 + 端到端 + 实机确认 | 依赖 `GP-10`~`GP-13`、`ENG-6`。独立侧视场景，不动 `Main.tscn` 探针链；端到端主/边界路径 + `verify.py` 全绿 + 存证落 `logs/`。含作者实机。详见 [`issue-GP-14`](./issue-GP-14-training-room-e2e.md) |
