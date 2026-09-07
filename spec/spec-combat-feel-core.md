@@ -82,7 +82,15 @@ last_verified: 2026-09-07
 
 `PlayerActor`／`TrainingDummy` 各持一个 `MotorState` + 状态载体；`ComboStateMachine` 属 `PlayerActor`。命中时 `HitResolution.Resolve(weight)` → `HitReaction` → 施加到 `TrainingDummy` 的状态载体与位移、触发 `Hitstop` 与（重击时）`GameCamera.Rig.Shake()`。方向取值复用 `GP-9`：闪避方向 = `InputRouter.MoveDirection()` 当帧值，不缓冲。
 
-### 3.3 存档与迁移
+### 3.3 帧推进所有权（GP-11）
+
+- `MotorState.Statuses` 是该角色唯一载体；`MotorState.Tick` 在每个非顿帧逻辑帧开头推进所有状态一次，调用方不得另行推进它。无运动机的独立载体由角色逻辑拥有者按相同顺序推进。
+- `Apply(kind, N)` 立即生效，之后第 N 次 `Tick` 到期；帧开头先递减旧状态，再施加本帧的新状态。闪避第 2 帧注册 11 帧无敌，保持原有 `[2,13)` 窗口；同种刷新用新时长覆盖，零／负时长和未知种类拒绝且不改变原状态。`TryRemove` 对 A1 两种状态均返回 false。
+- `HitResolution.Resolve(ComboKind)` 只接受 Light／Heavy，拒绝 None 与未知值。击退产物为正世界像素距离，由引擎层施加方向；不是速度。
+- 纯规则层 `HitstopTimer` 在命中帧末 `Begin(N)`，外层随后每个物理帧先调 `Tick()`；返回 true 就跳过本帧战斗与相机推进（包括最后一个冻结帧），下一帧恢复。这个时钟本身不能冻结。再次 Begin 替换剩余帧，非正时长拒绝。引擎冻结实现仍属 GP-13。
+- 上述顺序由 `tests/Combat/StatusEffectsTests.cs`、`HitResolutionTests.cs`、`MotorStateTests.cs` 守住；未来引擎是否按此调用须在 GP-13 接入时验证，本轮未验证引擎冻结或实机手感。
+
+### 3.4 存档与迁移
 
 不涉及——训练房无存档。
 
