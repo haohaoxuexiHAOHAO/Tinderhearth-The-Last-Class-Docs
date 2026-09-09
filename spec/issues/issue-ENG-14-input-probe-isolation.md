@@ -65,3 +65,9 @@ Main 原本同时启动 InputProbe 和 WorldSpaceProbe → CameraProbe → HudPr
 | `python tools/check_docs.py`（设计仓） | 67 文档、0 FAIL；学习文档 807 行软警告 | 沿 DOC-4 查阅型文档理由保留 |
 
 第一次隔离构建的清理因编译器占用失败，目录 `temp/local-check-v77t8iyk` 已由 `python tools/run_local_check.py --clean local-check-v77t8iyk` 删除。首次全门禁因隔离 APPDATA 缺导出模板失败（`20260908-011922`），本地入口补复制模板后重跑通过。不清理作者 `temp/art-inbox`。未提交、未推送。
+
+### 收口前要看的一条新观察（`GP-15` 2026-09-09 带出，未证明因果）
+
+本条的题目是「探针互不污染」，而 `GP-15` 复跑时撞到一个同族现象：`hit_feedback_dev.py --probe --no-shake` 跑 4 次，其中 2 次 `focus-kept` 失败（`focusLost=1`），另外 62 条玩法判据每次都全过 —— 失败的是「这一轮算不算」的前提判据。**两次失败都发生在紧接着上一个 Godot 探针进程启动的那一次**，留 20 秒间隔单独跑的 2 次都通过。
+
+**这是相关，不是因果**：样本只有 4 次，且 `--probe` 档同样有紧邻启动的情形却没失焦。验证办法：固定间隔与不固定间隔各连跑若干次，比失焦率；若成立，隔离的粒度就不只是用户目录，还包括「上一个引擎进程退干净了没有」。**不要因此调松 `focus-kept`** —— 它报「这一轮不能算」正是它该做的事。详见 [`issue-GP-15`](./issue-GP-15-depth-axis-motion.md) 的验证结果。
