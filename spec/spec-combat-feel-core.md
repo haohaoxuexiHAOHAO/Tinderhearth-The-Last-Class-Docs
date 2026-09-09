@@ -38,9 +38,10 @@ last_verified: 2026-09-09
 | 判定框 | **按轻重分开**，取值由 Active 帧的实测伸展导出（轻 18×4、重 22×16，中心距脚底 18） | 画面上轻拳伸 18px、重拳 22px，共用 28×28 会让「重击打得更远」读成「重击不实」，而这不报错；仍是 `GP-6` 的未校准初值 |
 | 帧框与判定框的真相 | 引擎常量与素材登记表**由守卫绑定**，不各写一份 | 引擎读不到登记表（`tools/` 带 `.gdignore`、不进包）；三个漂移方向（改素材／改 Active 窗口／改常量）都被 `check_assets.py` 拦下 |
 | 运动模型（`GP-15`，2026-09-09 改） | 横向／纵深／跳跃高度**三轴分离**；纵深连续、钳在 48px 带内、离地期间锁定 | 正典把战斗关卡定为带连续可行走纵深的横版；分道会把「往里挪半步躲开」变成「换道」，那是两种手感 |
-| 纵深位置的所有权（`GP-15`） | 速度与**位置**都在 `MotorState.DepthWorldPx`，引擎层只读、不再积分 | Godot 2D 的两个轴已被横向与跳跃高度占满，纵深在引擎侧没有可借的位置量；让引擎持它，48px 钳制就只能写在引擎层或两处各写一份，而钳制要能脱引擎单测。代价与执行体见代码仓 `ARCHITECTURE.md` |
-| 纵深带宽度的落点（`GP-15`） | 另立 `rules/Combat/DepthBand.cs`，**不进** `CombatFeel` | 48px 是正典的几何账（有效视野、本体尺寸、排间距算出来的），不是只能实机逐帧调的手感初值。混进去会让人以为它可以凭手感改，而它一改「几排装得下 20 个」要重算；`ENG-16` 可能回改它，所以要有**一处**常量而不是散落的字面量 |
-| 纵深闪避速度（`GP-15`） | 另设 `DodgeDepthSpeedPixelsPerSecond`，不复用横向闪避速度 | 横向那个 168 是按 320px 视野定的，18 帧走 50.4px；放到 48px 带上一次闪避超过整条带，于是每次纵深闪避都撞带沿，**落点由钳制而不是输入决定** |
+| 纵深位置的所有权（`GP-15`） | 速度与**位置**都在 `MotorState.DepthWorldPx`，引擎层只读、不再积分（那会得到两倍位移且不报错） | Godot 2D 的两个轴已被占满，且 48px 钳制要能脱引擎单测。代价与执行体见代码仓 `ARCHITECTURE.md` 与 [`issue-GP-15`](./issues/issue-GP-15-depth-axis-motion.md) |
+| 纵深的两个落点（`GP-15`） | 带宽进 `rules/Combat/DepthBand.cs`（正典几何账，`ENG-16` 可能回改）；纵深行走与**纵深闪避**两个速度进 `CombatFeel`，都是未校准初值 | 48px 不是只能实机调的手感量，混进 `CombatFeel` 会让人以为它可以凭手感改；纵深闪避另设速度是因为横向那个 168 放到 48px 带上会让每次闪避都撞带沿，**落点由钳制而不是输入决定**。详见 `issue-GP-15` |
+| 绘制排序（`ENG-15`） | 两个键（纵深为主、同纵深时脚底为次）算在 `rules/Combat/DepthRendering.cs`，引擎层只写 `z_index`；**不用** `y_sort_enabled`（它只排一个键，屏幕 Y 里混着跳跃高度） | 理由与代价见 [`issue-ENG-15`](./issues/issue-ENG-15-depth-sorting-shadow.md)，不在此复制第二份 |
+| 纵深的绘制偏移与影子（`ENG-15`） | 碰撞地面对应**带中线**（偏移 ＝ 纵深 − 24，地形按 48px 带画）；影子是代码画的不透明扁椭圆，位置取地面投影点（射线每帧问）、随高度**只缩小不变淡** | 同上。不变淡是[像素绘制原则 §9]「只用完全透明或完全不透明」的直接推论 |
 
 ## 2. 场景与节点结构
 
@@ -69,20 +70,20 @@ last_verified: 2026-09-09
 - `rules/Combat/CombatFeel.cs` [新建]：全部可调帧数与量（前后摇、无敌窗口、顿帧时长、击退量、跳跃初速/重力、冲刺速度），`const`，量纲入名。
 - `rules/Combat/CombatInput.cs` [新建]：一帧的输入快照（`readonly record struct`）。
 - `rules/Combat/DepthBand.cs` [新建，`GP-15`]：可行走纵深带（宽度、前后沿、中线、排间距、钳制），正典几何账的唯一落点。
+- `rules/Combat/DepthRendering.cs` [新建，`ENG-15`]：纵深绘制的规则 —— 排序两键（`DepthSubject`／`Compare`／`DrawOrder`）、绘制偏移、影子随高度的缩放。
 - `rules/Combat/MotorState.cs` [新建]：移动／跳／落地／闪避／冲刺的运动学与状态，逐帧推进；`GP-15` 起含纵深轴与它的位置。
 - `rules/Combat/ComboStateMachine.cs` [新建]：轻重连段与空中连击的段—相（Startup/Active/Recovery）状态机。
 - `rules/Combat/StatusEffects.cs` [新建]：最小统一状态载体（硬直、无敌），带「可否解除」。
 - `rules/Combat/HitResolution.cs` [新建]：由攻击轻重算击退量、硬直帧、是否重击（触发震屏）与顿帧帧数。
 
-引擎层（`Tinderhearth.World`）：`src/World/PlayerActor.cs`、`TrainingDummy.cs`、`Hitbox.cs`／`Hurtbox.cs`、`Hitstop.cs`、`CombatDebugOverlay.cs` [均新建]；`scenes/TrainingRoom.tscn` [新建]；samurai 的 `SpriteFrames`（资源或运行时切分）[新建]。测试：`tests/Combat/*` [新建]。**不修改** `Main.cs`／`Main.tscn`。
+引擎层（`Tinderhearth.World`）：`src/World/PlayerActor.cs`、`TrainingDummy.cs`、`Hitbox.cs`／`Hurtbox.cs`、`Hitstop.cs`、`CombatDebugOverlay.cs` [均新建]；`scenes/TrainingRoom.tscn` [新建]；samurai 的 `SpriteFrames`（资源或运行时切分）[新建]。测试：`tests/Combat/*` [新建]。**不修改** `Main.cs`／`Main.tscn`。`ENG-15` 追加 `src/World/DepthVisual.cs`（`IDepthActor` ＋ 纵深可视根：偏移、影子、地面射线）与 `src/World/DepthSortedLayer.cs`（收集子节点、写 `z_index`、自报覆盖量）；角色的可视子节点一律挂在可视根下，**纵深偏移因此只有一处来源**；探针入口 `scenes/DepthDev.tscn` ＋ `tools/depth_dev.py`。
 
 ## 3. 数据约定
 
 ### 3.1 类型定义
 
 - `CombatInput(int HorizontalSign, int DepthSign, bool JumpPressed, bool LightPressed, bool HeavyPressed, bool DodgePressed, bool SprintHeld)`——两个方向轴各规整到 {−1,0,+1}（`HorizontalDirection`／`DepthDirection`），`DepthSign` 正为向前（靠近镜头）；`HasDirection` 表示这一帧有没有任何方向输入；`*Pressed` 为「本帧刚按下」的边沿，`SprintHeld` 为持续态。**原字段名 `MoveSign` 已改为 `HorizontalSign`**（`GP-15`）：加了纵深之后「移动轴」有两个，旧名字会让「把纵深接到横向字段上」成为看不出来的错。
-- `DepthBand`（静态）——`WidthWorldPx=48`、`BackWorldPx=0`（最靠后）、`FrontWorldPx=48`（最靠前）、`CenterWorldPx=24`、`RowSpacingWorldPx=16`，加 `Clamp`／`Contains`。**0 在最靠后、与屏幕向下同向**是有意选的：纵深值与「绘制时往下偏移多少世界像素」是同一个数、同一方向，不用取反，而符号写反**不报错**，只会让画面前后关系与命中判定相反。
-- `MotorState` 的纵深三项——`DepthWorldPx`（位置，恒在带内，连续量不是轨道号）、`DepthVelocity`（**本帧真实发生**的速度，钳在带沿时为 0 而不是「按着键所以在动」的目标值）、`IsDepthAirLocked`（**只表示离地锁定**；出招定身时纵深速度也是零，但那是与横向同一条封锁口径、不是这个锁）。摆位走 `PlaceDepth`（直接改位置、不产生速度）。
+- `DepthBand`（静态）——`WidthWorldPx=48`、`BackWorldPx=0`（最靠后）、`FrontWorldPx=48`、`CenterWorldPx=24`、`RowSpacingWorldPx=16`，加 `Clamp`／`Contains`。**0 在最靠后、与屏幕向下同向**是有意选的：纵深值与「绘制时往下偏移多少世界像素」是同一个数、同一方向，不用取反，而符号写反**不报错**，只会让画面前后关系与命中判定相反。`MotorState` 的纵深三项——`DepthWorldPx`（位置，恒在带内，连续量不是轨道号）、`DepthVelocity`（**本帧真实发生**的速度，钳在带沿时为 0 而不是「按着键所以在动」的目标值）、`IsDepthAirLocked`（**只表示离地锁定**；出招定身时纵深速度也是零，但那是与横向同一条封锁口径）。摆位走 `PlaceDepth`（直接改位置、不产生速度）。
 - `AttackPhase { Startup, Active, Recovery }`；实际 `MotorPhase { Grounded, Airborne, Dodge, Dash }`，待机/移动由横速区分，上升/下落由竖速区分，攻击由独立连段机表达。
 - `HitReaction(int KnockbackWorldPx, int HitstunFrames, int HitstopFrames, bool IsHeavy)`——结算产物。
 - `StatusKind { Hitstun, Invulnerable }`；状态载体条目 `(StatusKind Kind, int RemainingFrames, bool Removable)`，A1 两种 `Removable=false`。
@@ -133,8 +134,7 @@ last_verified: 2026-09-09
 - 同一次挥击的判定框对同一受击框只结算一次（每次挥击一个已命中集合）。
 - 顿帧期间不接受新输入推进（双方与相机一同静止），顿帧结束继续。
 - 闪避方向（`GP-15` 起是二维，`GP-9` 的「取按下瞬间」口径不变）：**两个轴都没按**才取「面朝方向」翻滚；只按纵深时是纯纵深翻滚（横向速度为 0、**朝向不变** —— 侧视精灵只有左右两面，纵深输入不改朝向）；两个方向在起手那一瞬一起锁定，翻滚途中改方向无效。
-- 离地期间纵深锁定，落地即自动解锁；**闪避途中掉出平台也照锁**（翻滚不是纵深的豁免，否则「空中不改纵深」有一个用闪避就能绕开的口子），横向翻滚位移照给满。
-- 冲刺只加横向：按住冲刺 + 只按纵深不进 `Dash` 相位、纵深仍走行走速度。
+- 离地期间纵深锁定、落地即自动解锁，**闪避途中掉出平台也照锁**（翻滚不是纵深的豁免，否则「空中不改纵深」有一个用闪避就能绕开的口子），横向翻滚位移照给满；冲刺只加横向，按住冲刺 + 只按纵深不进 `Dash` 相位、纵深仍走行走速度。
 - samurai 缺某动作帧：退回占位几何或明显标记，不崩（见 §6）。
 
 ## 5. 核心逻辑
@@ -197,8 +197,8 @@ GP-13图形入口保留原34标签并新增22项输入恢复判据，共56项。
 | US／FR | 测试 | 类型 | 说明 |
 | --- | --- | --- | --- |
 | `US-001`/`FR-4` | 运动学纯函数 | 单元 | 移动/跳/重力；手感「跟手」实机 |
-| `US-001`/`FR-23,24` | 纵深钳制、连续性、空中锁与落地解锁、三轴不串 | 单元＋图形探针 | 单测钉三轴分离，`player_dev.py` 的 4 条钉引擎接线；48px 够不够归 `ENG-16` |
-| `FR-28`（速度部分） | 纵深行走与纵深闪避速度在 `CombatFeel`、一次纵深闪避走不完整条带 | 单元 | 两者都是未校准初值、归 `GP-6`；容差部分随 `GP-16` |
+| `US-001`/`FR-23,24`／`FR-28`（速度） | 纵深钳制、连续性、空中锁与落地解锁、三轴不串；两个纵深速度在 `CombatFeel` 且一次纵深闪避走不完整条带 | 单元＋图形探针 | 单测钉三轴分离，`player_dev.py` 的 4 条钉引擎接线；速度是未校准初值归 `GP-6`，48px 够不够归 `ENG-16` |
+| `FR-26,27` | 纵深排序两键、绘制偏移、影子的位置与随高度缩放 | 单元＋图形探针 | `DepthRenderingTests` 12 条钉规则，`depth_dev.py` 13 条钉引擎（含截图数像素证明前后关系真的交换）；影子四个初值归 `GP-6`，满编可读性归 `ENG-16` |
 | `US-002`/`FR-5~7` | 连段状态机迁移 | 单元 | 段—相、衔接窗口、空中落地打断 |
 | `US-003`/`FR-8~10` | 无敌窗口、闪避方向、冲刺显式 | 单元 | 方向取当帧（`GP-9`） |
 | `US-004`/`FR-11~16` | `HitResolution`、硬直载体、震屏关零位移 | 单元 | 「打得实」实机 |
