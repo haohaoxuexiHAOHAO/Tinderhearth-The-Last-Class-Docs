@@ -2,7 +2,7 @@
 type: workdoc
 status: draft
 owner: project
-last_verified: 2026-09-07
+last_verified: 2026-09-08
 ---
 
 # SPEC：战斗手感核心（进攻侧竖切片 + 帧调优工具）
@@ -33,7 +33,10 @@ last_verified: 2026-09-07
 | 顿帧 | 全局 hitstop：命中时冻结战斗相关推进 N 帧，相机随之静止 | PRD §7；用 `Engine.TimeScale` 还是手动计时待评估（见 §10.2） |
 | 场景 | 训练房是**独立新场景**，不动 `scenes/Main.tscn` | `Main.tscn` 的启动探针链是 `UI-1` 验收执行体，`verify.py` 跑产物与 `check_camera/hud` 都读它 |
 | 命中检测 | 引擎层 `Area2D` 判定框／受击框，命中事件回喂规则层做结算 | 碰撞是引擎能力；结算（击退量／硬直帧／是否触发顿帧与震屏）是可测逻辑 |
-| 主角美术 | `AnimatedSprite2D` + `SpriteFrames`，从 `ART-4` 登记的 samurai 表切 | 打击手感须真实动作帧才验得出；下载件占位、发行前替换（`ENG-12` 守） |
+| 主角美术 | `AnimatedSprite2D` + `SpriteFrames`；**已改为作者自绘逐帧件**（`ART-6`），samurai 仅留给相机脚手架 | 打击手感须真实动作帧才验得出；自绘测试木偶仍登记为不得进包、发行前替换（`ENG-12` 守） |
+| 受击闪白 | **归代码，动画只提供受击姿态**（`ART-6`，2026-09-08 定） | 代码侧能按轻重分调时长、跟顿帧一同冻结、做成可关的无障碍项，且每个新敌人不必各画一套；进仓精灵表因此不许出现整帧单色的帧 |
+| 判定框 | **按轻重分开**，取值由 Active 帧的实测伸展导出（轻 18×4、重 22×16，中心距脚底 18） | 画面上轻拳伸 18px、重拳 22px，共用 28×28 会让「重击打得更远」读成「重击不实」，而这不报错；仍是 `GP-6` 的未校准初值 |
+| 帧框与判定框的真相 | 引擎常量与素材登记表**由守卫绑定**，不各写一份 | 引擎读不到登记表（`tools/` 带 `.gdignore`、不进包）；三个漂移方向（改素材／改 Active 窗口／改常量）都被 `check_assets.py` 拦下 |
 
 ## 2. 场景与节点结构
 
@@ -73,14 +76,14 @@ last_verified: 2026-09-07
 ### 3.1 类型定义
 
 - `CombatInput(int MoveSign, bool JumpPressed, bool LightPressed, bool HeavyPressed, bool DodgePressed, bool SprintHeld)`——`MoveSign` ∈ {−1,0,+1}（侧视只用左右）；`*Pressed` 为「本帧刚按下」的边沿，`SprintHeld` 为持续态。
-- `AttackPhase { Startup, Active, Recovery }`；`MotorPhase { Idle, Move, JumpRise, Fall, Dodge, Dash, Attacking }`。
+- `AttackPhase { Startup, Active, Recovery }`；实际 `MotorPhase { Grounded, Airborne, Dodge, Dash }`，待机/移动由横速区分，上升/下落由竖速区分，攻击由独立连段机表达。
 - `HitReaction(int KnockbackWorldPx, int HitstunFrames, int HitstopFrames, bool IsHeavy)`——结算产物。
 - `StatusKind { Hitstun, Invulnerable }`；状态载体条目 `(StatusKind Kind, int RemainingFrames, bool Removable)`，A1 两种 `Removable=false`。
-- `CombatFeel` 全部为 `const int`（帧）或 `const int`（世界像素），无浮点魔法数散落。
+- `CombatFeel` 常量按成员名区分帧、世界像素、世界像素/秒和世界像素/秒²，固定60Hz换算；手感量是未校准初值。
 
 ### 3.2 关系
 
-`PlayerActor`／`TrainingDummy` 各持一个 `MotorState` + 状态载体；`ComboStateMachine` 属 `PlayerActor`。命中时 `HitResolution.Resolve(weight)` → `HitReaction` → 施加到 `TrainingDummy` 的状态载体与位移、触发 `Hitstop` 与（重击时）`GameCamera.Rig.Shake()`。方向取值复用 `GP-9`：闪避方向 = `InputRouter.MoveDirection()` 当帧值，不缓冲。
+`PlayerActor` 持 `ActorCombatState`（含 Motor 与连段）；`TrainingDummy` 只持独立统一状态载体，不建无用的 Motor。命中时 `HitResolution.Resolve(weight)` → `HitReaction` → 施加到 `TrainingDummy` 的状态载体与位移、触发 `Hitstop` 与（重击时）`GameCamera.Rig.Shake()`。方向取值复用 `GP-9`：闪避方向 = `InputRouter.MoveDirection()` 当帧值，不缓冲。
 
 ### 3.3 帧推进所有权（GP-11）
 
@@ -129,21 +132,25 @@ last_verified: 2026-09-07
 
 每物理帧（`_PhysicsProcess`），若不在 hitstop：
 
+GP-12 实现校正：`ActorCombatState.Tick(input, onFloor)` 为唯一仲裁入口，先连段后运动；已有闪避拒绝攻击（含退出帧），已有攻击在结束帧仍不允许跳闪取消，空闲同帧攻击优先于跳闪。`MoveAndSlide` 后 `AfterMove` 立即处理撞顶与空中连段落地，不再 Tick。`ICombatController` 扩展控制器帧能力，角色每帧从登记表取源；无战斗能力控制器为空输入。动画手动按物理帧选择纹理，不调用自动播放。
+
+GP-12 运动帧契约：规则持速度（世界像素/秒），引擎持位置并由 MoveAndSlide 按60Hz积分，不重复乘步长。普通横速按 CombatFeel 加/减速度逐Tick逼近并夹紧目标；反向或减小目标幅值使用减速率，地面攻击立即定身，空中也走同一曲线。1040/1560世界像素/秒²是未校准初值，对104px/s对应6帧起步/4帧停止。闪避起手算第0帧，18次Tick均给横速；第17帧退出相位但保留本次输出，下一Tick才读普通输入，未碰撞位移为168×18/60=50.4世界像素。离平台不清竖速，沿用重力累计；AfterMove在撞顶/落地时清被阻挡竖速、墙碰撞时回传引擎横速，不推进任何时钟。图形探针覆盖真实撞顶及下一帧、轻3重2每段三相、完整闪避位移和离台落地；规则测试覆盖水平曲线及碰撞计时。
+
+GP-13 已实现独立 `HitFeedbackDev.tscn`，完整训练房与调优工具仍属 GP-14/ENG-6。实际帧序为：外层 Hitstop.Tick → 若冻结则返回 → PlayerActor.AdvanceCombat（含碰撞后取消）→ TrainingDummy.AdvanceCombat → GameCamera.Advance → Hitbox.Resolve → 新命中 Begin。命中帧不消耗顿帧；输入事件始终继续，短按不缓存。
+
+判定采用 Active 硬门后的实时形状查询，Active 起点清每挥击 HashSet，排除自身。木桩独立 StatusEffects，旧硬直每帧消费距离/N并递减，第N次消费后到期；新命中替换剩余位移与时长，MoveAndCollide挡墙。几何木桩直接画白，闪白时钟与相机同冻；玩家动画仍手动物理推进。相机 ManualAdvance 默认关闭，仅此场景显式驱动。机器覆盖与偏离见 [GP-13](./issues/issue-GP-13-hit-detection-feedback.md)。
+
+以下保留流程意图；类型与成员以现行实现为准：
+
 ```
-input = BuildCombatInput(router)              // 读 InputRouter，组装边沿与持续态
-motor.Tick(input); combo.Tick(input)          // 推进帧计数与状态迁移
-applyVelocity(motor.State)                     // 由状态给速度：移动/跳/闪避冲刺/重力
-sprite.Play(animFor(motor, combo))             // 状态→动画
-hitbox.SetEnabled(combo.Phase == Active)       // 仅 Active 帧开判定框
-for dummy in overlappingHurtboxes(hitbox):
-    if dummy not in combo.CurrentSwingHitSet:
-        r = HitResolution.Resolve(combo.CurrentWeight)
-        dummy.status.Apply(Hitstun, r.HitstunFrames)
-        dummy.Knockback(r.KnockbackWorldPx * facing)
-        dummy.Flash()
-        Hitstop.Begin(r.HitstopFrames)          // 顿帧：冻结推进
-        if r.IsHeavy: camera.Rig.Shake()        // 屏幕震动（ShakeEnabled 为总开关）
-        combo.CurrentSwingHitSet.Add(dummy)
+if hitstop.Tick(): return
+player.AdvanceCombat()
+dummy.AdvanceCombat()
+camera.Advance(delta)
+hitbox.Resolve(player, reaction => {
+    hitstop.Begin(reaction.HitstopFrames)
+    if reaction.IsHeavy: camera.Rig.Shake()
+})
 ```
 
 `motor` 与 `combo` 的迁移逻辑（§4.2）全在规则层、按帧推进，可用单测断言「第 X 帧进入 Active」「无敌窗口起止帧」「连段窗口内/外的续接与回落」。引擎层只做 `BuildCombatInput`、`applyVelocity`、动画、`Area2D` 重叠查询与表现。
@@ -173,6 +180,8 @@ A1 无「资源不足」「数据缺失」路径（不读数值、不读存档�
 规则层单测（`tests/Combat`，xunit `[Fact]`/`[InlineData]`，禁 `[MemberData]`）：连段状态机的段—相迁移与衔接窗口、空中连段落地打断、闪避无敌窗口起止帧、闪避方向取当帧值、`HitResolution` 的击退量／硬直帧随轻重变化、硬直刷新不叠加、hitstop 帧数有限且自解除、状态载体的「可否解除」标志。屏幕震动关闭恒零位移复用 `CameraRig` 既有测试。
 
 ### 8.2 验收标准对应表
+
+GP-13图形入口保留原34标签并新增22项输入恢复判据，共56项。跳/轻击/重击各自从可接受动作的待机态主动Begin(5)：F1末按下、F2核按住并松开、F3至F5核释放，R1至R8逐帧无重放，R9新按阳性对照。冲刺按右+冲刺，冻结5帧不动；恢复逐帧核Dash、规则/引擎横速与实际位移（1040/60每帧加速，夹紧176），R12后松冲刺按1560/60减至104并维持普通移动，再松方向停稳。原真实命中阶段仍查轻3/重5的状态、动画及相机冻结；独立阶段不冒充命中动作中的恢复。入口对全部标签严格核名/数量/摘要，新增22项各做缺失与FAIL日志自证，连原11项共55。
 
 | US／FR | 测试 | 类型 | 说明 |
 | --- | --- | --- | --- |
@@ -227,5 +236,6 @@ A1 无「资源不足」「数据缺失」路径（不读数值、不读存档�
 
 - 本 SPEC 基于**实际阅读**代码仓的真实签名（`InputRouter`、`CameraRig`/`GameCamera`、`ActorControl`、`CameraFeel`、`Main.cs`），非空仓推断。
 - **未验证**：`GameCamera.Rig.Shake()` 在训练房场景（非脚手架）下的表现同 `UI-5` 脚手架——验证办法：训练房里触发重击看位移与关开关。
-- **未验证**：samurai 表能切出全部所需动作帧——验证办法：核 `assets/downloaded/samurai/` 与 `asset-registry.json` 登记。
-- **未验证**：顿帧对 `InputRouter` 事件流的影响——验证办法：hitstop 期间按键，看解除后是否丢输入。
+- **已核对**：samurai 表只有 idle 10、run 16、attack1 7、hurt 4 帧，均 96×96；跳跃、闪避、重击及轻击后续段缺图，GP-12 明显几何占位，不宣称完整动画覆盖。**已被 `ART-6` 取代**：主角现在用作者自绘的七张表（统一帧框 46×32、锚点第 23 列、地面行第 30 行），缺图几何占位机制保留但当前无动作走它；`hit`／`defense`／`death` 入仓但刻意不载（有图没规则）。
+- **已验证（ART-6）**：引擎侧逐像素核过七张表 54 帧的脚底行都是第 29 行、本体最高 30px（≤32px 铁律）、188 个物理帧里精灵帧与规则相位逐帧一致；同一距离轻击打空而重击打到，证明判定框真的按轻重换尺寸而不只是常量分开了。详见 [`issue-ART-6`](./issues/issue-ART-6-role-action-frames.md)。
+- **已验证（GP-13）**：真实命中后另开落地待机主动顿帧阶段，跳/轻击/重击分别在冻结期完整按放，恢复首帧及随后8帧不重放，之后新按键可起动作。方向+冲刺覆盖冻结5帧零位移、首恢复帧速度与位移、逐帧加速至176、松冲刺减至104普通移动及松方向停稳。输入均deferred注入并经InputRouter读取，保留最后冻结帧Remaining=0仍跳过的语义；仅手感与缺图仍待人工。
