@@ -2,7 +2,7 @@
 type: workdoc
 status: draft
 owner: project
-last_verified: 2026-09-09
+last_verified: 2026-09-11
 ---
 
 # SPEC：战斗手感核心（进攻侧竖切片 + 帧调优工具）
@@ -42,6 +42,7 @@ last_verified: 2026-09-09
 | 纵深的两个落点（`GP-15`） | 带宽进 `rules/Combat/DepthBand.cs`（正典几何账，`ENG-16` 可能回改）；纵深行走与**纵深闪避**两个速度进 `CombatFeel`，都是未校准初值 | 48px 不是只能实机调的手感量，混进 `CombatFeel` 会让人以为它可以凭手感改；纵深闪避另设速度是因为横向那个 168 放到 48px 带上会让每次闪避都撞带沿，**落点由钳制而不是输入决定**。详见 `issue-GP-15` |
 | 绘制排序（`ENG-15`） | 两个键（纵深为主、同纵深时脚底为次）算在 `rules/Combat/DepthRendering.cs`，引擎层只写 `z_index`；**不用** `y_sort_enabled`（它只排一个键，屏幕 Y 里混着跳跃高度） | 理由与代价见 [`issue-ENG-15`](./issues/issue-ENG-15-depth-sorting-shadow.md)，不在此复制第二份 |
 | 纵深的绘制偏移与影子（`ENG-15`） | 碰撞地面对应**带中线**（偏移 ＝ 纵深 − 24，地形按 48px 带画）；影子是代码画的不透明扁椭圆，位置取地面投影点（射线每帧问）、随高度**只缩小不变淡** | 同上。不变淡是[像素绘制原则 §9]「只用完全透明或完全不透明」的直接推论 |
+| 命中的两个条件与容差（`GP-16`） | 横向由引擎形状查询判、纵深由新增 `rules/Combat/DepthOverlap.cs` 判，**合取只有一个具名落点**（`WithHorizontal`）；容差 `CombatFeel.HitDepthToleranceWorldPx=8`（半个排间距，未校准初值归 `GP-6`）**由调用方传入**，`GP-17` 的阻挡阈值不共用它；去重排在纵深判定**之后**；击退仍只沿横向 | 碰撞形状表达不了纵深（Godot 2D 两轴已满、纵深无碰撞体），只能在拿到候选之后再筛；合取有具名落点才让「只判了一个轴」写不出来 —— 漏判纵深的代码与单平面时代长得一样且不报错。8 由正典两个可读性结论算出（8px 以下基本重叠、16px 一排仍读得出前后），于是「同排打得到、隔一排打不到」能写成算式。去重在后是因为**打空不是打过**，与横向同口径。纵深不给击退的四条理由与全部反证记录见 [`issue-GP-16`](./issues/issue-GP-16-depth-hit-tolerance.md) |
 
 ## 2. 场景与节点结构
 
@@ -71,6 +72,7 @@ last_verified: 2026-09-09
 - `rules/Combat/CombatInput.cs` [新建]：一帧的输入快照（`readonly record struct`）。
 - `rules/Combat/DepthBand.cs` [新建，`GP-15`]：可行走纵深带（宽度、前后沿、中线、排间距、钳制），正典几何账的唯一落点。
 - `rules/Combat/DepthRendering.cs` [新建，`ENG-15`]：纵深绘制的规则 —— 排序两键（`DepthSubject`／`Compare`／`DrawOrder`）、绘制偏移、影子随高度的缩放。
+- `rules/Combat/DepthOverlap.cs` [新建，`GP-16`]：带纵深的重叠判定 —— `Within`（纵深差在容差内，边界含）、`SeparationWorldPx`、`WithHorizontal`（两条件合取）。**不持有任何数**，容差由调用方传入；`GP-17` 的实体阻挡复用它。
 - `rules/Combat/MotorState.cs` [新建]：移动／跳／落地／闪避／冲刺的运动学与状态，逐帧推进；`GP-15` 起含纵深轴与它的位置。
 - `rules/Combat/ComboStateMachine.cs` [新建]：轻重连段与空中连击的段—相（Startup/Active/Recovery）状态机。
 - `rules/Combat/StatusEffects.cs` [新建]：最小统一状态载体（硬直、无敌），带「可否解除」。
@@ -149,7 +151,7 @@ GP-15 运动帧契约（三轴，2026-09-09 修订上面那条）：横向与跳
 
 GP-13 已实现独立 `HitFeedbackDev.tscn`，完整训练房与调优工具仍属 GP-14/ENG-6。实际帧序为：外层 Hitstop.Tick → 若冻结则返回 → PlayerActor.AdvanceCombat（含碰撞后取消）→ TrainingDummy.AdvanceCombat → GameCamera.Advance → Hitbox.Resolve → 新命中 Begin。命中帧不消耗顿帧；输入事件始终继续，短按不缓存。
 
-判定采用 Active 硬门后的实时形状查询，Active 起点清每挥击 HashSet，排除自身。木桩独立 StatusEffects，旧硬直每帧消费距离/N并递减，第N次消费后到期；新命中替换剩余位移与时长，MoveAndCollide挡墙。几何木桩直接画白，闪白时钟与相机同冻；玩家动画仍手动物理推进。相机 ManualAdvance 默认关闭，仅此场景显式驱动。机器覆盖与偏离见 [GP-13](./issues/issue-GP-13-hit-detection-feedback.md)。
+判定采用 Active 硬门后的实时形状查询，Active 起点清每挥击 HashSet（靠**相邻两次调用之间**的上升沿，所以 `Resolve` 须每个非顿帧物理帧调一次；`GP-16` 起违反这条由 `Hitbox.RejectedAsAlreadyHit` 查得出来），排除自身；`GP-16` 起纵深条件排在去重**之前**（打空不是打过）。木桩独立 StatusEffects，旧硬直每帧消费距离/N并递减，第N次消费后到期；新命中替换剩余位移与时长，MoveAndCollide挡墙。几何木桩直接画白，闪白时钟与相机同冻；玩家动画仍手动物理推进。相机 ManualAdvance 默认关闭，仅此场景显式驱动。机器覆盖与偏离见 [GP-13](./issues/issue-GP-13-hit-detection-feedback.md)。
 
 以下保留流程意图；类型与成员以现行实现为准：
 
@@ -199,6 +201,7 @@ GP-13图形入口保留原34标签并新增22项输入恢复判据，共56项。
 | `US-001`/`FR-4` | 运动学纯函数 | 单元 | 移动/跳/重力；手感「跟手」实机 |
 | `US-001`/`FR-23,24`／`FR-28`（速度） | 纵深钳制、连续性、空中锁与落地解锁、三轴不串；两个纵深速度在 `CombatFeel` 且一次纵深闪避走不完整条带 | 单元＋图形探针 | 单测钉三轴分离，`player_dev.py` 的 4 条钉引擎接线；速度是未校准初值归 `GP-6`，48px 够不够归 `ENG-16` |
 | `FR-26,27` | 纵深排序两键、绘制偏移、影子的位置与随高度缩放 | 单元＋图形探针 | `DepthRenderingTests` 12 条钉规则，`depth_dev.py` 13 条钉引擎（含截图数像素证明前后关系真的交换）；影子四个初值归 `GP-6`，满编可读性归 `ENG-16` |
+| `FR-25`／`FR-28`（容差） | 四种组合（横向×纵深）、容差边界含在内、非法容差抛出、「同排打得到隔一排打不到」的关系；引擎侧同一横向距离下纵深错开打空、挪回同排打中、正好差一个容差打中、击退不碰纵深 | 单元＋图形探针 | `DepthOverlapTests` 15 条 ＋ `CombatFeelTests` 1 条钉规则与关系（不钉 8 这个数），`hit_feedback_dev.py` 新增 7 条钉引擎（含两条前提判据：距离从常量导出、去重集合干净）。容差实机收敛归 `GP-6` |
 | `US-002`/`FR-5~7` | 连段状态机迁移 | 单元 | 段—相、衔接窗口、空中落地打断 |
 | `US-003`/`FR-8~10` | 无敌窗口、闪避方向、冲刺显式 | 单元 | 方向取当帧（`GP-9`） |
 | `US-004`/`FR-11~16` | `HitResolution`、硬直载体、震屏关零位移 | 单元 | 「打得实」实机 |
