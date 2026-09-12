@@ -84,7 +84,7 @@ last_verified: 2026-09-11
 
 ### 3.1 类型定义
 
-- `CombatInput(int HorizontalSign, int DepthSign, bool JumpPressed, bool LightPressed, bool HeavyPressed, bool DodgePressed, bool SprintHeld)`——两个方向轴各规整到 {−1,0,+1}（`HorizontalDirection`／`DepthDirection`），`DepthSign` 正为向前（靠近镜头）；`HasDirection` 表示这一帧有没有任何方向输入；`*Pressed` 为「本帧刚按下」的边沿，`SprintHeld` 为持续态。**原字段名 `MoveSign` 已改为 `HorizontalSign`**（`GP-15`）：加了纵深之后「移动轴」有两个，旧名字会让「把纵深接到横向字段上」成为看不出来的错。
+- `CombatInput(int HorizontalSign, int DepthSign, bool JumpPressed, bool LightPressed, bool HeavyPressed, bool DodgePressed, bool DashHeld)`——两个方向轴各规整到 {−1,0,+1}（`HorizontalDirection`／`DepthDirection`），`DepthSign` 正为向前（靠近镜头）；`HasDirection` 表示这一帧有没有任何方向输入；`*Pressed` 为「本帧刚按下」的边沿，`DashHeld` 为持续态（2026-09-12 由 `SprintHeld` 改名，见 §4.1）。**原字段名 `MoveSign` 已改为 `HorizontalSign`**（`GP-15`）：加了纵深之后「移动轴」有两个，旧名字会让「把纵深接到横向字段上」成为看不出来的错。
 - `DepthBand`（静态）——`WidthWorldPx=48`、`BackWorldPx=0`（最靠后）、`FrontWorldPx=48`、`CenterWorldPx=24`、`RowSpacingWorldPx=16`，加 `Clamp`／`Contains`。**0 在最靠后、与屏幕向下同向**是有意选的：纵深值与「绘制时往下偏移多少世界像素」是同一个数、同一方向，不用取反，而符号写反**不报错**，只会让画面前后关系与命中判定相反。`MotorState` 的纵深三项——`DepthWorldPx`（位置，恒在带内，连续量不是轨道号）、`DepthVelocity`（**本帧真实发生**的速度，钳在带沿时为 0 而不是「按着键所以在动」的目标值）、`IsDepthAirLocked`（**只表示离地锁定**；出招定身时纵深速度也是零，但那是与横向同一条封锁口径）。摆位走 `PlaceDepth`（直接改位置、不产生速度）。
 - `AttackPhase { Startup, Active, Recovery }`；实际 `MotorPhase { Grounded, Airborne, Dodge, Dash }`，待机/移动由横速区分，上升/下落由竖速区分，攻击由独立连段机表达。
 - `HitReaction(int KnockbackWorldPx, int HitstunFrames, int HitstopFrames, bool IsHeavy)`——结算产物。
@@ -111,7 +111,7 @@ last_verified: 2026-09-11
 
 ### 4.1 输入映射
 
-全部复用 `InputActions` 既有动作，无新增绑定：`move_left/right`、**`move_up/down`**（`GP-15` 起驱动纵深，`UI-7` 早已绑好 W/S 与左摇杆 Y）、`jump`、`attack_light`、`attack_heavy`、`dodge`、`sprint`。经 `InputRouter.IsJustPressed/IsPressed/MoveDirection` 读取（`check_input_map` 守直接轮询）；纵深取 `MoveDirection().Y` 且**不取反** —— `move_down` 为正，`DepthBand` 的正方向也是向前。`guard` 与 6 技能位本切片不读。
+全部复用 `InputActions` 既有动作，无新增绑定：`move_left/right`、**`move_up/down`**（`GP-15` 起驱动纵深，`UI-7` 早已绑好 W/S 与左摇杆 Y）、`jump`、`attack_light`、`attack_heavy`、`dodge`、**`dash`**（2026-09-12 由 `sprint` 改名，与 `MotorPhase.Dash`／`DashSpeedPixelsPerSecond` 统一；键位不变）。经 `InputRouter.IsJustPressed/IsPressed/MoveDirection` 读取（`check_input_map` 守直接轮询）；纵深取 `MoveDirection().Y` 且**不取反** —— `move_down` 为正，`DepthBand` 的正方向也是向前。`guard` 与 6 技能位本切片不读。
 
 ### 4.2 状态与迁移（主角）
 
@@ -126,7 +126,7 @@ last_verified: 2026-09-11
 | Attacking(Recovery) | 窗口过／无输入 | Idle | 回落 |
 | JumpRise/Fall | `Light/HeavyPressed` | Attacking(空中段) | 落地即打断 |
 | Idle/Move | `DodgePressed` | Dodge | 起 `Invulnerable` 窗口；方向取按下瞬间（`GP-9`） |
-| Move | `SprintHeld` 且 `MoveSign≠0` | Dash | 无无敌；松开或停移即回 Move |
+| Move | `DashHeld` 且 `HorizontalSign≠0` | Dash | 无无敌；松开或停移即回 Move |
 
 **A1 不做取消／派生**：攻击段只能续接下一连段，不能取消到闪避／防御（防御本就不在 A1）。闪避与冲刺只从非攻击态进入。
 
@@ -135,8 +135,8 @@ last_verified: 2026-09-11
 - 木桩已在硬直中再受击：刷新硬直帧（取新值，不叠加）。
 - 同一次挥击的判定框对同一受击框只结算一次（每次挥击一个已命中集合）。
 - 顿帧期间不接受新输入推进（双方与相机一同静止），顿帧结束继续。
-- 闪避方向（`GP-15` 起是二维，`GP-9` 的「取按下瞬间」口径不变）：**两个轴都没按**才取「面朝方向」翻滚；只按纵深时是纯纵深翻滚（横向速度为 0、**朝向不变** —— 侧视精灵只有左右两面，纵深输入不改朝向）；两个方向在起手那一瞬一起锁定，翻滚途中改方向无效。
-- 离地期间纵深锁定、落地即自动解锁，**闪避途中掉出平台也照锁**（翻滚不是纵深的豁免，否则「空中不改纵深」有一个用闪避就能绕开的口子），横向翻滚位移照给满；冲刺只加横向，按住冲刺 + 只按纵深不进 `Dash` 相位、纵深仍走行走速度。
+- 闪避方向（`GP-15` 起是二维，`GP-9` 的「取按下瞬间」口径不变）：**两个轴都没按**才取「面朝方向」闪步；只按纵深时是纯纵深闪步（横向速度为 0、**朝向不变** —— 侧视精灵只有左右两面，纵深输入不改朝向）；两个方向在起手那一瞬一起锁定，闪步途中改方向无效。
+- 离地期间纵深锁定、落地即自动解锁，**闪避途中掉出平台也照锁**（闪步不是纵深的豁免，否则「空中不改纵深」有一个用闪避就能绕开的口子），横向闪步位移照给满；冲刺只加横向，按住冲刺 + 只按纵深不进 `Dash` 相位、纵深仍走行走速度。
 - samurai 缺某动作帧：退回占位几何或明显标记，不崩（见 §6）。
 
 ## 5. 核心逻辑
