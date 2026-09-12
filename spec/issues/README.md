@@ -82,7 +82,7 @@ last_verified: 2026-09-08
 | `ENG-11` | 中 | 行尾守卫覆盖到代码仓 | **已完成（2026-09-02）。** `tools/check_eol.py` 是独立入口；`verify.py` 新增 `step_eol`，插在素材与构建之间；`selfcheck_verify.py` 加一条注入用例（把 `.gitattributes` 改成 CRLF）。DOC-7 同轮修掉（`log_path` 同秒加序号）。归档后守卫本体是 `tools/check_eol.py`，用法见代码仓 `README.md` |
 | `ENG-8` | 中 | Steam 集成选型与兼容性验证 | 依赖 `ENG-2`。上架 Steam 需要成就、云存档，可能还有创意工坊（mod 分发）。**不自造绑定**，候选：`Godot.Steamworks.NET`（对 C# 工程最贴，但只声明支持 4.4+）、`Godot-Facepunch.Steamworks`、`GodotSteam`（最知名但面向 GDScript，从 C# 调不顺手）、`Foundation for Steamworks`。**四者均未在 Godot 4.7.2 上验证**，须先实测再选。另需定存档路径与云同步冲突处理 |
 | `ENG-7` | 中 | 存档要能容忍缺失的 mod 内容，并明确提示玩家 | 依赖 `ENG-2` 与 `ENG-5`。玩家装 mod 加了角色、存档、再卸载 mod，那个角色在存档里就是悬空引用。**不许静默丢数据，也不许崩档** —— 载入时要列出「因缺少 mod 而不可用」的角色与物品，让玩家自己决定是装回去还是继续。同一套容错也覆盖 mod 版本升级导致的字段变化 |
-| `ENG-6` | 中 | 帧级调优工具选型：判定框、硬直与无敌帧、防御窗口、输入缓冲的可视化与逐帧步进 | 依赖 `ENG-2`、`GP-12`（要有能动的战斗才验得了）。评估三候选（引擎自带碰撞框可视化／`animated-shape-2d`／`Fray`，均未在 4.7.2 实测，`Fray` 是 GDScript 需互操作）后自建最小帧步进与判定框叠层。**已随 `combat-feel-core` PRD 激活。** 详见 [`issue-ENG-6`](./issue-ENG-6-frame-tuning-tools.md) |
+| `ENG-6` | 中 | 帧级调优工具：判定框/受击框叠层 + 帧步进 | **机器验收通过，待作者实机确认手感。** 自建 `CombatDebugOverlay`（世界空间 Node2D、默认关）：判定框/受击框读 `Hitbox.ActiveBoxLocal`／`Hurtbox.BoxLocal`（单一真相），帧步进复用顿帧的「当帧不推进」gate。三候选取自建（内置可视化不够语义、两 GDScript 插件未装）；顿帧＝手动 hitstop（非 TimeScale）；GdUnit4 不采用（踩坑 30）。`combat_debug_dev.py` 10/10、verify 6/6、三探针无回归。详见 [`issue-ENG-6`](./issue-ENG-6-frame-tuning-tools.md) |
 | `ENG-5` | 中 | 全部内容数据外置，角色驱动统一成可替换控制器 | **接缝已就位、内容类型还没有。** 四条零成本预留（角色定义外置、名册容量从配置读、控制器接口、文本外置）已随工程底座落地并各有测试，见代码仓 `ARCHITECTURE.md`。本条**剩下的是把正典点名的其余内容类型都外置**：宝物、宝石、技能、特质、天赋、作物、加工配方、委托模板、敌人 —— 每类都要等对应系统存在才做得了，所以本条会跟着玩法实现分批推进而不是一次做完。边界不变：**内容外置、规则不外置**。**联机未立项**，届时玩家用自定义角色，不扮演主角或学员 |
 
 ## 文档
