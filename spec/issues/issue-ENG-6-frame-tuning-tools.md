@@ -28,7 +28,7 @@ last_verified: 2026-09-12
 - [x] 帧步进不改变结算结果（步进与实时跑同一份 `AdvanceCombat`）：探针 `paused-freezes-combat` + `step-advances-exactly-one` + `step-runs-full-resolution`（单步命中木桩，硬直帧 ≙ 规则层）
 - [x] 顿帧实现：**手动 hitstop**（`rules/Combat/HitstopTimer` + 引擎层薄包装 `Hitstop`，纯计数、不碰 `Engine.TimeScale`）。理由：`TimeScale=0` 会波及 `InputRouter`／动画树等全局（`SPEC` §10.2），手动只冻结战斗推进与相机、可测。**GP-11/GP-13 已落地，本条据实记录**；帧步进复用同一「当帧不推进」介入点
 - [x] 引擎内帧级/场景测试框架：**不采用 GdUnit4Net**。踩坑记录 30 已实测 `dotnet test`＋GdUnit4/xunit.v3 在 `net10.0` 跑不通；引擎层验证走既有**图形探针**模式（python runner ＋ `[标签] PASS/FAIL` 日志契约），本条的 `CombatDebugDev`＋`combat_debug_dev.py` 即又一实例
-- [ ] 作者实机确认：用这套工具能把 `US-001`~`US-004` 的手感调到位（唯一人工项，本轮未代勾；交互命令 `python tools/run_local_check.py combat_debug_dev.py`，`V` 开叠层、`P` 暂停、`.` 单步）
+- [x] 作者实机确认：**2026-09-12 实机看过，未发现问题**（交互命令 `python tools/run_local_check.py combat_debug_dev.py`，`V` 开叠层、`P` 暂停、`.` 单步）。工具本身可用；**它的第一份产出就是抓到一个真缺陷** —— 主角受击框比画面高 4px，已立项 [`GP-19`](./issue-GP-19-hurtbox-per-actor.md)。手感数值的逐帧收敛仍归 `GP-6`，那不是本条的事
 
 ## 实现笔记（2026-09-12）
 
