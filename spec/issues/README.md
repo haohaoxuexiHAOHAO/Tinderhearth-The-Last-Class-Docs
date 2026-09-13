@@ -77,7 +77,6 @@ last_verified: 2026-09-13
 
 | id | 优先级 | 待办 | 备注 |
 | --- | --- | --- | --- |
-| `ENG-17` | 中 | [代码可读性约定增补与定点重构](./issue-ENG-17-readability-conventions.md) | 作者 2026-09-13 反馈语法糖与 `var` 多、可读性差。分析结论：`ENG-4` 未规定 var／嵌套三元／宽构造，且 `var` 密度最高处是探针而非承重玩法逻辑，全仓唯一**嵌套**三元在 `PlayerActor.UpdateVisual`。范围＝`CONVENTIONS.md` 增补三节（var 用法、禁嵌套三元用 switch、宽构造具名实参）＋定点重构那一处＋少量非显然 var 写全类型，**不做全量展开**（记录／LINQ／集合表达式／模式匹配／表达式体保持不变）。行为不变，`verify.py` 6/6、四探针无回归、测试≥326。详见条目 |
 | `ENG-14` | 高 | [输入专项探针互不污染](./issue-ENG-14-input-probe-isolation.md) | **输入修复已验证，待收口。** GP-12 前置闸门已通过；串行共享输入探针，原输入 17/17，自证 10/10，HUD 28/28，verify 6/6。证据及限制见条目；已提交（`4603398`）。`GP-15` 带出一条 `focus-kept` 失焦的新观察，收口前看条目里那一节 |
 | `ENG-15` | 中 | 纵深排序与代码影子 | **已完成并提交（`6ad053d`／`53a9427`／`92b15c9`），作者已实机看过影子并裁定保持现状。这是纵深第一次能用眼睛看。** 规则层两键排序写进 `z_index`、代码画影子（跳起留地面、随高度只缩不淡）；`depth_dev.py` 16/16、自证 43/43、verify 6/6、301/301。**纵深带 48px 够不够（作者觉得偏窄、上下留白多）归 `ENG-16`。** 详见 [`issue-ENG-15`](./issue-ENG-15-depth-sorting-shadow.md) |
 | `ENG-16` | 中 | 纵深密度实机探针（48px 够不够） | **2026-09-12 并入 `GP-14` 一起验**（那个判断要真实背景 + 满编才成立，单独再搭一个满编场景是重复劳动）；本条留编号与依据，不单开一轮。作者 09-09／09-11 两次实机都反馈活动区域偏窄。依赖 `GP-15`、`ENG-15`。正典那笔账只证明「放得下、看得清」，**没证明「打起来爽」**；本条放满编 15 敌 + 5 角色 + 互动物件实机验，不够就按结论回改 48px。详见 [`issue-ENG-16`](./issue-ENG-16-depth-density-probe.md) |
@@ -134,3 +133,4 @@ last_verified: 2026-09-13
 | `ENG-12` | 2026-09-01 | 同 `UI-1`。发行导出守卫在 `tools/verify.py` 的 `manifest_report`／`audit_release_assets`（`--release` 下非自绘素材进包即失败）；自证 `tools/selfcheck_verify.py` |
 | `ENG-13` | 2026-09-01 | 同 `UI-1`。texture_filter 覆盖守卫在 `tools/check_assets.py` 的 `check_texture_filter`（扫 `.tscn`／`.tres`／C# 局部覆盖）；自证 `tools/selfcheck_verify.py` |
 | `GP-9` | 2026-09-01 | 闪避取方向读「按下瞬间的输入状态」定稿（否掉「短窗口最后有效方向」）。现行事实在[战斗与关卡 · 按键与连击](../../canon/gameplay/战斗与关卡.md)；实现落点：闪避状态机直取 `InputRouter` 当前轮询状态，不加缓冲窗口 |
+| `ENG-17` | 2026-09-13 | 代码仓 `CONVENTIONS.md` 新增三节（局部变量与 `var`、三元与多路分派、构造与 `new`），并定点重构 `PlayerActor.UpdateVisual` 三处多路三元为 `switch`、少量非显然 `var` 写全类型、`CombatInput` 构造改具名实参。归档件 [`ENG-17-readability-conventions/`](../../archive/spec/ENG-17-readability-conventions/issue.md) |
