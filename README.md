@@ -29,7 +29,7 @@ last_verified: 2026-08-25
 | --- | --- |
 | 世界与人物 | [世界观](./canon/world/世界观.md) · [人物](./canon/characters/人物.md) |
 | 叙事 | **待设计**。新故事尚未立项，`canon/narrative/` 暂空 |
-| 玩法与系统 | [玩法定位](./canon/gameplay/玩法定位.md)（总纲）· [时间与经营](./canon/gameplay/时间与经营.md) · [角色与成长](./canon/gameplay/角色与成长.md) · [战斗与关卡](./canon/gameplay/战斗与关卡.md)。数值模型仍待设计（`GP-2`） |
+| 玩法与系统 | [玩法定位](./canon/gameplay/玩法定位.md)（总纲）· [时间与经营](./canon/gameplay/时间与经营.md) · [角色与成长](./canon/gameplay/角色与成长.md) · [战斗与关卡](./canon/gameplay/战斗与关卡.md)。系统细化见[专项设计](./design/README.md) |
 | 美术与文案 | [像素绘制原则](./production/像素绘制原则.md) · [文案写作规范](./production/文案写作规范.md) |
 | 学习与排错 | [C# 学习](./reference/学习CSharp-Java程序员向.md) · [踩坑记录](./reference/踩坑记录.md) |
 | 需求与待办 | [spec/](./spec/README.md)（进行中需求）· [待办台账](./spec/issues/README.md)（唯一待办索引） |
