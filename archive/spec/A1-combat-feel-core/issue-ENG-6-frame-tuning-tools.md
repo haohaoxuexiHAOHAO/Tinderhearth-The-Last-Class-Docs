@@ -1,11 +1,14 @@
 ---
-type: workdoc
-status: draft
+type: archive
+status: archived
 owner: project
-last_verified: 2026-09-12
+last_verified: 2026-09-18
 ---
 
 # ENG-6：帧级调优工具选型与最小自建
+
+> **只读历史归档，不得作为现行依据。** 随 A1 归档；文中的验收手段（图形探针与守卫）已全部删除。
+> `CombatDebugOverlay` 本体仍在代码仓 `src/World/`。现行事实见[待办台账](../../../spec/issues/README.md)。
 
 ## 目标
 
@@ -13,8 +16,8 @@ last_verified: 2026-09-12
 
 ## 来源
 
-- PRD：[`prd-combat-feel-core.md`](../prd-combat-feel-core.md) 的 `US-005`
-- SPEC：[`spec-combat-feel-core.md`](../spec-combat-feel-core.md) 的 §2.2、§10.2、`CombatDebugOverlay`
+- PRD：[`A1/prd.md`](./prd.md) 的 `US-005`（**历史背景·非依据**，2026-09-18 归档）
+- SPEC：[`A1/spec.md`](./spec.md) 的 §2.2、§10.2、`CombatDebugOverlay`（**历史背景·非依据**）
 - 台账既有条目 `ENG-6`，随 `combat-feel-core` PRD 激活
 
 ## 依赖

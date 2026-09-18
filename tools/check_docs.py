@@ -13,7 +13,7 @@
 
 输出约定（CONVENTIONS §17 的通用规则）：
     固定 UTF-8；每条问题打成 [FAIL] 或 [WARN]；末尾打一行 EXIT= 摘要。
-    [FAIL] 必须修复；[WARN] 是软上限提醒，不阻断。
+    [FAIL] 必须修复；[WARN] 不阻断。
 """
 
 from __future__ import annotations
@@ -31,18 +31,11 @@ if hasattr(sys.stdout, "reconfigure"):
 
 ROOT = Path(__file__).resolve().parent.parent
 
-# ── 配额表（WORKFLOW §3）──────────────────────────────────────────────
-# (行软, 行硬, 字符软, 字符硬)
-QUOTA_DEFAULT = (600, 900, 40_000, 60_000)
-# 按仓库相对路径索引，不按文件名 —— 台账叫 README.md，按文件名会命中每一份 README。
-QUOTA_BY_REL = {
-    "WORKFLOW.md": (150, 200, 12_000, 16_000),
-    "spec/issues/README.md": (200, 250, 20_000, 25_000),
-}
-# spec/ 下的 PRD、SPEC 与 issue 文件
-QUOTA_SPEC = (250, 350, 20_000, 28_000)
+# 配额表（四档行数／字符数上限、台账逐格上限、豁免额度）随 ADR-0009 取消，
+# 判定与常量一并删除。体量改为人工把握：`--report` 仍打规模趋势表供参考，但不再判定。
+# 留着一个没有规则支撑的判定比没有判定更糟 —— 它某天报错时，没人查得到依据。
 
-# ── 文件头允许值（WORKFLOW §3）────────────────────────────────────────
+# ── 文件头允许值 ──────────────────────────────────────────────────────
 REQUIRED_KEYS = ("type", "status", "owner", "last_verified")
 # 没有 status 类型：动态状态不再单独成页，进度由 spec/ 下的 issue 勾选框承载。
 VALID_TYPES = {
@@ -73,12 +66,6 @@ LEDGER_REL = "spec/issues/README.md"
 # 两个编号在台账里都不存在 —— 也就是「记账」这件事本身漏了账，而没有任何机制能发现。
 ISSUE_ID_RE = re.compile(r"\b(?:GP|NR|UI|ART|ENG|DOC)-\d+\b")
 LEDGER_ROW_ID_RE = re.compile(r"^\|\s*`((?:GP|NR|UI|ART|ENG|DOC)-\d+)`\s*\|", re.MULTILINE)
-
-# 台账逐格限制（WORKFLOW §3）
-CELL_LIMITS = {
-    LEDGER_REL: 360,
-    "archive/history/变更日志归档.md": 220,
-}
 
 # ── 行尾（ENG-9）──────────────────────────────────────────────────────
 # 策略本身不在这里复述：`.gitattributes` 是行尾策略的唯一权威源，在 Python 里再写
@@ -303,28 +290,6 @@ def count_eol_violations(want: str, data: bytes) -> tuple[int, int]:
     return data.count(b"\n") - crlf, lone_cr
 
 
-def quota_for(doc: Doc) -> tuple[int, int, int, int]:
-    if doc.rel in QUOTA_BY_REL:
-        return QUOTA_BY_REL[doc.rel]
-    if doc.rel.startswith("spec/") and doc.meta.get("type") == "workdoc":
-        return QUOTA_SPEC
-    return QUOTA_DEFAULT
-
-
-def effective_size(doc: Doc) -> tuple[int, int]:
-    """工作文档的「待确认问题」一节不计入配额（WORKFLOW §3）。"""
-    if doc.meta.get("type") != "workdoc":
-        return doc.lines, doc.chars
-    kept, skipping = [], False
-    for line in doc.text.splitlines():
-        if re.match(r"^#{2,3}\s", line):
-            skipping = "待确认问题" in line
-        if not skipping:
-            kept.append(line)
-    body = "\n".join(kept)
-    return len(kept), len(body)
-
-
 def check_front_matter(doc: Doc, rep: Report) -> None:
     if not doc.meta:
         rep.fail(doc.rel, "缺少 YAML 文件头（必须以 --- 包住的 type/status/owner/last_verified 开头）")
@@ -342,21 +307,6 @@ def check_front_matter(doc: Doc, rep: Report) -> None:
         rep.fail(doc.rel, f"`last_verified: {d}` 必须是 YYYY-MM-DD")
     if s == "superseded" and "superseded_by" not in doc.meta:
         rep.fail(doc.rel, "`status: superseded` 必须同时写 `superseded_by`")
-
-
-def check_quota(doc: Doc, rep: Report) -> None:
-    if "quota_exempt" in doc.meta:
-        return
-    ls, lh, cs, ch = quota_for(doc)
-    lines, chars = effective_size(doc)
-    if lines > lh:
-        rep.fail(doc.rel, f"行数 {lines} 超过硬上限 {lh}（按主题或职责拆分，或在文件头写 quota_exempt 理由）")
-    elif lines > ls:
-        rep.warn(doc.rel, f"行数 {lines} 超过软上限 {ls}")
-    if chars > ch:
-        rep.fail(doc.rel, f"字符数 {chars} 超过硬上限 {ch}")
-    elif chars > cs:
-        rep.warn(doc.rel, f"字符数 {chars} 超过软上限 {cs}")
 
 
 def check_links(doc: Doc, rep: Report) -> None:
@@ -448,22 +398,6 @@ def check_issue_ids(docs: list[Doc], rep: Report) -> None:
                               f"（补进 {LEDGER_REL}，或改掉这处引用）")
 
 
-def check_cells(doc: Doc, rep: Report) -> None:
-    limit = CELL_LIMITS.get(doc.rel)
-    if limit is None:
-        return
-    for i, line in enumerate(doc.text.splitlines(), 1):
-        s = line.strip()
-        if not (s.startswith("|") and s.endswith("|")):
-            continue
-        if re.fullmatch(r"\|[\s\-:|]+\|", s):     # 分隔行
-            continue
-        for cell in s.strip("|").split("|"):
-            if len(cell.strip()) > limit:
-                rep.fail(doc.rel, f"L{i} 单元格 {len(cell.strip())} 字符，超过 {limit}（把解释移回该行链接的正文）")
-                break
-
-
 def check_reachable(docs: list[Doc], rep: Report) -> None:
     """从 README.md 出发能否走到每份非归档文档（WORKFLOW §6 入口可达）。"""
     by_rel = {d.rel: d for d in docs}
@@ -497,7 +431,7 @@ def check_line_endings(rep: Report) -> None:
     r"""工作区行尾必须符合 `.gitattributes`（WORKFLOW §6，`ENG-9`）。
 
     为什么需要：`.gitattributes` 钉了 `* text=auto eol=lf`，却没有任何检查能发现
-    工作区违反它 —— 有声明、无执行体。2026-08-29 实测编辑工具把
+    工作区违反它 —— 有声明、无执行体。实测编辑工具把
     `reference/踩坑记录.md` 从 191 行纯 LF 整份转成 201 行全 CRLF，全程无提示
     （踩坑记录 28）。单份 md 是低危，提交时索引会被规范化；**同一机制作用在
     `.githooks/pre-push` 上就是高危** —— 那是 `#!/bin/sh` 脚本，带 `\r` 时
@@ -573,14 +507,12 @@ def fix_line_endings() -> int:
 
 
 def print_report(docs: list[Doc]) -> None:
-    print(f"{'文档':<52}{'行':>6}{'字符':>9}  配额")
-    print("-" * 88)
+    """规模趋势表，供人工判断体量，不判定 —— 配额随 ADR-0009 取消。"""
+    print(f"{'文档':<52}{'行':>6}{'字符':>9}")
+    print("-" * 70)
     for d in sorted(docs, key=lambda x: -x.lines):
-        ls, lh, cs, ch = quota_for(d)
-        lines, chars = effective_size(d)
-        flag = "FAIL" if lines > lh or chars > ch else ("WARN" if lines > ls or chars > cs else "ok")
-        print(f"{d.rel:<52}{lines:>6}{chars:>9}  {ls}/{lh} 行 · {cs}/{ch} 字符  [{flag}]")
-    print("-" * 88)
+        print(f"{d.rel:<52}{d.lines:>6}{d.chars:>9}")
+    print("-" * 70)
     print(f"共 {len(docs)} 份，合计 {sum(d.lines for d in docs)} 行 / {sum(d.chars for d in docs)} 字符")
 
 
@@ -609,10 +541,8 @@ def main() -> int:
     rep = Report()
     for doc in scope:
         check_front_matter(doc, rep)
-        check_quota(doc, rep)
         check_links(doc, rep)
         check_archive_boundary(doc, rep)
-        check_cells(doc, rep)
     # 全库级检查始终看全量，否则「第二台账」「断号」「入口可达」根本查不出来。
     # 行尾也在这一档：被静默转成 CRLF 的往往正是你以为自己没碰过的文件，
     # 而且它覆盖 md 之外的 sh 与 py —— 按改动清单裁剪等于放走高危的那一类。

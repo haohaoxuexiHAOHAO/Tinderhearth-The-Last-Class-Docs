@@ -1,11 +1,14 @@
 ---
-type: workdoc
-status: draft
+type: archive
+status: archived
 owner: project
-last_verified: 2026-09-07
+last_verified: 2026-09-18
 ---
 
 # GP-11：规则层统一状态载体与命中结算
+
+> **只读历史归档，不得作为现行依据。** 随 A1 归档；文中的验收手段（图形探针与守卫）已全部删除。
+> 现行事实见[待办台账](../../../spec/issues/README.md)与代码仓。
 
 ## 目标
 
@@ -13,12 +16,12 @@ last_verified: 2026-09-07
 
 ## 来源
 
-- PRD：[`prd-combat-feel-core.md`](../prd-combat-feel-core.md) 的 `US-003`、`US-004`
-- SPEC：[`spec-combat-feel-core.md`](../spec-combat-feel-core.md) 的 §3.1、§4.3、§5、`StatusEffects`、`HitResolution`
+- PRD：[`A1/prd.md`](./prd.md) 的 `US-003`、`US-004`（**历史背景·非依据**，2026-09-18 归档）
+- SPEC：[`A1/spec.md`](./spec.md) 的 §3.1、§4.3、§5、`StatusEffects`、`HitResolution`（**历史背景·非依据**）
 
 ## 依赖
 
-`GP-10`——复用 `CombatFeel` 常量与 `MotorState`（无敌窗作为一个状态注册）。落实[玩法定位 · 跨系统约定](../../canon/gameplay/玩法定位.md)的「统一状态系统现在就成立」。
+`GP-10`——复用 `CombatFeel` 常量与 `MotorState`（无敌窗作为一个状态注册）。落实[玩法定位 · 跨系统约定](../../../canon/gameplay/玩法定位.md)的「统一状态系统现在就成立」。
 
 ## 验收标准
 
@@ -66,7 +69,7 @@ last_verified: 2026-09-07
 | 命令 | 结果 | 判定 |
 | --- | --- | --- |
 | 代码仓 `python tools/verify.py` | 完整 6/6；构建 0 错误 0 警告；测试 247/247、失败／跳过／未跑均 0；导出泄漏 0；产物启动错误 0。最终摘要 `logs/verify/20260908-003337/summary.md` | 通过；新增 26 条，Combat 共 50 条 |
-| 设计仓 `python tools/check_docs.py` | 扫描 66 份文档，行尾 79 个文本文件；0 必须修复，1 WARN | 通过；既有 C# 查阅文档 807 行超软限 600，按 DOC-4 接受，接近 900 行再复查拆分 |
+| 设计仓 `python tools/check_docs.py` | 扫描 66 份文档，行尾 79 个文本文件；0 必须修复，1 WARN | 通过；既有 C# 查阅文档 807 行超软限 600，当时判定查阅型文档可接受 |
 | 两仓分别 `git diff --check` | 均退出 0，无空白错误 | 通过 |
 
 未改 `verify.py`／`check_docs.py` 或守卫判据，本轮无需修改守卫自证。未创建临时资源，不清理作者素材；发行素材仍有 28 个待替换，属于已有占位美术，不是 GP-11 完成结论的一部分。

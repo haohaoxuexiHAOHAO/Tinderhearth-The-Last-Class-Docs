@@ -1,11 +1,14 @@
 ---
-type: workdoc
-status: draft
+type: archive
+status: archived
 owner: project
-last_verified: 2026-09-12
+last_verified: 2026-09-18
 ---
 
 # GP-19：受击框按角色取实测本体，不再一个数套所有人
+
+> **只读历史归档，不得作为现行依据。** 随 A1 归档；文中的验收手段（图形探针与守卫）已全部删除。
+> 现行事实见[待办台账](../../../spec/issues/README.md)与代码仓。
 
 ## 目标
 

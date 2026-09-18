@@ -1,11 +1,14 @@
 ---
-type: workdoc
-status: accepted
+type: archive
+status: archived
 owner: project
-last_verified: 2026-09-07
+last_verified: 2026-09-18
 ---
 
 # GP-10：规则层主角运动学与轻重连段状态机
+
+> **只读历史归档，不得作为现行依据。** 随 A1 归档；文中的验收手段（图形探针与守卫）已全部删除。
+> 现行事实见[待办台账](../../../spec/issues/README.md)与代码仓。
 
 ## 目标
 
@@ -13,8 +16,8 @@ last_verified: 2026-09-07
 
 ## 来源
 
-- PRD：[`prd-combat-feel-core.md`](../prd-combat-feel-core.md) 的 `US-001`、`US-002`、`US-003`（运动学部分）
-- SPEC：[`spec-combat-feel-core.md`](../spec-combat-feel-core.md) 的 §3、§4.2、§5、`CombatFeel`
+- PRD：[`A1/prd.md`](./prd.md) 的 `US-001`、`US-002`、`US-003`（运动学部分）（**历史背景·非依据**，2026-09-18 归档）
+- SPEC：[`A1/spec.md`](./spec.md) 的 §3、§4.2、§5、`CombatFeel`（**历史背景·非依据**）
 
 ## 依赖
 

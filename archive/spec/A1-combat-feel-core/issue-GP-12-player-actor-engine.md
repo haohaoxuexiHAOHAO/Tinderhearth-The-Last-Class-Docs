@@ -1,11 +1,14 @@
 ---
-type: workdoc
-status: draft
+type: archive
+status: archived
 owner: project
-last_verified: 2026-09-08
+last_verified: 2026-09-18
 ---
 
 # GP-12：引擎层主角节点与占位动画
+
+> **只读历史归档，不得作为现行依据。** 随 A1 归档；文中的验收手段（图形探针与守卫）已全部删除。
+> 现行事实见[待办台账](../../../spec/issues/README.md)与代码仓。
 
 ## 目标
 
@@ -13,8 +16,8 @@ last_verified: 2026-09-08
 
 ## 来源
 
-- PRD：[`prd-combat-feel-core.md`](../prd-combat-feel-core.md) 的 US-001、US-002、US-003
-- SPEC：[`spec-combat-feel-core.md`](../spec-combat-feel-core.md) 的 §2.2、§5
+- PRD：[`A1/prd.md`](./prd.md) 的 US-001、US-002、US-003（**历史背景·非依据**，2026-09-18 归档）
+- SPEC：[`A1/spec.md`](./spec.md) 的 §2.2、§5（**历史背景·非依据**）
 
 ## 依赖
 
@@ -24,7 +27,7 @@ GP-10、GP-11；素材来自 ART-4。保留 ENG-14 输入探针串行修复，�
 
 - [x] `src/World/PlayerActor.cs` 每物理帧从控制器取 CombatInput，推进运动/连段并施加速度
 - [x] 本地输入全经 InputRouter，check_input_map 本轮17/17通过
-- [x] AnimatedSprite2D 按真实表切帧；缺图动作退回明显几何占位并在日志列缺项。**2026-09-08 已换成作者自绘七张表**（统一帧框 46×32），当前缺图数为 0，占位机制保留；素材侧收口见 [`ART-6`](./issue-ART-6-role-action-frames.md)
+- [x] AnimatedSprite2D 按真实表切帧；缺图动作退回明显几何占位并在日志列缺项。**2026-09-08 已换成作者自绘七张表**（统一帧框 46×32），当前缺图数为 0，占位机制保留；素材侧收口见 [`ART-6`](../../../spec/issues/issue-ART-6-role-action-frames.md)
 - [x] 图形引擎覆盖移动、跳落地、实际撞顶反馈、空中攻击、闪避无敌/18帧总位移/离台重力及落地、冲刺、轻3段重2段逐段三相真实输入；水平加减速逐帧规则测试通过
 - [x] **2026-09-08 扩到 41 项**：新增前摇只出第 0 帧、Active 只出第 1–2 帧、逐帧精灵相位一致（188 帧）、闪避帧单调不回头、七张表 54 帧脚底行一致、本体 ≤32px、引擎报帧数 ≙ 登记表，另加两条**前提**判据（物理帧与渲染帧 1:1、窗口未失焦）
 - [x] 作者实机确认移动跳跃跟手、连段节奏、闪避无敌感与冲刺显式感 —— **作者 2026-09-13 在 `GP-14` 训练房实机确认，「暂时保持这一版」**（`GP-20` 的四件套强化落地之后一并看过）
