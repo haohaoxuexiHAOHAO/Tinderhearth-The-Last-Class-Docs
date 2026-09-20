@@ -14,7 +14,7 @@ last_verified: 2026-08-26
 | 路径 | 内容 | 产出技能 |
 | --- | --- | --- |
 | `prd-<slug>.md` | 需求文档：US-NNN 用户故事、FR-N 功能需求、验收清单、非目标 | `/prd` |
-| `spec-<slug>.md` | 技术规格：场景与节点结构、数据约定、状态机、失败处理、测试映射 | `/prd-to-spec` |
+| —— | 结构、接口与测试映射不写在本目录：一个系统的长期契约归[系统文档](../design/README.md)，一次性论证归提案 | `/to-design` |
 | `推演-<slug>.md` | 纸面推演：把循环手算一遍找漏，验收用。归档时随需求一起移走 | 无（按需手写） |
 | [`issues/`](./issues/README.md) | 可实现条目，一条一个文件；索引即待办台账 | `/to-issues` |
 
@@ -47,6 +47,6 @@ last_verified: 2026-08-26
 
 ## 归档
 
-需求收尾时 `/ship-archive` 把 `prd-*.md`、`spec-*.md` 与相关 issue 文件移入 `archive/spec/`，并在[变更日志归档](../archive/history/变更日志归档.md)加一行。
+需求收尾时把 `prd-*.md` 与相关 issue 文件移入 `archive/spec/`，并在[变更日志归档](../archive/history/变更日志归档.md)加一行。步骤与准出见 [WORKFLOW §4](../WORKFLOW.md)。
 
 移之前必须先把现行事实写进正典、ADR 或制作规格 —— 归档件不得作为现行依据，留在归档里的结论等于丢失。

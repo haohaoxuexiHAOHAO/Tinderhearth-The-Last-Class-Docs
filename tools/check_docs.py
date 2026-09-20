@@ -14,6 +14,10 @@
 输出约定（CONVENTIONS §17 的通用规则）：
     固定 UTF-8；每条问题打成 [FAIL] 或 [WARN]；末尾打一行 EXIT= 摘要。
     [FAIL] 必须修复；[WARN] 不阻断。
+
+判什么：文件头、断链、归档边界、单一台账、编号引用得出来、入口可达、工作区行尾，
+外加体裁归位与四条引用纪律（ADR-0010 与 WORKFLOW §3.5）—— 后面这些的共同点是
+**它们过期时链接仍然有效**，所以非得专门判一次才查得出来。
 """
 
 from __future__ import annotations
@@ -39,9 +43,50 @@ ROOT = Path(__file__).resolve().parent.parent
 REQUIRED_KEYS = ("type", "status", "owner", "last_verified")
 # 没有 status 类型：动态状态不再单独成页，进度由 spec/ 下的 issue 勾选框承载。
 VALID_TYPES = {
-    "index", "governance", "backlog", "canon", "design",
+    "index", "governance", "backlog", "canon", "design", "system", "model",
     "adr", "template", "workdoc", "production", "reference", "archive",
 }
+
+# 长期规格有两个体裁，差别只在「它是什么」与因此该叫什么名字；位置、骨架、寿命都一样。
+# 后缀写死，是为了把「数值模型不是一个系统」这件事变成可判定的，而不是一条白名单例外。
+LONGLIVED_TYPES = {"system": "系统", "model": "模型"}
+
+# ── 体裁归位（ADR-0010）────────────────────────────────────────────────
+# 分家分的是寿命：系统文档是活的契约、提案是一次性论证。两者混在一个目录里时，
+# 「设计稳定后上升进正典、本目录只留活跃部分」这条规则会对其中一种不成立。
+SYSTEM_HOME = "design/"            # type: system 必须直接落在这里
+PROPOSAL_HOME = "design/proposals/"  # type: design 必须落在这里
+
+# 骨架（templates/SYSTEM.md 与 templates/DESIGN.md 是人读的权威源，这两行是它们的
+# 可执行副本 —— 改模板的人要回来改这里，这是承认得起的一处重复：不复制就没有守卫）。
+# 末尾允许追加以「附录」开头的小节，别的都不许多、不许少、不许换顺序。
+SYSTEM_SECTIONS = ("摘要", "上游约束", "结构", "接口", "边界与非目标", "理由与取舍", "验收", "下游同步")
+DESIGN_SECTIONS = ("摘要", "背景与动机", "上游约束", "当前事实与证据", "设计",
+                   "理由与取舍", "兼容性", "实现与过渡", "边界与非目标", "验收", "下游同步")
+APPENDIX_PREFIX = "附录"
+
+# ── 引用纪律（WORKFLOW §3.5）──────────────────────────────────────────
+# 为什么这三条要有守卫：它们过期时**链接仍然有效**，检查器原来查不出来。实测
+# 99 处「文档 · 节名」引用里有 8 处指向已经不存在的节名；两处「第 N 步」在插入
+# 新步骤后静默指错；反引号里 45 处代码路径有 4 处指向随 ADR-0009 删掉的文件。
+SECTION_SEP = "·"
+# 行首的加粗片段：`- **X**：…` 或 `**X**` 段首。本仓大量用它当小标题，所以它和
+# 真标题一样算「节」—— 但仅限行首，不含正文里随手加粗的词。
+BOLD_LEAD_RE = re.compile(r"^\s*(?:[-*]\s+)?\*\*(.+?)\*\*", re.MULTILINE)
+ORDINAL_REF_RE = re.compile(r"第\s*\d+\s*步")
+NUMBERED_LIST_RE = re.compile(r"^\s*1\.\s", re.MULTILINE)
+# 自计数：行尾是冒号、行内最后一个计数词 ≥2、紧跟一段清单。取最后一个计数词是
+# 因为「一个失败模式：」这类说法里的「一个」不是清单长度；只判 ≥2 同理。
+SELF_COUNT_RE = re.compile(r"(两|三|四|五|六|七|八|九|十|\d+)\s*(条|项|步|类|处|份|个|节|种|块|层)")
+CN_NUM = {"两": 2, "三": 3, "四": 4, "五": 5, "六": 6, "七": 7, "八": 8, "九": 9, "十": 10}
+LIST_ITEM_RE = re.compile(r"^(?:[-*]|\d+\.)\s")
+# 反引号里看起来像仓库内文件的路径。两个仓都找，因为文档会同时引两边的工具。
+CODE_PATH_RE = re.compile(
+    r"`((?:rules|src|tests|tools|scenes|assets|config|data|content)/[A-Za-z0-9_./-]+\.[A-Za-z0-9]+)`")
+CODE_REPO = ROOT.parent / "Tinderhearth-The-Last-Class"
+# 冻结的体裁不判引用纪律：归档件与已接受的 ADR 描述的是当时的事实，按规则不许
+# 用今天的路径改写它们（WORKFLOW §4）。
+FROZEN_PREFIXES = ("archive/", "decisions/", "templates/")
 VALID_STATUS = {
     "active", "draft", "awaiting-answer", "approved", "in-progress",
     "testing", "awaiting-verify", "archived", "superseded",
@@ -77,7 +122,8 @@ LEDGER_ROW_ID_RE = re.compile(r"^\|\s*`((?:GP|NR|UI|ART|ENG|DOC)-\d+)`\s*\|", re
 BINARY_SNIFF_BYTES = 8000
 
 FRONT_MATTER_RE = re.compile(r"\A---\r?\n(.*?)\r?\n---\r?\n", re.DOTALL)
-MD_LINK_RE = re.compile(r"(?<!!)\[[^\]]*\]\(([^)\s#]+)(#[^)\s]*)?\)")
+# 组 1 是链接文字（节名引用要读它），组 2 是目标，组 3 是可选的锚点。
+MD_LINK_RE = re.compile(r"(?<!!)\[([^\]]*)\]\(([^)\s#]+)(#[^)\s]*)?\)")
 
 
 @dataclass
@@ -311,7 +357,7 @@ def check_front_matter(doc: Doc, rep: Report) -> None:
 
 def check_links(doc: Doc, rep: Report) -> None:
     for m in MD_LINK_RE.finditer(doc.text):
-        target = m.group(1)
+        target = m.group(2)
         if target.startswith(("http://", "https://", "mailto:")):
             continue
         resolved = (doc.path.parent / target).resolve()
@@ -336,6 +382,207 @@ def check_archive_boundary(doc: Doc, rep: Report) -> None:
     for i, line in enumerate(doc.text.splitlines(), 1):
         if re.search(r"\]\([^)]*archive/", line) and CITE_ARCHIVE_MARK not in line:
             rep.fail(doc.rel, f"L{i} 引用 archive/ 必须同行标注「{CITE_ARCHIVE_MARK}」")
+
+
+def check_genre_home(doc: Doc, rep: Report) -> None:
+    """体裁必须归位（ADR-0010）：系统文档在 `design/` 根，提案在 `design/proposals/`。
+
+    不做这条判定的后果不是断链，而是**一个目录里混着两种寿命的文档** —— 于是
+    「稳定后上升进正典、本目录只留活跃部分」这条规则对其中一种永远不成立，而没有
+    任何机制能发现。
+    """
+    if doc.is_template or doc.in_archive:
+        return
+    t = doc.meta.get("type")
+    if t in LONGLIVED_TYPES:
+        head, _, tail = doc.rel.rpartition("/")
+        if head + "/" != SYSTEM_HOME or "/" in tail:
+            rep.fail(doc.rel, f"`type: {t}` 的长期规格必须直接放在 `{SYSTEM_HOME}` 下（见 ADR-0010）")
+        suffix = LONGLIVED_TYPES[t]
+        if not Path(doc.rel).stem.endswith(suffix):
+            rep.fail(doc.rel, f"`type: {t}` 的文件名必须以「{suffix}」结尾 —— "
+                              f"名字要说出它是什么；它若不是这一类，就换 `type`")
+    elif t == "design":
+        if not doc.rel.startswith(PROPOSAL_HOME):
+            rep.fail(doc.rel, f"`type: design` 的提案必须放在 `{PROPOSAL_HOME}` 下；"
+                              f"若它其实是某个系统的长期契约，改成 `type: system` 并移到 `{SYSTEM_HOME}`")
+
+
+def check_skeleton(doc: Doc, rep: Report) -> None:
+    """系统文档与提案各有固定骨架，不许多、不许少、不许换顺序（ADR-0010）。
+
+    为什么要判顺序：骨架的价值在于「同一个问题总在同一个位置」—— 顺序一变，读者就得
+    每份重新找一遍，而那正是「骨架随意」的样子。末尾可以追加「附录」小节。
+    """
+    if doc.is_template or doc.in_archive:
+        return
+    t = doc.meta.get("type")
+    want = SYSTEM_SECTIONS if t in LONGLIVED_TYPES else DESIGN_SECTIONS if t == "design" else None
+    if want is None:
+        return
+    got = [l[3:].strip() for l in doc.text.splitlines() if l.startswith("## ")]
+    head, tail = got[: len(want)], got[len(want):]
+    if tuple(head) != want:
+        rep.fail(doc.rel, f"二级标题不符合骨架（{'SYSTEM' if t == 'system' else 'DESIGN'} 模板）：\n"
+                          f"        应为：{' / '.join(want)}\n"
+                          f"        实为：{' / '.join(got) or '（没有二级标题）'}")
+        return
+    for extra in tail:
+        if not extra.startswith(APPENDIX_PREFIX):
+            rep.fail(doc.rel, f"骨架之后多了一节「{extra}」；"
+                              f"末尾只允许以「{APPENDIX_PREFIX}」开头的小节")
+
+
+def section_anchors(text: str) -> list[str]:
+    """一份文档里可以被「文档 · 节名」引用的名字：真标题 ＋ 行首加粗小标题。"""
+    out = []
+    for line in text.splitlines():
+        if line.startswith("#"):
+            out.append(line.lstrip("#").replace("**", "").replace("`", "").strip())
+    for m in BOLD_LEAD_RE.finditer(text):
+        out.append(m.group(1).replace("`", "").strip())
+    return out
+
+
+def check_section_refs(docs: list[Doc], rep: Report) -> None:
+    """「文档 · 节名」里的节名必须在目标文件里找得到（WORKFLOW §3.5 第 ① 条）。
+
+    这类引用过期时**链接仍然有效**，所以原来的断链检查查不出来：节被改名或删掉，
+    读者点进去只会找不到那一节，而没有任何东西报错。
+    """
+    by_rel = {d.rel: d for d in docs}
+    checked = 0
+    for doc in docs:
+        if doc.rel.startswith(FROZEN_PREFIXES):
+            continue
+        for m in MD_LINK_RE.finditer(doc.text):
+            label = m.group(1).replace("**", "").replace("`", "").strip()
+            target = m.group(2)
+            if target.startswith(("http://", "https://", "mailto:")) or SECTION_SEP not in label:
+                continue
+            section = label.split(SECTION_SEP)[-1].strip()
+            if not section:
+                continue
+            resolved = (doc.path.parent / target).resolve()
+            try:
+                rel = resolved.relative_to(ROOT).as_posix()
+            except ValueError:
+                continue
+            tgt = by_rel.get(rel)
+            if tgt is None:
+                continue                      # 断链由 check_links 报
+            checked += 1
+            if section == Path(rel).stem:      # 「分类 · 文档名」这种写法，不是节名
+                continue
+            if any(section in a for a in section_anchors(tgt.text)):
+                continue
+            line_no = doc.text[: m.start()].count("\n") + 1
+            rep.fail(doc.rel, f"L{line_no} 节名引用失效：`{rel}` 里找不到「{section}」"
+                              f"（改成目标文件真有的标题或加粗小标题）")
+    rep.note(f"节名引用覆盖量：检查 {checked} 处「文档 {SECTION_SEP} 节名」")
+
+
+def check_system_upstream(docs: list[Doc], rep: Report) -> None:
+    """每份长期规格必须被至少一份正典链接到（ADR-0010）。
+
+    没有正典上游的规格是孤岛 —— 它在替正典做决定，而权威层级说它不能。
+    目标为空时判失败而不是跳过：一份都没有，说明体裁判定在空转。
+    """
+    systems = [d for d in docs if d.meta.get("type") in LONGLIVED_TYPES and not d.is_template]
+    if not systems:
+        rep.fail("长期规格上游守卫", f"一份 {sorted(LONGLIVED_TYPES)} 的文档都没检到，"
+                                  f"这一轮**没有执行**")
+        return
+    cited: set[str] = set()
+    for doc in docs:
+        if not doc.rel.startswith("canon/"):
+            continue
+        for m in MD_LINK_RE.finditer(doc.text):
+            target = m.group(2)
+            if target.startswith(("http://", "https://", "mailto:")):
+                continue
+            try:
+                cited.add((doc.path.parent / target).resolve().relative_to(ROOT).as_posix())
+            except ValueError:
+                continue
+    for d in systems:
+        if d.rel not in cited:
+            rep.fail(d.rel, "没有任何正典链接到这份长期规格 —— 它缺上游，"
+                            "要么正典该引用它，要么它写的东西不该放在这里")
+    rep.note(f"长期规格上游覆盖量：{len(systems)} 份，全部要求有正典引用")
+
+
+def check_ordinal_refs(doc: Doc, rep: Report) -> None:
+    """不许按序号引用别处的编号清单（WORKFLOW §3.5 第 ② 条）。
+
+    实测起因：每日结算的步序插进两步之后，另一份文档里「第 4、6、8 步」三处全部
+    静默指错 —— 序号会随插步整体平移，而按步名写永远不会。
+    """
+    if doc.rel.startswith(FROZEN_PREFIXES) or doc.in_archive:
+        return
+    hits = ORDINAL_REF_RE.findall(doc.text)
+    if not hits or NUMBERED_LIST_RE.search(doc.text):
+        return                                 # 自己就有编号清单，视为引用自己的
+    rep.fail(doc.rel, f"{len(hits)} 处按序号引用编号清单（{'、'.join(sorted(set(hits))[:3])}）；"
+                      f"本文件自己没有编号清单，说明引的是别处的 —— 改成按步名引用")
+
+
+def check_self_count(doc: Doc, rep: Report) -> None:
+    """自计数要与紧随其后的清单一样长（WORKFLOW §3.5 第 ④ 条）。
+
+    「三条」后面跟四条是加东西时最常见的过期形式。只判「行尾冒号 ＋ 行内最后一个
+    计数词 ≥2 ＋ 紧跟清单」这一种形状，因为「一个失败模式：」这类说法里的数字不是
+    清单长度 —— 收窄到这一形状之后，实测 81 份文档里两处命中都是真的。
+    """
+    if doc.rel.startswith(FROZEN_PREFIXES) or doc.in_archive:
+        return
+    lines = doc.text.splitlines()
+    for i, line in enumerate(lines):
+        if not line.rstrip().endswith(("：", ":")):
+            continue
+        ms = list(SELF_COUNT_RE.finditer(line))
+        if not ms:
+            continue
+        raw = ms[-1].group(1)
+        want = CN_NUM.get(raw) or (int(raw) if raw.isdigit() else 0)
+        if want < 2 or want > 12:
+            continue
+        got = 0
+        for s in lines[i + 1:]:
+            if LIST_ITEM_RE.match(s):
+                got += 1
+            elif not s.strip() or s.startswith((" ", "\t")):
+                continue          # 松散列表的空行、续行与嵌套项都不算新项，也不结束列表
+            else:
+                break             # 出现正文段落才算这份清单结束
+        if got and got != want:
+            rep.fail(doc.rel, f"L{i+1} 自计数与清单不符：写了「{raw}{ms[-1].group(2)}」，"
+                              f"紧随的清单是 {got} 条（改数字，或干脆别写自计数）")
+
+
+def check_code_paths(doc: Doc, rep: Report) -> None:
+    """反引号里的仓内文件路径必须真的存在（WORKFLOW §3.5 第 ③ 条）。
+
+    两个仓都找，因为文档会同时引设计仓的 `tools/` 与代码仓的 `rules/`。实测起因：
+    随 `ADR-0009` 删掉的 `tools/check_scaling.py`、`tools/import_role_sheets.py` 与
+    `tools/selfcheck_docs_guard.py` 在正典、踩坑记录与 README 里仍被写成现行执行体。
+    """
+    if doc.rel.startswith(FROZEN_PREFIXES) or doc.in_archive:
+        return
+    for m in CODE_PATH_RE.finditer(doc.text):
+        p = m.group(1)
+        if (ROOT / p).exists() or (CODE_REPO / p).exists():
+            continue
+        line_no = doc.text[: m.start()].count("\n") + 1
+        rep.fail(doc.rel, f"L{line_no} 路径 `{p}` 在两个仓里都不存在"
+                          f"（删掉这处引用，或改成真的落点）")
+
+
+def check_code_repo_present(rep: Report) -> None:
+    """代码仓不在预期位置时判失败，不静默跳过 —— 否则上面那条守卫会假装工作。"""
+    if not CODE_REPO.is_dir():
+        rep.fail("代码路径守卫", f"找不到代码仓 `{CODE_REPO.name}`（应与设计仓同级），"
+                                f"这一轮路径检查**没有执行**（不是通过）")
 
 
 def check_single_ledger(docs: list[Doc], rep: Report) -> None:
@@ -410,7 +657,7 @@ def check_reachable(docs: list[Doc], rep: Report) -> None:
         if cur is None:
             continue
         for m in MD_LINK_RE.finditer(cur.text):
-            target = m.group(1)
+            target = m.group(2)
             if target.startswith(("http://", "https://", "mailto:")):
                 continue
             resolved = (cur.path.parent / target).resolve()
@@ -543,12 +790,20 @@ def main() -> int:
         check_front_matter(doc, rep)
         check_links(doc, rep)
         check_archive_boundary(doc, rep)
+        check_genre_home(doc, rep)
+        check_skeleton(doc, rep)
+        check_ordinal_refs(doc, rep)
+        check_self_count(doc, rep)
+        check_code_paths(doc, rep)
     # 全库级检查始终看全量，否则「第二台账」「断号」「入口可达」根本查不出来。
     # 行尾也在这一档：被静默转成 CRLF 的往往正是你以为自己没碰过的文件，
     # 而且它覆盖 md 之外的 sh 与 py —— 按改动清单裁剪等于放走高危的那一类。
     check_single_ledger(all_docs, rep)
     check_issue_ids(all_docs, rep)
     check_reachable(all_docs, rep)
+    check_section_refs(all_docs, rep)
+    check_system_upstream(all_docs, rep)
+    check_code_repo_present(rep)
     check_line_endings(rep)
 
     for line in rep.warns:

@@ -7,9 +7,9 @@ last_verified: 2026-08-26
 
 > **模板说明**：需求文档（Product Requirements Document，简称 PRD）说明**做什么**，不说怎么做。由 `/prd` 技能产出，复制到 `spec/prd-<slug>.md`。
 >
-> 技术规格（怎么做）用 [SPEC 模板](./SPEC.md)；跨域取舍用 [ADR 模板](./ADR.md)。
+> 一个系统的结构与接口（长期契约）用 [SYSTEM 模板](./SYSTEM.md)；方案论证用 [DESIGN 模板](./DESIGN.md)；跨域取舍用 [ADR 模板](./ADR.md)。
 >
-> 文件头改成下面的形状。`draft` 表示还在收集，待确认问题清空后作者确认，改 `approved`；**`approved` 之前不写 SPEC、不改代码。**
+> 文件头改成下面的形状。`draft` 表示还在收集，待确认问题清空后作者确认，改 `approved`；**`approved` 之前不改代码。**
 
 ```yaml
 type: workdoc

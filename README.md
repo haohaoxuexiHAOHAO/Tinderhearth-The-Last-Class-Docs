@@ -28,13 +28,13 @@ last_verified: 2026-08-25
 | 分类 | 权威内容 |
 | --- | --- |
 | 世界与人物 | [世界观](./canon/world/世界观.md) · [人物](./canon/characters/人物.md) |
-| 叙事 | **待设计**。新故事尚未立项，`canon/narrative/` 暂空 |
-| 玩法与系统 | [玩法定位](./canon/gameplay/玩法定位.md)（总纲）· [时间与经营](./canon/gameplay/时间与经营.md) · [角色与成长](./canon/gameplay/角色与成长.md) · [战斗与关卡](./canon/gameplay/战斗与关卡.md)。系统细化见[专项设计](./design/README.md) |
+| 叙事 | [主线故事](./canon/narrative/主线故事.md) · [学生群像](./canon/narrative/学生群像.md) · [反派与要角](./canon/narrative/反派与要角.md) · [常驻NPC](./canon/narrative/常驻NPC.md) |
+| 玩法与系统 | [玩法定位](./canon/gameplay/玩法定位.md)（总纲）· [时间与经营](./canon/gameplay/时间与经营.md) · [角色与成长](./canon/gameplay/角色与成长.md) · [战斗与关卡](./canon/gameplay/战斗与关卡.md)。系统细化见[系统文档](./design/README.md) |
 | 美术与文案 | [像素绘制原则](./production/像素绘制原则.md) · [文案写作规范](./production/文案写作规范.md) |
 | 学习与排错 | [C# 学习](./reference/学习CSharp-Java程序员向.md) · [踩坑记录](./reference/踩坑记录.md) |
 | 需求与待办 | [spec/](./spec/README.md)（进行中需求）· [待办台账](./spec/issues/README.md)（唯一待办索引） |
 | 数值 | [数值模型](./design/数值模型.md)（公式与判据）· 值在 `design/numeric-model-params.json`，推演入口 `python tools/simulate_week.py` |
-| 流程与设计 | [WORKFLOW](./WORKFLOW.md)（工作流规则）· [专项设计](./design/README.md)（活跃方案） |
+| 流程与设计 | [WORKFLOW](./WORKFLOW.md)（工作流规则）· [系统文档与提案](./design/README.md)（`design/` 根下是系统文档，`proposals/` 下是一次性提案，体裁规则见 [ADR-0010](./decisions/ADR-0010-文档体裁与系统文档归位.md)） |
 | 决策与历史 | [ADR 索引](./decisions/README.md)（含工程性取舍，代码仓库不另设决策目录）· [历史归档](./archive/README.md)（只读，含变更日志） |
 
 ## 游戏定位
@@ -53,10 +53,9 @@ last_verified: 2026-08-25
 
 - 提需求：只说目标、现状、验收和非目标就行。执行者用 `/prd` 技能问清剩下的，产出 [PRD](./templates/PRD.md) 到 [spec/](./spec/README.md)；文件定位与上下文恢复由执行者负责。
 - 需求流水线（先写文档再改）：按 [WORKFLOW §1](./WORKFLOW.md) 走 `/prd → /to-issues → 实现 → /ship-it`，提交前 `/review-it`。**PRD 未经作者确认前不改代码**，这是流水线唯一的强制闸门。
-- 新设计：从 [设计模板](./templates/DESIGN.md) 开始；跨域取舍：从 [ADR 模板](./templates/ADR.md) 开始；拆条目：从 [issue 模板](./templates/ISSUE.md) 开始。
+- 新系统：从 [SYSTEM 模板](./templates/SYSTEM.md) 开始，写进 `design/<系统名>.md`；方案论证：从 [DESIGN 模板](./templates/DESIGN.md) 开始，写进 `design/proposals/`；跨域取舍：从 [ADR 模板](./templates/ADR.md) 开始；拆条目：从 [issue 模板](./templates/ISSUE.md) 开始。体裁怎么选见 [ADR-0010](./decisions/ADR-0010-文档体裁与系统文档归位.md)。
 - 进度不单独维护状态页：它就是 issue 文件里的验收勾选框。Git 负责变更历史，不在活文档追加流水账。
 - 改完文档后运行 `python tools/check_docs.py`，检查文件头、断链、归档边界、入口可达性、单一台账与工作区行尾；退出码非零表示存在必须修复的问题。查看规模趋势用 `python tools/check_docs.py --report`（只打表、不判定）；行尾不合规用 `python tools/check_docs.py --fix-eol` 按 `.gitattributes` 改回来。
 - 动了 `design/数值模型.md` 或 `design/numeric-model-params.json` 就跑 `python tools/simulate_week.py --check-doc`，它核对文档里的参数路径与参数表没有分叉；不带参数跑则重算七天推演与 16 条平衡判据。
-- 改了上面那个检查器之后，跑 `python tools/selfcheck_docs_guard.py` 自证：它造真实缺陷形状的违反、确认拦得住、再还原复验，并自报覆盖量。
 - 中文像素字体（[ADR-0008](./decisions/ADR-0008-中文像素字体选型.md)）：`python tools/audit_fonts.py` 核授权原文与上游字形来源、量字形覆盖与字宽行高；`python tools/font_preview.py` 把字渲进 Godot 看实机效果（可读性只能人判），两者都用 `--clean` 收尾。
 - 本机 Godot 工具链：`python tools/setup_godot.py --check` 体检已装版本；升级用 `--version <版本号>`，下载、核对官方 SHA512、解压、装导出模板、跑 `--version` 自证一步做完；清理旧版本用 `--prune <版本号>`，默认只预演，加 `--yes` 才真删。版本基线见 [ADR-0005](./decisions/ADR-0005-技术基线.md)。

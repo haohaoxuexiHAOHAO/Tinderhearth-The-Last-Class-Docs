@@ -5,7 +5,7 @@ owner: project
 last_verified: 2026-08-26
 ---
 
-> **模板说明**：可实现条目。由 `/to-issues` 技能从 PRD／SPEC 拆出，复制到 `spec/issues/issue-<ID>-<slug>.md`，并在[台账索引](../spec/issues/README.md)加一行。
+> **模板说明**：可实现条目。由 `/to-issues` 技能从 PRD、[系统文档](./SYSTEM.md)或[提案](./DESIGN.md)拆出，复制到 `spec/issues/issue-<ID>-<slug>.md`，并在[台账索引](../spec/issues/README.md)加一行。
 >
 > `<ID>` 用领域前缀加序号（`GP` 玩法 / `NR` 叙事 / `UI` 界面 / `ART` 美术 / `ENG` 工程 / `DOC` 文档），例如 `issue-ENG-2-godot-project.md`。**编号是跨文档引用的稳定标识，不重编号、不复用已删除的号。**
 >
@@ -27,7 +27,8 @@ last_verified: YYYY-MM-DD
 ## 来源
 
 - PRD：`spec/prd-<slug>.md` 的 `US-001`
-- SPEC：`spec/spec-<slug>.md` 的 §3.1、§4.2
+- 系统文档：`design/<系统名>.md` 的「结构」或「接口」某一条
+- 提案：`design/proposals/<slug>.md` 的「实现与过渡」某一步
 - 或：在哪个需求的实现过程中发现的（超边界记账）
 
 ## 依赖
