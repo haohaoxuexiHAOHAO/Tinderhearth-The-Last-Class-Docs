@@ -56,7 +56,7 @@
   },
 
   "move_multipliers": {
-    "//": "主角是低伤连击加辅助定位，伤害来自学员（人物正典）。倍率因此显著低。",
+    "//": "主角是低伤连击加辅助定位，伤害来自学生（人物正典）。倍率因此显著低。",
     "protagonist_light": 0.35,
     "protagonist_heavy": 0.60,
     "student_light": 0.90,
@@ -103,7 +103,7 @@
   },
 
   "assignments": {
-    "//": "学员派工：一天一个工位，消耗该学员体力。",
+    "//": "学生派工：一天一个工位，消耗该学生体力。",
     "planting": { "stamina": 25, "plots_tended": 1 },
     "crafting": { "stamina": 30, "batches": 1 },
     "training": { "stamina": 40 },

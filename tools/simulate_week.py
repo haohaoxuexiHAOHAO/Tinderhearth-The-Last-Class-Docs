@@ -202,20 +202,20 @@ def analyse_attributes(p: Params) -> dict:
         return max(1.0, attacker.atk * mult * (1.0 - target.mitigation))
 
     student_start = dict(p("attributes.start_student"))
-    st1 = build_sheet(p, "学员 1 级", 1, student_start)
+    st1 = build_sheet(p, "学生 1 级", 1, student_start)
     dmg_lv1 = hit(lv1, st1, ml)
-    dmg_max = hit(lvmax, build_sheet(p, "满级学员", cap, spread_points(student_start, (cap - 1) * per)), ml)
+    dmg_max = hit(lvmax, build_sheet(p, "满级学生", cap, spread_points(student_start, (cap - 1) * per)), ml)
     check("C6", "量级：HP 三位数、轻攻击伤害两位数",
           100 <= lv1.hp <= 999 and 100 <= lvmax.hp <= 999
           and 10 <= dmg_lv1 <= 99 and 10 <= dmg_max <= 99,
           f"HP {lv1.hp}→{lvmax.hp}；主角轻攻击伤害 {dmg_lv1:.1f}→{dmg_max:.1f}",
           "derived.hp_base / derived.hp_per_vit / move_multipliers")
 
-    # 主角伤害必须显著低于学员（人物正典：主角低伤辅助，伤害来自学员）。
+    # 主角伤害必须显著低于学生（人物正典：主角低伤辅助，伤害来自学生）。
     ratio = p("move_multipliers.protagonist_light") / p("move_multipliers.student_light")
-    check("C4", "主角伤害显著低于学员（轻攻击倍率比 ≤ 0.5）",
+    check("C4", "主角伤害显著低于学生（轻攻击倍率比 ≤ 0.5）",
           ratio <= 0.5,
-          f"主角 {p('move_multipliers.protagonist_light')} ÷ 学员 "
+          f"主角 {p('move_multipliers.protagonist_light')} ÷ 学生 "
           f"{p('move_multipliers.student_light')} = {ratio:.2f}",
           "move_multipliers.protagonist_light")
 
@@ -345,7 +345,7 @@ def simulate(p: Params, plan_name: str) -> SimResult:
         if stamina > hero_limit:
             res.overstamina_days.append(day)
 
-        # 学员派工
+        # 学生派工
         for who, job in entry["assignments"].items():
             need = p(f"assignments.{job}.stamina")
             if need > stu_limit:
@@ -392,7 +392,7 @@ def check_premises(p: Params, sims: dict[str, SimResult], sheets: dict) -> None:
                 if not r.overtime_days and not r.overstamina_days
                 and not r.student_overstamina]
     broken = {n: {"超时": r.overtime_days, "超体力": r.overstamina_days,
-                  "学员超体力": r.student_overstamina}
+                  "学生超体力": r.student_overstamina}
               for n, r in sims.items() if n not in feasible}
     total_plans = len(p("week_plan.plans"))
     partial = len(sims) < total_plans
