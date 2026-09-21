@@ -17,6 +17,9 @@
     python tools/simulate_week.py --plan 均衡     # 只跑一份计划
     python tools/simulate_week.py --set economy.start_food=9
                                                   # 临时改一个参数重算，用来撞失败路径
+    python tools/simulate_week.py --check-doc      # 只核文档与参数表：路径存在 + 路径旁的数字对得上
+    python tools/simulate_week.py --check-doc --set attributes.level_cap=24
+                                                  # 改参数不改文档，用来撞值校验的失败路径
 
 输出约定（与 check_docs.py 一致）：固定 UTF-8；判定逐条打 [OK]／[FAIL]；末尾打覆盖量、
 结果与一行 EXIT=。日志由本脚本自己写 UTF-8 到 logs/simulate_week-<时间戳>.log。
@@ -43,6 +46,8 @@ DESIGN_DOC = ROOT / "design" / "数值模型.md"
 LOG_DIR = ROOT / "logs"
 # 参数路径的写法：小写字母下划线开头，点分。只认这一种，认不出的由 check_doc 报出来。
 PATH_RE = re.compile(r"[a-z_]+(?:\.[a-z_0-9]+)+")
+# 设计文件正文里的裸数字。前后不许紧贴字母、下划线或点，否则会把参数路径里的段号也当成数。
+BARE_NUM_RE = re.compile(r"(?<![\w.])\d+(?:\.\d+)?(?![\w])")
 
 _LINES: list[str] = []
 
@@ -102,6 +107,15 @@ class Check:
 
 
 CHECKS: list[Check] = []
+
+# 算出来的量。设计文件正文抄了其中一批（战力差、练满与还债天数……），而 --check-doc 只核
+# 参数、核不了算出来的量 —— 所以在这里登记，跑完拿 DOC_CLAIMS 与正文比一遍（`DOC-12`）。
+DERIVED: dict[str, float] = {}
+
+
+def derive(key: str, value: float) -> float:
+    DERIVED[key] = float(value)
+    return value
 
 
 def check(tag: str, name: str, ok: bool, detail: str, blame: str = "") -> None:
@@ -188,7 +202,7 @@ def analyse_attributes(p: Params) -> dict:
     lv1 = build_sheet(p, "主角 1 级", 1, start)
     lvmax = build_sheet(p, f"主角 {cap} 级", cap, maxed)
     ml = p("move_multipliers.protagonist_light")
-    gap = lvmax.power(ml) / lv1.power(ml)
+    gap = derive("战力差", lvmax.power(ml) / lv1.power(ml))
     lo, hi = p("meta.power_gap_target")
     check("C1", f"战力差落在 {lo}–{hi} 倍",
           lo <= gap <= hi,
@@ -212,7 +226,8 @@ def analyse_attributes(p: Params) -> dict:
           "derived.hp_base / derived.hp_per_vit / move_multipliers")
 
     # 主角伤害必须显著低于学生（人物正典：主角低伤辅助，伤害来自学生）。
-    ratio = p("move_multipliers.protagonist_light") / p("move_multipliers.student_light")
+    ratio = derive("主角学生轻攻击比",
+                   p("move_multipliers.protagonist_light") / p("move_multipliers.student_light"))
     check("C4", "主角伤害显著低于学生（轻攻击倍率比 ≤ 0.5）",
           ratio <= 0.5,
           f"主角 {p('move_multipliers.protagonist_light')} ÷ 学生 "
@@ -231,8 +246,11 @@ def analyse_attributes(p: Params) -> dict:
           "growth.talent_points_cap / growth.talent_points_from_training")
 
     # 精准防御回蓝效率不得高于进攻回蓝（战斗与关卡正典的硬约束）。
-    atk_mp = p("resources.mp_per_light_hit") * p("resources.light_hits_per_second")
-    guard_mp = p("resources.perfect_guard_mp") * p("resources.perfect_guard_opportunities_per_second")
+    atk_mp = derive("进攻回蓝MP每秒",
+                    p("resources.mp_per_light_hit") * p("resources.light_hits_per_second"))
+    guard_mp = derive("精准防御回蓝MP每秒",
+                      p("resources.perfect_guard_mp")
+                      * p("resources.perfect_guard_opportunities_per_second"))
     check("C3", "精准防御回蓝效率不高于进攻回蓝",
           guard_mp <= atk_mp,
           f"进攻 {atk_mp:.2f} MP/s，精准防御 {guard_mp:.2f} MP/s",
@@ -420,7 +438,10 @@ def check_premises(p: Params, sims: dict[str, SimResult], sheets: dict) -> None:
     ref = sims[next(iter(sims))]
     people = p("week_plan.students_at_start") + 1
     per_day = p("economy.food_per_person_per_day") * people
-    buffer_days = ref.food_before_first_harvest / per_day if per_day else 0
+    buffer_days = derive("收获时缓冲天数",
+                         ref.food_before_first_harvest / per_day if per_day else 0)
+    if ref.first_harvest_day is not None:
+        derive("第一次收获天", ref.first_harvest_day)
     ok3 = (not ref.negative_food_days and not ref.negative_cash_days
            and 1.0 <= buffer_days <= 2.0 and ref.first_harvest_day is not None)
     check("P3", "撑到第一次收获且不断粮，收获时仍余 1–2 天缓冲",
@@ -502,7 +523,7 @@ def check_premises(p: Params, sims: dict[str, SimResult], sheets: dict) -> None:
     principal = p("economy.debt_principal_silver")
     rate = p("economy.debt_quarterly_rate")
     interest = principal * rate
-    per_day_interest = interest / p("time.season_days")
+    per_day_interest = derive("每天利息银", interest / p("time.season_days"))
     check("C8", "第二季利息折到每天不超过一条低难度委托报酬的一半",
           per_day_interest <= low_reward * 0.5,
           f"本金 {principal} 银 × {rate} = 一季 {interest:.0f} 银 = 每天 "
@@ -513,11 +534,13 @@ def check_premises(p: Params, sims: dict[str, SimResult], sheets: dict) -> None:
     best = max(sims.values(), key=lambda r: r.rows[-1].silver)
     days = len(best.rows)
     net_per_day = (best.rows[-1].silver - p("economy.start_silver")) / days
-    days_to_repay = principal / net_per_day if net_per_day > 0 else float("inf")
+    days_to_repay = derive("还债天数",
+                           principal / net_per_day if net_per_day > 0 else float("inf"))
     sorties = sheets["sorties_to_cap"]
     sorties_per_day = 1.5
-    days_to_cap = sorties / sorties_per_day
-    ratio_goals = days_to_cap / days_to_repay if days_to_repay else float("inf")
+    days_to_cap = derive("练满天数", sorties / sorties_per_day)
+    ratio_goals = derive("两条目标天数比",
+                         days_to_cap / days_to_repay if days_to_repay else float("inf"))
     check_cross_plan(
         partial, "C9", "练满与还清债务落在同一量级（天数比 0.5–2 倍）",
         0.5 <= ratio_goals <= 2.0,
@@ -530,19 +553,87 @@ def check_premises(p: Params, sims: dict[str, SimResult], sheets: dict) -> None:
     # 附加：容量必须造成一次取舍，但不频繁被迫丢弃
     kinds = p("capacity.expected_sortie_item_kinds")
     slots = p("capacity.backpack_slots_by_level")[0]
+    derive("背包占用百分比", kinds / slots * 100)
     check("C7", "一次出征的产出种类接近但不超过初级背包格数（造成取舍而非频繁丢弃）",
           slots * 0.7 <= kinds <= slots,
           f"一次出征约 {kinds} 种物品，初级背包 {slots} 格，占用 {kinds / slots:.0%}",
           "capacity.backpack_slots_by_level / capacity.expected_sortie_item_kinds")
 
 
+# ── 正文抄的「算出来的量」 ────────────────────────────────────────────
+# 设计文件写着「不写当前实测值」，但有几处为了把话说清还是抄了算出来的量（摘要靠战力差那个
+# 倍数支撑「只解释一半胜负」，C9 靠两个天数说明同量级）。删掉它们会让那几句变模糊，所以留，
+# 但**每一处都要在这里登记**，跑完与正文比一遍。`DOC-12`。
+#
+# 每条是（说的是哪一处, 从正文抓数字的正则, DERIVED 里的键, 小数位）。
+# **抓不到也算失败** —— 不然把句子改个说法就能静默关掉一条判定，那比没有判定更坏。
+DOC_CLAIMS: tuple[tuple[str, str, str, int], ...] = (
+    ("摘要的战力差",          r"同一角色的战力只涨 ([\d.]+) 倍",        "战力差",            2),
+    ("成长一节的战力差",      r"15/15/14/14，战力差 ([\d.]+) 倍",       "战力差",            2),
+    ("C9 的练满天数",         r"当前参数下练满约 (\d+) 天",             "练满天数",          0),
+    ("C9 的还债天数",         r"练满约 \d+ 天、还债约 (\d+) 天",        "还债天数",          0),
+    ("C9 的两条目标天数比",   r"还债约 \d+ 天，比 ([\d.]+)",            "两条目标天数比",    2),
+    ("经济一节的还债天数",    r"约 (\d+) 天净收入",                     "还债天数",          0),
+    ("经济一节的每天利息",    r"利率只做到每天 (\d+) 银",               "每天利息银",        0),
+    ("主角与学生的轻攻击比",  r"主角的轻攻击倍率是学生的 ([\d.]+) 倍",  "主角学生轻攻击比",  2),
+    ("进攻回蓝效率",          r"当前是 ([\d.]+) MP/s",                  "进攻回蓝MP每秒",    2),
+    ("精准防御回蓝效率",      r"MP/s 对 ([\d.]+) MP/s",                 "精准防御回蓝MP每秒", 2),
+    ("第一次收获在第几天",    r"第一次收获在第 (\d+) 天",               "第一次收获天",      0),
+    ("收获时的缓冲天数",      r"= ([\d.]+) 天缓冲",                     "收获时缓冲天数",    2),
+    ("一次出征占背包的比例",  r"占初级背包 \d+ 格的 (\d+)%",            "背包占用百分比",    0),
+)
+
+
+def check_doc_claims(partial: bool) -> int:
+    """把正文抄的算出来的量与本轮真算出来的比一遍。
+
+    比的办法是用脚本自己的格式化再格一次，所以「0.6 与 0.60」「10 与 10.0」不会误报 ——
+    判的是同一个数，不是同一串字符。
+    """
+    if not DESIGN_DOC.is_file():
+        say(f"[FAIL] 找不到设计文件 {DESIGN_DOC.relative_to(ROOT)}")
+        return 1
+    if partial:
+        say("[..]   正文抄的算出来的量：**本轮未判** —— 带了 --plan，"
+            "还债与缓冲天数的基准是任意的，判了只会训练人忽略 FAIL")
+        return 0
+
+    text = DESIGN_DOC.read_text(encoding="utf-8")
+    bad: list[str] = []
+    for label, pattern, key, digits in DOC_CLAIMS:
+        found = re.findall(pattern, text)
+        if len(found) != 1:
+            bad.append(f"{label}：正文里匹配到 {len(found)} 处（应当恰好 1 处）"
+                       f"—— 句子被改写过就要同时改这里的正则：{pattern}")
+            continue
+        if key not in DERIVED:
+            bad.append(f"{label}：本轮没算出 `{key}`，登记表与算式对不上")
+            continue
+        want = f"{DERIVED[key]:.{digits}f}"
+        got = f"{float(found[0]):.{digits}f}"
+        if want != got:
+            bad.append(f"{label}：正文写 {found[0]}，算出来是 {want}")
+
+    say(f"正文覆盖量：核了 {len(DOC_CLAIMS)} 处正文抄的算出来的量")
+    if bad:
+        for line in bad:
+            say(f"[FAIL] {line}")
+        return 1
+    say("[OK] 正文抄的算出来的量与本轮算的一致")
+    return 0
+
+
 # ── 输出 ──────────────────────────────────────────────────────────────
 def check_doc(p: Params) -> int:
-    """核对设计文件里出现的每个参数路径都在参数表里存在。
+    """核对设计文件与参数表没有分叉：路径存在，且写在路径旁边的数字与参数表一致。
 
-    为什么需要它：设计文件解释公式、参数表持有值，两处必然一起改。人工核对「文档里提到的
-    参数还在不在」是那种没人会真做第二次的事，所以做成判定。**它只查路径存在性**，不查
-    正文里的数字 —— 正文刻意不重复值，值只在 JSON 里，这样就没有第二份会漂移的数字。
+    为什么需要它：设计文件解释公式、参数表持有值，两处必然一起改。人工核对是那种没人会真
+    做第二次的事，所以做成判定。
+
+    **为什么要核值，不只核路径。** 设计文件写着「值不在本页」，但它的表格实际上把一批值抄
+    在了路径旁边（等级上限、债务本金、委托报酬、招式倍率……）—— 那是可读性要的，不抄的话
+    读者得开着 JSON 才看得懂公式。代价是同一个数有两个家，而改 JSON 忘了改正文**不报错**。
+    核值把这个代价收掉：抄可以，抄错不行。
     """
     if not DESIGN_DOC.is_file():
         say(f"[FAIL] 找不到设计文件 {DESIGN_DOC.relative_to(ROOT)}")
@@ -559,7 +650,7 @@ def check_doc(p: Params) -> int:
         say("[FAIL] 设计文件里一个参数路径都没引用，交叉校验等于空转")
         return 1
     missing = [path for path in paths if not _exists(p, path)]
-    say(f"覆盖量：设计文件里带点的反引号片段 {len(quoted)} 个，"
+    say(f"路径覆盖量：设计文件里带点的反引号片段 {len(quoted)} 个，"
         f"认出参数路径 {len(paths)} 个，对得上 {len(paths) - len(missing)} 个")
     if missing:
         say(f"[FAIL] 设计文件引用了参数表没有的路径：{missing}")
@@ -568,8 +659,75 @@ def check_doc(p: Params) -> int:
         say(f"[FAIL] 有带点片段没被路径正则认出来，可能是漏查："
             f"{unmatched}（要么改写法，要么改 PATH_RE）")
         return 1
-    say("[OK] 设计文件与参数表没有分叉")
+    return check_doc_values(p, text)
+
+
+def check_doc_values(p: Params, text: str) -> int:
+    """逐行核对：路径旁边写着的数字必须与参数表对得上。
+
+    判据按行取，因为「写在旁边」在 Markdown 里就是「同一个表格行或同一段」。一行里出现的
+    数字不必都是参数（`20000 银（200 金）` 的 200 是换算、`6（升级 2 + 训练 4）` 的 2 与 4
+    是拆解），所以方向是**从参数表往正文找**，不是反过来：路径的值必须出现在那一行里。
+
+    形状决定判不判得了，三档都自报出来：
+
+    - **标量**：值必须出现在该行 —— 这是主力，覆盖等级上限、本金、利率、倍率这一批。
+    - **扁平字典**：每个值都必须出现（`采集 25 / 清理 35 / 护卫 45` 是逐项抄的）。
+    - **列表与嵌套结构**：不判。文档按档位或按名只引其中一项（「初级背包 16 格」只提第一
+      档），逐个要求会误报。**它们被列出来，不是静默跳过** —— 要把它们纳入判定，得先让
+      文档改引具体叶子路径，而那要 PATH_RE 支持中文键。
+    """
+    checked: list[str] = []
+    skipped_no_num: set[str] = set()
+    skipped_shape: set[str] = set()
+    bad: list[str] = []
+
+    for lineno, line in enumerate(text.splitlines(), 1):
+        on_line = sorted({t for t in re.findall(r"`([^`\s]*\.[^`\s]*)`", line)
+                          if PATH_RE.fullmatch(t)})
+        if not on_line:
+            continue
+        written = {float(n) for n in BARE_NUM_RE.findall(re.sub(r"`[^`]*`", "", line))}
+        for path in on_line:
+            want = _checkable_values(p(path))
+            if want is None:
+                skipped_shape.add(path)
+                continue
+            if not written:
+                skipped_no_num.add(path)
+                continue
+            checked.append(path)
+            absent = sorted(w for w in want if w not in written)
+            if absent:
+                bad.append(f"第 {lineno} 行 `{path}` 的参数表值 {absent} "
+                           f"没出现在该行的数字 {sorted(written)} 里")
+
+    say(f"值覆盖量：核了 {len(checked)} 处路径旁的数字；"
+        f"{len(skipped_no_num)} 个路径所在行没写数字（无从核对）；"
+        f"{len(skipped_shape)} 个路径的值是列表或嵌套结构（按档位引用，不判）")
+    if skipped_shape:
+        say(f"[..]   不判值的路径：{sorted(skipped_shape)}")
+    if not checked:
+        say("[FAIL] 一处数字都没核到，值校验等于空转")
+        return 1
+    if bad:
+        for line in bad:
+            say(f"[FAIL] {line}")
+        return 1
+    say("[OK] 设计文件与参数表没有分叉：路径都在，路径旁的数字也都对得上")
     return 0
+
+
+def _checkable_values(value) -> set[float] | None:
+    """能进值判定的形状返回它该出现的数字集合，判不了的返回 None。"""
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        return {float(value)}
+    if isinstance(value, dict) and value and all(
+            isinstance(v, (int, float)) and not isinstance(v, bool) for v in value.values()):
+        return {float(v) for v in value.values()}
+    return None
 
 
 def _exists(p: Params, path: str) -> bool:
@@ -589,6 +747,12 @@ def print_curves(res: SimResult) -> None:
             f"  {r.silver:>9}  {r.food:>9}  {r.note}")
 
 
+def _apply_overrides(p: Params, items: list[str]) -> None:
+    for item in items:
+        path, _, raw = item.partition("=")
+        p.override(path, raw)
+
+
 def flush_log() -> Path:
     LOG_DIR.mkdir(parents=True, exist_ok=True)
     stamp = time.strftime("%Y%m%d-%H%M%S")
@@ -606,7 +770,7 @@ def main() -> int:
     ap.add_argument("--curves", action="store_true", help="额外打出逐日四条曲线")
     ap.add_argument("--plan", help="只跑指定的一份计划")
     ap.add_argument("--set", action="append", default=[], metavar="路径=值",
-                    help="临时覆盖一个参数再算，用来撞失败路径")
+                    help="临时覆盖一个参数再算，用来撞失败路径；与 --check-doc 同用可撞值校验")
     ap.add_argument("--check-doc", action="store_true",
                     help="只核对设计文件与参数表没有分叉，不跑推演")
     args = ap.parse_args()
@@ -618,15 +782,22 @@ def main() -> int:
     p = Params(json.loads(PARAMS_PATH.read_text(encoding="utf-8")))
 
     if args.check_doc:
+        # --set 也要在这条路径上生效：改一个参数、不改文档，值校验就该报 —— 那是撞它失败
+        # 路径的唯一办法，而一个撞不出失败的判定和没有判定是一回事。
+        try:
+            _apply_overrides(p, args.set)
+        except ParamError as exc:
+            say(f"[FAIL] {exc.args[0]}")
+            say(f"日志 {flush_log().relative_to(ROOT)}")
+            print("EXIT=1")
+            return 1
         code = check_doc(p)
         say(f"日志 {flush_log().relative_to(ROOT)}")
         print(f"EXIT={code}")
         return code
 
     try:
-        for item in args.set:
-            path, _, raw = item.partition("=")
-            p.override(path, raw)
+        _apply_overrides(p, args.set)
 
         sheets = analyse_attributes(p)
         say(f"[..]   属性派生：{sheets['lv1'].label} HP {sheets['lv1'].hp}／"
@@ -660,22 +831,27 @@ def main() -> int:
             say(f"       该改的参数：{c.blame}")
 
     bad = [c.tag for c in CHECKS if not c.ok]
+    say("")
+    claims_code = check_doc_claims(len(sims) < len(p("week_plan.plans")))
     say(f"\n覆盖量：读了 {len(p.reads)} 个参数路径；判定 {len(premises)} 条数值前提 + "
         f"{len(extra)} 条 PRD 附加约束；推演 {len(sims)} 份计划 × "
         f"{len(next(iter(sims.values())).rows)} 天")
     say(f"结果：{len(CHECKS) - len(bad)}/{len(CHECKS)} 条通过"
         f"／{len(bad)} 条不成立{('：' + '、'.join(bad)) if bad else ''}")
     unjudged = [c.tag for c in CHECKS if "局部范围未判" in c.name]
+    failed = bool(bad) or claims_code != 0
     if bad:
         say("[FAIL] 有不成立的判定")
+    elif claims_code:
+        say("[FAIL] 判定全过，但设计文件正文抄的算出来的量已经过期")
     elif unjudged:
         say(f"[WARN] 只跑了 {len(sims)}/{len(p('week_plan.plans'))} 份计划，"
             f"{unjudged} 未判 —— 这不是一次完整判定，验收要不带 --plan 跑")
     else:
-        say("[OK] 全部数值前提与附加约束都成立")
+        say("[OK] 全部数值前提与附加约束都成立，正文与算出来的量也一致")
     say(f"日志 {flush_log().relative_to(ROOT)}")
-    print(f"EXIT={1 if bad else 0}")
-    return 1 if bad else 0
+    print(f"EXIT={1 if failed else 0}")
+    return 1 if failed else 0
 
 
 if __name__ == "__main__":

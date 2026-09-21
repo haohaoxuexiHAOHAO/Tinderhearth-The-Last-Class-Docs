@@ -112,7 +112,7 @@ last_verified: 2026-09-18
 | 代码仓：行尾、构建、规则层测试、发行包不含源码、产物能启动 | 代码仓 `python tools/verify.py`。测试比对条数（运行器自报 ≙ 静态扫描），导出解包逐条看清单 |
 | 借来的素材与占位件不得进发行包 | 同上的 `--release`：按目录判（`assets/downloaded/`、`assets/placeholder/` 下的一律不许进包） |
 | 字体授权没变、上游字形来源仍可查、文案里的字没缺 | `python tools/audit_fonts.py`（`ART-2`／[ADR-0008](./decisions/ADR-0008-中文像素字体选型.md)） |
-| 数值模型的 16 条平衡判据、文档里的参数路径与参数表不分叉 | `python tools/simulate_week.py`（加 `--check-doc`）。改 `design/numeric-model-params.json` 或那页公式就跑 |
+| 数值模型的全部平衡判据；文档里抄的参数值与抄的算出来的量都不与实际分叉 | `python tools/simulate_week.py`（加 `--check-doc`）。改 `design/numeric-model-params.json` 或那页公式就跑 |
 | 表现、手感、配色、画面「好不好看」 | **只能人工验收**：作者在 Godot 里实机看（`ADR-0009` 的分工） |
 | 像素规范 §9「透明度只全透明或全不透明」 | **只能人工验收**：作为人工标准保留，守卫随 `ADR-0009` 删 —— 画得不对实机一眼能看出来 |
 | 场景与节点树、碰撞区域、素材裁切与导入、检查器里的参数值 | **只能人工验收**：同上，这些是作者的工作面，机器不该去判 |

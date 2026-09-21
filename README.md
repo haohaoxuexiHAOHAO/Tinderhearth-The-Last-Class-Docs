@@ -56,6 +56,6 @@ last_verified: 2026-08-25
 - 新系统：从 [SYSTEM 模板](./templates/SYSTEM.md) 开始，写进 `design/<系统名>.md`；方案论证：从 [DESIGN 模板](./templates/DESIGN.md) 开始，写进 `design/proposals/`；跨域取舍：从 [ADR 模板](./templates/ADR.md) 开始；拆条目：从 [issue 模板](./templates/ISSUE.md) 开始。体裁怎么选见 [ADR-0010](./decisions/ADR-0010-文档体裁与系统文档归位.md)。
 - 进度不单独维护状态页：它就是 issue 文件里的验收勾选框。Git 负责变更历史，不在活文档追加流水账。
 - 改完文档后运行 `python tools/check_docs.py`，检查文件头、断链、归档边界、入口可达性、单一台账与工作区行尾；退出码非零表示存在必须修复的问题。查看规模趋势用 `python tools/check_docs.py --report`（只打表、不判定）；行尾不合规用 `python tools/check_docs.py --fix-eol` 按 `.gitattributes` 改回来。
-- 动了 `design/数值模型.md` 或 `design/numeric-model-params.json` 就跑 `python tools/simulate_week.py --check-doc`，它核对文档里的参数路径与参数表没有分叉；不带参数跑则重算七天推演与 16 条平衡判据。
+- 动了 `design/数值模型.md` 或 `design/numeric-model-params.json` 就跑 `python tools/simulate_week.py --check-doc`，它核对文档里的参数路径与**路径旁抄的数字**都与参数表没有分叉；不带参数跑则重算七天推演与全部平衡判据，并把文档里抄的**算出来的量**（战力差、还债天数这类）与本轮算的比一遍（条数由脚本自报，散文里不复述）。加 `--set 路径=值` 可以撞它的失败路径。
 - 中文像素字体（[ADR-0008](./decisions/ADR-0008-中文像素字体选型.md)）：`python tools/audit_fonts.py` 核授权原文与上游字形来源、量字形覆盖与字宽行高；`python tools/font_preview.py` 把字渲进 Godot 看实机效果（可读性只能人判），两者都用 `--clean` 收尾。
 - 本机 Godot 工具链：`python tools/setup_godot.py --check` 体检已装版本；升级用 `--version <版本号>`，下载、核对官方 SHA512、解压、装导出模板、跑 `--version` 自证一步做完；清理旧版本用 `--prune <版本号>`，默认只预演，加 `--yes` 才真删。版本基线见 [ADR-0005](./decisions/ADR-0005-技术基线.md)。
