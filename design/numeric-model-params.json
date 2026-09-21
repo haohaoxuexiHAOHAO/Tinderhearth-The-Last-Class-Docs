@@ -50,7 +50,6 @@
     "def_softening_k": 60,
     "crit_base": 0.03, "crit_per_agi": 0.007, "crit_cap": 0.35, "crit_multiplier": 1.5,
     "dodge_base": 0.02, "dodge_per_agi": 0.004, "dodge_cap": 0.20,
-    "carry_base": 6, "carry_per_str": 0.4,
     "atk_speed_base": 1.2, "atk_speed_per_agi": 0.02,
     "read_speed_base": 1.0, "read_speed_per_int": 0.04
   },
