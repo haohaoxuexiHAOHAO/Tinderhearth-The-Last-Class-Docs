@@ -277,7 +277,7 @@ class DayRow:
     hours_limit: float
     stamina_used: int
     stamina_limit: int
-    silver: int
+    copper: int
     food: int
     note: str = ""
 
@@ -308,7 +308,7 @@ def simulate(p: Params, plan_name: str) -> SimResult:
     plan = p(f"week_plan.plans.{plan_name}")
     res = SimResult(plan_name)
 
-    silver = p("economy.start_silver")
+    copper = p("economy.start_copper")
     food = p("economy.start_food")
     students = p("week_plan.students_at_start")
     people = students + 1
@@ -331,11 +331,11 @@ def simulate(p: Params, plan_name: str) -> SimResult:
         for crop, cells in entry.get("sow", {}).items():
             if crop not in crops:
                 raise ParamError(f"计划里播种了参数表没有的作物 {crop}")
-            cost = crops[crop]["seed_silver"] * cells
-            silver -= cost
+            cost = crops[crop]["seed_copper"] * cells
+            copper -= cost
             growing.append({"crop": crop, "cells": cells,
                             "ready_day": day + crops[crop]["grow_days"]})
-            note.append(f"播 {crop}×{cells}（−{cost} 银）")
+            note.append(f"播 {crop}×{cells}（−{cost} 铜）")
 
         # 主角行动
         hours = 0.0
@@ -346,14 +346,14 @@ def simulate(p: Params, plan_name: str) -> SimResult:
             stamina += a["stamina"]
             if act.startswith("sortie_"):
                 kind = act.split("_", 1)[1]
-                reward = p(f"economy.mission_reward_silver.{kind}")
-                loot = p(f"economy.mission_loot_expected_silver.{kind}")
-                cost = p("economy.consumable_expected_silver_per_sortie")
+                reward = p(f"economy.mission_reward_copper.{kind}")
+                loot = p(f"economy.mission_loot_expected_copper.{kind}")
+                cost = p("economy.consumable_expected_copper_per_sortie")
                 injury = p("economy.injury_probability_low_mission") \
-                    * p("economy.treatment_fast_silver")
+                    * p("economy.treatment_fast_copper")
                 net = reward + loot - cost - injury
-                silver += net
-                note.append(f"{kind} 净 +{net:.0f} 银")
+                copper += net
+                note.append(f"{kind} 净 +{net:.0f} 铜")
 
         if hours > hours_limit:
             res.overtime_days.append(day)
@@ -380,20 +380,20 @@ def simulate(p: Params, plan_name: str) -> SimResult:
                 food += amount
                 note.append(f"收 {g['crop']} {amount} 份")
             else:
-                gain = amount * info["sell_silver"]
-                silver += gain
-                note.append(f"收 {g['crop']} {amount} 份卖 +{gain} 银")
+                gain = amount * info["sell_copper"]
+                copper += gain
+                note.append(f"收 {g['crop']} {amount} 份卖 +{gain} 铜")
             growing.remove(g)
 
         # 吃饭
         food -= food_per_day
         if food < 0:
             res.negative_food_days.append(day)
-        if silver < 0:
+        if copper < 0:
             res.negative_cash_days.append(day)
 
         res.rows.append(DayRow(day, hours, hours_limit, stamina, hero_limit,
-                               round(silver), food, "；".join(note)))
+                               round(copper), food, "；".join(note)))
     return res
 
 
@@ -446,38 +446,38 @@ def check_premises(p: Params, sims: dict[str, SimResult], sheets: dict) -> None:
           f"按计划「{ref.plan}」：第一次收获在第 {ref.first_harvest_day} 天，收获前余 "
           f"{ref.food_before_first_harvest} 份 = {buffer_days:.2f} 天；"
           f"断粮日 {ref.negative_food_days}，现金为负日 {ref.negative_cash_days}",
-          "economy.start_food / economy.start_silver / farm.crops.*.grow_days")
+          "economy.start_food / economy.start_copper / farm.crops.*.grow_days")
 
     # P4：一次低难度委托的报酬 ÷ 时间与体力消耗
     lines = []
     ok4 = True
     for kind in ("gather", "clear", "escort"):
         a = p(f"actions.sortie_{kind}")
-        reward = p(f"economy.mission_reward_silver.{kind}")
-        loot = p(f"economy.mission_loot_expected_silver.{kind}")
-        net = reward + loot - p("economy.consumable_expected_silver_per_sortie") \
-            - p("economy.injury_probability_low_mission") * p("economy.treatment_fast_silver")
+        reward = p(f"economy.mission_reward_copper.{kind}")
+        loot = p(f"economy.mission_loot_expected_copper.{kind}")
+        net = reward + loot - p("economy.consumable_expected_copper_per_sortie") \
+            - p("economy.injury_probability_low_mission") * p("economy.treatment_fast_copper")
         day_food = p("economy.food_per_person_per_day") \
-            * (p("week_plan.students_at_start") + 1) * p("economy.food_buy_silver")
+            * (p("week_plan.students_at_start") + 1) * p("economy.food_buy_copper")
         good = net > 0 and net >= day_food
         ok4 = ok4 and good
-        lines.append(f"{kind} 净 {net:.0f} 银／{a['hours']}h／{a['stamina']}EN "
-                     f"= {net / a['hours']:.1f} 银每小时、{net / a['stamina']:.2f} 银每点体力"
-                     f"（全队一天粮食成本 {day_food} 银）{'' if good else ' ← 不足'}")
+        lines.append(f"{kind} 净 {net:.0f} 铜／{a['hours']}h／{a['stamina']}EN "
+                     f"= {net / a['hours']:.1f} 铜每小时、{net / a['stamina']:.2f} 铜每点体力"
+                     f"（全队一天粮食成本 {day_food} 铜）{'' if good else ' ← 不足'}")
     check("P4", "低难度委托净收益为正，且不低于全队一天的粮食成本",
           ok4, "；".join(lines),
-          "economy.mission_reward_silver / economy.mission_loot_expected_silver")
+          "economy.mission_reward_copper / economy.mission_loot_expected_copper")
 
     # P5：治疗费用 ÷ 委托报酬
-    treat = p("economy.treatment_fast_silver")
-    low_reward = p("economy.mission_reward_silver.gather")
+    treat = p("economy.treatment_fast_copper")
+    low_reward = p("economy.mission_reward_copper.gather")
     ratio = treat / low_reward
     slow, fast_d = p("economy.treatment_slow_days"), p("economy.treatment_fast_days")
     check("P5", "花钱快治是真选项（治疗费 ≤ 低难度报酬的 2 倍，且省下的天数 ≥ 2）",
           ratio <= 2.0 and (slow - fast_d) >= 2,
           f"治疗费 {treat} ÷ 采集报酬 {low_reward} = {ratio:.2f} 倍；"
           f"慢养 {slow} 天 vs 快治 {fast_d} 天，省 {slow - fast_d} 天",
-          "economy.treatment_fast_silver / economy.treatment_slow_days")
+          "economy.treatment_fast_copper / economy.treatment_slow_days")
 
     # P6：偏好溢价与批量递减，须让每季重新决定种什么
     pref = p("pricing.demand_preferred")
@@ -499,38 +499,38 @@ def check_premises(p: Params, sims: dict[str, SimResult], sheets: dict) -> None:
                 batch = min(thr, units - sold)
                 steps = sold // thr
                 supply = max(floor, 1.0 - decay * steps)
-                revenue += batch * c["sell_silver"] * demand * supply
+                revenue += batch * c["sell_copper"] * demand * supply
                 sold += batch
-            total += revenue - c["seed_silver"] * cells
+            total += revenue - c["seed_copper"] * cells
         return total
 
-    best_base = max(crops, key=lambda n: crops[n]["sell_silver"])
+    best_base = max(crops, key=lambda n: crops[n]["sell_copper"])
     others = [n for n in crops if n != best_base]
     pref_pick = max(others, key=lambda n: season_income(n, True))
     income_pref = season_income(pref_pick, True)
     income_base = season_income(best_base, False)
     check("P6", "偏好溢价足以让「按偏好种」优于「按最高基础价种」",
           income_pref > income_base,
-          f"按偏好种 {pref_pick} 一季 {income_pref:.0f} 银 > "
-          f"按最高基础价种 {best_base} 一季 {income_base:.0f} 银"
+          f"按偏好种 {pref_pick} 一季 {income_pref:.0f} 铜 > "
+          f"按最高基础价种 {best_base} 一季 {income_base:.0f} 铜"
           f"（溢价 {pref}，批量阈值 {thr}，每档递减 {decay}）",
           "pricing.demand_preferred / pricing.supply_step_decay")
 
     # 附加：第二季利息不得压过前期收入
-    principal = p("economy.debt_principal_silver")
+    principal = p("economy.debt_principal_copper")
     rate = p("economy.debt_quarterly_rate")
     interest = principal * rate
-    per_day_interest = derive("每天利息银", interest / p("time.season_days"))
+    per_day_interest = derive("每天利息铜", interest / p("time.season_days"))
     check("C8", "第二季利息折到每天不超过一条低难度委托报酬的一半",
           per_day_interest <= low_reward * 0.5,
-          f"本金 {principal} 银 × {rate} = 一季 {interest:.0f} 银 = 每天 "
-          f"{per_day_interest:.1f} 银；采集报酬 {low_reward} 银",
-          "economy.debt_principal_silver / economy.debt_quarterly_rate")
+          f"本金 {principal} 铜 × {rate} = 一季 {interest:.0f} 铜 = 每天 "
+          f"{per_day_interest:.1f} 铜；采集报酬 {low_reward} 铜",
+          "economy.debt_principal_copper / economy.debt_quarterly_rate")
 
     # 附加：两条长期目标（练满与还清债务）必须落在同一量级，否则先到的那条会让另一条失去意义
-    best = max(sims.values(), key=lambda r: r.rows[-1].silver)
+    best = max(sims.values(), key=lambda r: r.rows[-1].copper)
     days = len(best.rows)
-    net_per_day = (best.rows[-1].silver - p("economy.start_silver")) / days
+    net_per_day = (best.rows[-1].copper - p("economy.start_copper")) / days
     days_to_repay = derive("还债天数",
                            principal / net_per_day if net_per_day > 0 else float("inf"))
     sorties = sheets["sorties_to_cap"]
@@ -543,8 +543,8 @@ def check_premises(p: Params, sims: dict[str, SimResult], sheets: dict) -> None:
         0.5 <= ratio_goals <= 2.0,
         f"满级需 {sheets['total_exp']:.0f} 经验 = {sorties:.0f} 次低难度出征 ≈ "
         f"{days_to_cap:.0f} 天（按每天 {sorties_per_day} 次）；还债需 {days_to_repay:.0f} 天"
-        f"（按「{best.plan}」的日净收入 {net_per_day:.1f} 银）；比 {ratio_goals:.2f}",
-        "growth.exp_curve_base / growth.exp_curve_exponent / economy.debt_principal_silver",
+        f"（按「{best.plan}」的日净收入 {net_per_day:.1f} 铜）；比 {ratio_goals:.2f}",
+        "growth.exp_curve_base / growth.exp_curve_exponent / economy.debt_principal_copper",
         "还债天数按收入最高的那份计划算，只跑一份时这个基准是任意的")
 
     # 附加：容量必须造成一次取舍，但不频繁被迫丢弃
@@ -571,7 +571,7 @@ DOC_CLAIMS: tuple[tuple[str, str, str, int], ...] = (
     ("C9 的还债天数",         r"练满约 \d+ 天、还债约 (\d+) 天",        "还债天数",          0),
     ("C9 的两条目标天数比",   r"还债约 \d+ 天，比 ([\d.]+)",            "两条目标天数比",    2),
     ("经济一节的还债天数",    r"约 (\d+) 天净收入",                     "还债天数",          0),
-    ("经济一节的每天利息",    r"利率只做到每天 (\d+) 银",               "每天利息银",        0),
+    ("经济一节的每天利息",    r"利率只做到每天 (\d+) 铜",               "每天利息铜",        0),
     ("主角与学生的轻攻击比",  r"主角的轻攻击倍率是学生的 ([\d.]+) 倍",  "主角学生轻攻击比",  2),
     ("进攻回蓝效率",          r"当前是 ([\d.]+) MP/s",                  "进攻回蓝MP每秒",    2),
     ("精准防御回蓝效率",      r"MP/s 对 ([\d.]+) MP/s",                 "精准防御回蓝MP每秒", 2),
@@ -663,7 +663,7 @@ def check_doc_values(p: Params, text: str) -> int:
     """逐行核对：路径旁边写着的数字必须与参数表对得上。
 
     判据按行取，因为「写在旁边」在 Markdown 里就是「同一个表格行或同一段」。一行里出现的
-    数字不必都是参数（`20000 银（200 金）` 的 200 是换算、`6（升级 2 + 训练 4）` 的 2 与 4
+    数字不必都是参数（`2000000 铜（200 金）` 的 200 是换算、`6（升级 2 + 训练 4）` 的 2 与 4
     是拆解），所以方向是**从参数表往正文找**，不是反过来：路径的值必须出现在那一行里。
 
     形状决定判不判得了，三档都自报出来：
@@ -737,11 +737,11 @@ def _exists(p: Params, path: str) -> bool:
 
 def print_curves(res: SimResult) -> None:
     say(f"\n── 四条曲线 · {res.plan} ──")
-    say(f"{'日':>2}  {'时间':>10}  {'体力':>10}  {'现金(银)':>9}  {'粮食(份)':>9}  备注")
+    say(f"{'日':>2}  {'时间':>10}  {'体力':>10}  {'现金(铜)':>9}  {'粮食(份)':>9}  备注")
     for r in res.rows:
         say(f"{r.day:>2}  {r.hours_used:>4.1f}/{r.hours_limit:<5.1f}"
             f"  {r.stamina_used:>4}/{r.stamina_limit:<5}"
-            f"  {r.silver:>9}  {r.food:>9}  {r.note}")
+            f"  {r.copper:>9}  {r.food:>9}  {r.note}")
 
 
 def _apply_overrides(p: Params, items: list[str]) -> None:
@@ -805,7 +805,7 @@ def main() -> int:
         sims = {n: simulate(p, n) for n in names}
         for n, r in sims.items():
             last = r.rows[-1]
-            say(f"[..]   推演 {n}：7 天后现金 {last.silver} 银、粮食 {last.food} 份，"
+            say(f"[..]   推演 {n}：7 天后现金 {last.copper} 铜、粮食 {last.food} 份，"
                 f"第一次收获第 {r.first_harvest_day} 天")
         check_premises(p, sims, sheets)
     except ParamError as exc:

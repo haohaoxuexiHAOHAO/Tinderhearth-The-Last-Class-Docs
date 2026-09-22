@@ -111,35 +111,36 @@
 
   "skillbook": {
     "segments_per_book": 6,
-    "price_silver": 80
+    "price_copper": 8000
   },
 
   "farm": {
     "starting_plot_cells": 12,
     "crops": {
-      "速生叶菜": { "grow_days": 3, "seed_silver": 3, "yield_per_cell": 2, "sell_silver": 8, "food": true, "seasons": ["春"] },
-      "块根": { "grow_days": 6, "seed_silver": 5, "yield_per_cell": 3, "sell_silver": 14, "food": true, "seasons": ["春", "秋"] },
-      "谷物": { "grow_days": 5, "seed_silver": 4, "yield_per_cell": 3, "sell_silver": 12, "food": true, "seasons": ["夏"] },
-      "药草": { "grow_days": 8, "seed_silver": 9, "yield_per_cell": 2, "sell_silver": 26, "food": false, "seasons": ["春", "夏", "秋", "冬"] }
+      "速生叶菜": { "grow_days": 3, "seed_copper": 300, "yield_per_cell": 2, "sell_copper": 800, "food": true, "seasons": ["春"] },
+      "块根": { "grow_days": 6, "seed_copper": 500, "yield_per_cell": 3, "sell_copper": 1400, "food": true, "seasons": ["春", "秋"] },
+      "谷物": { "grow_days": 5, "seed_copper": 400, "yield_per_cell": 3, "sell_copper": 1200, "food": true, "seasons": ["夏"] },
+      "药草": { "grow_days": 8, "seed_copper": 900, "yield_per_cell": 2, "sell_copper": 2600, "food": false, "seasons": ["春", "夏", "秋", "冬"] }
     }
   },
 
   "economy": {
-    "start_silver": 60,
+    "//": "钱一律以铜记账（最小单位，整数，不用小数）。1 金 = 100 银 = 10000 铜；显示层拆成「1 金 10 银 3 铜」。",
+    "start_copper": 6000,
     "start_food": 14,
-    "debt_principal_silver": 20000,
+    "debt_principal_copper": 2000000,
     "debt_quarterly_rate": 0.015,
     "debt_first_season_free": true,
     "food_per_person_per_day": 1,
-    "food_buy_silver": 6,
-    "mission_reward_silver": { "gather": 25, "clear": 35, "escort": 45 },
-    "mission_loot_expected_silver": { "gather": 18, "clear": 22, "escort": 26 },
+    "food_buy_copper": 600,
+    "mission_reward_copper": { "gather": 2500, "clear": 3500, "escort": 4500 },
+    "mission_loot_expected_copper": { "gather": 1800, "clear": 2200, "escort": 2600 },
     "mission_tier_reward_multiplier": { "普通": 1.0, "精英": 1.6, "噩梦": 2.5 },
-    "treatment_fast_silver": 40,
+    "treatment_fast_copper": 4000,
     "treatment_fast_days": 1,
     "treatment_slow_days": 4,
     "injury_probability_low_mission": 0.15,
-    "consumable_expected_silver_per_sortie": 6
+    "consumable_expected_copper_per_sortie": 600
   },
 
   "pricing": {
@@ -156,8 +157,8 @@
     "buyable_basic": ["木料", "石料", "粗布"],
     "crafted_only": ["加固木梁", "灵能导线"],
     "craft_recipes": {
-      "加固木梁": { "inputs": { "木料": 3 }, "hours": 1.5, "sell_silver": 22 },
-      "灵能导线": { "inputs": { "石料": 2, "粗布": 1 }, "hours": 1.5, "sell_silver": 30 }
+      "加固木梁": { "inputs": { "木料": 3 }, "hours": 1.5, "sell_copper": 2200 },
+      "灵能导线": { "inputs": { "石料": 2, "粗布": 1 }, "hours": 1.5, "sell_copper": 3000 }
     }
   },
 
