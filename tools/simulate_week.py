@@ -154,7 +154,6 @@ class Sheet:
     atk: float = 0.0
     dfn: float = 0.0
     crit: float = 0.0
-    dodge: float = 0.0
     atk_speed: float = 0.0
     mitigation: float = 0.0
     effective_hp: float = 0.0
@@ -176,8 +175,6 @@ def build_sheet(p: Params, label: str, level: int, attrs: dict[str, int]) -> She
     s.effective_hp = s.hp / (1.0 - s.mitigation)
     s.crit = min(p("derived.crit_cap"),
                  p("derived.crit_base") + p("derived.crit_per_agi") * s.agi)
-    s.dodge = min(p("derived.dodge_cap"),
-                  p("derived.dodge_base") + p("derived.dodge_per_agi") * s.agi)
     crit_mult = p("derived.crit_multiplier")
     s.atk_speed = (p("derived.atk_speed_base") + p("derived.atk_speed_per_agi") * s.agi) \
         * (1.0 + s.crit * (crit_mult - 1.0))
