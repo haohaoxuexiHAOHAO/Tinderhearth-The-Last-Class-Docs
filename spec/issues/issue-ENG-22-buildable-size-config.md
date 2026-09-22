@@ -13,7 +13,7 @@ last_verified: 2026-09-22
 
 ## 来源
 
-- PRD：[`spec/prd-base-and-production.md`](../prd-base-and-production.md) 的 `US-001`
+- PRD：[`archive/spec/GP-25-base-and-production/prd.md`](../../archive/spec/GP-25-base-and-production/prd.md) 的 `US-001`（**历史背景·非依据**）
 - 现状：尺寸已经是配置项（`rules/Foundation/Config/GameConfig.cs` 的两个字段，无默认值、缺字段当场报错），所以扩大是改数加延伸地图。
 
 ## 依赖

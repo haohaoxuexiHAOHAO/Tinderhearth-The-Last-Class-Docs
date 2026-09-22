@@ -13,7 +13,7 @@ last_verified: 2026-09-22
 
 ## 来源
 
-- PRD：[`spec/prd-base-and-production.md`](../prd-base-and-production.md) 的 `US-009`
+- PRD：[`archive/spec/GP-25-base-and-production/prd.md`](../../archive/spec/GP-25-base-and-production/prd.md) 的 `US-009`（**历史背景·非依据**）
 
 ## 依赖
 
