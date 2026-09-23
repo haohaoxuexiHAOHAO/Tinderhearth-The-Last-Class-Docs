@@ -20,7 +20,8 @@
     "season_days": 30
   },
 
-  "stamina": {
+  "vigor": {
+    "//": "经营侧的当日预算（精力条）。与战斗侧的体力条 derived.sp_* 是两条不共用的资源。",
     "base": 40,
     "per_vit": 6,
     "meal_full": 0,
@@ -42,11 +43,14 @@
   },
 
   "derived": {
+    "//攻防分离": "攻分物理与魔法（力量给 patk、智力给 matk），防也分两份且基底都由体质给。魔法那两份起步与物理同值，只有量级自检在判；真正的平衡判据要等技能内容存在，见数值模型的尚未给值表。",
     "hp_base": 80, "hp_per_vit": 12,
     "mp_base": 20, "mp_per_int": 5,
     "sp_base": 40, "sp_per_vit": 3,
-    "atk_base": 20, "atk_per_str": 3.0,
-    "def_base": 3, "def_per_vit": 0.8,
+    "patk_base": 20, "patk_per_str": 3.0,
+    "matk_base": 20, "matk_per_int": 3.0,
+    "pdef_base": 3, "pdef_per_vit": 0.8,
+    "mdef_base": 3, "mdef_per_vit": 0.8,
     "def_softening_k": 60,
     "crit_base": 0.03, "crit_per_agi": 0.007, "crit_cap": 0.35, "crit_multiplier": 1.5,
     "atk_speed_base": 1.2, "atk_speed_per_agi": 0.02,
@@ -88,25 +92,25 @@
   },
 
   "actions": {
-    "//": "耗时与耗体力。主角亲自劳作效率高于派工，但花他自己的体力。",
-    "water_plot": { "hours": 0.5, "stamina": 4 },
-    "tend_plot_self": { "hours": 1.0, "stamina": 8 },
-    "tend_plot_self_spirit_hand": { "hours": 1.0, "stamina": 16, "plots": 2 },
-    "read_skillbook_segment": { "hours": 2.0, "stamina": 8 },
-    "craft_batch": { "hours": 1.5, "stamina": 10 },
-    "train_session": { "hours": 2.0, "stamina": 12 },
-    "sortie_gather": { "hours": 4.0, "stamina": 25 },
-    "sortie_clear": { "hours": 5.0, "stamina": 30 },
-    "sortie_escort": { "hours": 6.0, "stamina": 35 }
+    "//": "耗时与耗精力。主角亲自劳作效率高于派工，但花他自己的精力。",
+    "water_plot": { "hours": 0.5, "vigor": 4 },
+    "tend_plot_self": { "hours": 1.0, "vigor": 8 },
+    "tend_plot_self_spirit_hand": { "hours": 1.0, "vigor": 16, "plots": 2 },
+    "read_skillbook_segment": { "hours": 2.0, "vigor": 8 },
+    "craft_batch": { "hours": 1.5, "vigor": 10 },
+    "train_session": { "hours": 2.0, "vigor": 12 },
+    "sortie_gather": { "hours": 4.0, "vigor": 25 },
+    "sortie_clear": { "hours": 5.0, "vigor": 30 },
+    "sortie_escort": { "hours": 6.0, "vigor": 35 }
   },
 
   "assignments": {
-    "//": "学生派工：一天一个工位，消耗该学生体力。",
-    "planting": { "stamina": 25, "plots_tended": 1 },
-    "crafting": { "stamina": 30, "batches": 1 },
-    "training": { "stamina": 40 },
-    "reading": { "stamina": 20, "segments": 3 },
-    "nursing": { "stamina": 25, "recovery_days": 1 }
+    "//": "学生派工：一天一个工位，消耗该学生精力。",
+    "planting": { "vigor": 25, "plots_tended": 1 },
+    "crafting": { "vigor": 30, "batches": 1 },
+    "training": { "vigor": 40 },
+    "reading": { "vigor": 20, "segments": 3 },
+    "nursing": { "vigor": 25, "recovery_days": 1 }
   },
 
   "skillbook": {

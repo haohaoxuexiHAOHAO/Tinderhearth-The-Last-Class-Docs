@@ -151,15 +151,20 @@ class Sheet:
     hp: int = 0
     mp: int = 0
     sp: int = 0
-    atk: float = 0.0
-    dfn: float = 0.0
+    patk: float = 0.0
+    matk: float = 0.0
+    pdef: float = 0.0
+    mdef: float = 0.0
     crit: float = 0.0
     atk_speed: float = 0.0
-    mitigation: float = 0.0
+    p_mitigation: float = 0.0
+    m_mitigation: float = 0.0
     effective_hp: float = 0.0
 
     def power(self, multiplier: float) -> float:
-        dps = self.atk * multiplier * self.atk_speed
+        """战力＝有效 HP × 输出。**走物理那一路**：普攻是物理的，判据 C4 也按普攻算，
+        两条判据用同一个基准才比得出意义。取大或加权会让战力差变成一个说不清由谁贡献的数。"""
+        dps = self.patk * multiplier * self.atk_speed
         return self.effective_hp * dps
 
 
@@ -168,11 +173,16 @@ def build_sheet(p: Params, label: str, level: int, attrs: dict[str, int]) -> She
     s.hp = round(p("derived.hp_base") + p("derived.hp_per_vit") * s.vit)
     s.mp = round(p("derived.mp_base") + p("derived.mp_per_int") * s.int_)
     s.sp = round(p("derived.sp_base") + p("derived.sp_per_vit") * s.vit)
-    s.atk = p("derived.atk_base") + p("derived.atk_per_str") * s.str_
-    s.dfn = p("derived.def_base") + p("derived.def_per_vit") * s.vit
+    # 攻防分离：攻分物理（力量）与魔法（智力），防分两份且基底都由体质给。
+    s.patk = p("derived.patk_base") + p("derived.patk_per_str") * s.str_
+    s.matk = p("derived.matk_base") + p("derived.matk_per_int") * s.int_
+    s.pdef = p("derived.pdef_base") + p("derived.pdef_per_vit") * s.vit
+    s.mdef = p("derived.mdef_base") + p("derived.mdef_per_vit") * s.vit
     k = p("derived.def_softening_k")
-    s.mitigation = s.dfn / (s.dfn + k)
-    s.effective_hp = s.hp / (1.0 - s.mitigation)
+    s.p_mitigation = s.pdef / (s.pdef + k)
+    s.m_mitigation = s.mdef / (s.mdef + k)
+    # 有效 HP 走物理那一路，与 power() 同一个基准。
+    s.effective_hp = s.hp / (1.0 - s.p_mitigation)
     s.crit = min(p("derived.crit_cap"),
                  p("derived.crit_base") + p("derived.crit_per_agi") * s.agi)
     crit_mult = p("derived.crit_multiplier")
@@ -205,22 +215,28 @@ def analyse_attributes(p: Params) -> dict:
           lo <= gap <= hi,
           f"满级 ÷ 1 级 = {gap:.2f} 倍"
           f"（有效 HP {lv1.effective_hp:.0f}→{lvmax.effective_hp:.0f}，"
-          f"攻击力 {lv1.atk:.1f}→{lvmax.atk:.1f}）",
-          "derived.hp_per_vit / derived.atk_per_str / attributes.level_cap")
+          f"物理攻击 {lv1.patk:.1f}→{lvmax.patk:.1f}）",
+          "derived.hp_per_vit / derived.patk_per_str / attributes.level_cap")
 
-    # 量级自检：HP 三位数、单次轻攻击伤害两位数（对同级对手）。
-    def hit(attacker: Sheet, target: Sheet, mult: float) -> float:
-        return max(1.0, attacker.atk * mult * (1.0 - target.mitigation))
+    # 量级自检：HP 三位数、单次伤害两位数（对同级对手）。
+    # **两路都量**：物理走 patk 对 pdef，魔法走 matk 对 mdef。魔法那一路借用同一个倍率当
+    # 探针 —— 它只量量级，不代表某个真技能（真技能的倍率是技能字段，归 GP-31）。
+    def hit(atk: float, mitigation: float, mult: float) -> float:
+        return max(1.0, atk * mult * (1.0 - mitigation))
 
     student_start = dict(p("attributes.start_student"))
     st1 = build_sheet(p, "学生 1 级", 1, student_start)
-    dmg_lv1 = hit(lv1, st1, ml)
-    dmg_max = hit(lvmax, build_sheet(p, "满级学生", cap, spread_points(student_start, (cap - 1) * per)), ml)
-    check("C6", "量级：HP 三位数、轻攻击伤害两位数",
+    stmax = build_sheet(p, "满级学生", cap, spread_points(student_start, (cap - 1) * per))
+    pdmg_lv1 = hit(lv1.patk, st1.p_mitigation, ml)
+    pdmg_max = hit(lvmax.patk, stmax.p_mitigation, ml)
+    mdmg_lv1 = hit(lv1.matk, st1.m_mitigation, ml)
+    mdmg_max = hit(lvmax.matk, stmax.m_mitigation, ml)
+    check("C6", "量级：HP 三位数、物理与魔法的代表性单次伤害都两位数",
           100 <= lv1.hp <= 999 and 100 <= lvmax.hp <= 999
-          and 10 <= dmg_lv1 <= 99 and 10 <= dmg_max <= 99,
-          f"HP {lv1.hp}→{lvmax.hp}；主角轻攻击伤害 {dmg_lv1:.1f}→{dmg_max:.1f}",
-          "derived.hp_base / derived.hp_per_vit / move_multipliers")
+          and all(10 <= d <= 99 for d in (pdmg_lv1, pdmg_max, mdmg_lv1, mdmg_max)),
+          f"HP {lv1.hp}→{lvmax.hp}；物理 {pdmg_lv1:.1f}→{pdmg_max:.1f}；"
+          f"魔法 {mdmg_lv1:.1f}→{mdmg_max:.1f}",
+          "derived.hp_base / derived.patk_per_str / derived.matk_per_int / move_multipliers")
 
     # 主角伤害必须显著低于学生（人物正典：主角低伤辅助，伤害来自学生）。
     ratio = derive("主角学生轻攻击比",
@@ -275,8 +291,8 @@ class DayRow:
     day: int
     hours_used: float
     hours_limit: float
-    stamina_used: int
-    stamina_limit: int
+    vigor_used: int
+    vigor_limit: int
     copper: int
     food: int
     note: str = ""
@@ -289,19 +305,21 @@ class SimResult:
     first_harvest_day: int | None = None
     food_before_first_harvest: int = 0
     overtime_days: list[int] = field(default_factory=list)
-    overstamina_days: list[int] = field(default_factory=list)
+    overvigor_days: list[int] = field(default_factory=list)
     negative_cash_days: list[int] = field(default_factory=list)
     negative_food_days: list[int] = field(default_factory=list)
-    student_overstamina: list[str] = field(default_factory=list)
+    student_overvigor: list[str] = field(default_factory=list)
 
 
-def stamina_limit(p: Params, vit: int) -> int:
-    """住宿等级从参数表读，不写死在代码里 —— 它是推演的一条假设，藏在函数默认值里
+def vigor_limit(p: Params, vit: int) -> int:
+    """经营侧的当日预算上限（精力条）。与战斗侧的体力条是两条不共用的资源。
+
+    住宿等级从参数表读，不写死在代码里 —— 它是推演的一条假设，藏在函数默认值里
     就看不见了，而看不见的假设正是「参数缺失不许静默补齐」要防的东西。"""
     level = p("week_plan.housing_level_at_start")
-    return round(p("stamina.base") + p("stamina.per_vit") * vit
-                 + p("stamina.housing_by_level")[level - 1]
-                 + p("stamina.meal_full") + p("stamina.health_normal"))
+    return round(p("vigor.base") + p("vigor.per_vit") * vit
+                 + p("vigor.housing_by_level")[level - 1]
+                 + p("vigor.meal_full") + p("vigor.health_normal"))
 
 
 def simulate(p: Params, plan_name: str) -> SimResult:
@@ -315,9 +333,9 @@ def simulate(p: Params, plan_name: str) -> SimResult:
     food_per_day = p("economy.food_per_person_per_day") * people
 
     hero = dict(p("attributes.start_protagonist"))
-    hero_limit = stamina_limit(p, hero["vit"])
+    hero_limit = vigor_limit(p, hero["vit"])
     stu = dict(p("attributes.start_student"))
-    stu_limit = stamina_limit(p, stu["vit"])
+    stu_limit = vigor_limit(p, stu["vit"])
 
     crops = p("farm.crops")
     growing: list[dict] = []      # {"crop":名, "cells":n, "ready_day":d}
@@ -339,11 +357,11 @@ def simulate(p: Params, plan_name: str) -> SimResult:
 
         # 主角行动
         hours = 0.0
-        stamina = 0
+        vigor = 0
         for act in entry["protagonist"]:
             a = p(f"actions.{act}")
             hours += a["hours"]
-            stamina += a["stamina"]
+            vigor += a["vigor"]
             if act.startswith("sortie_"):
                 kind = act.split("_", 1)[1]
                 reward = p(f"economy.mission_reward_copper.{kind}")
@@ -357,14 +375,14 @@ def simulate(p: Params, plan_name: str) -> SimResult:
 
         if hours > hours_limit:
             res.overtime_days.append(day)
-        if stamina > hero_limit:
-            res.overstamina_days.append(day)
+        if vigor > hero_limit:
+            res.overvigor_days.append(day)
 
         # 学生派工
         for who, job in entry["assignments"].items():
-            need = p(f"assignments.{job}.stamina")
+            need = p(f"assignments.{job}.vigor")
             if need > stu_limit:
-                res.student_overstamina.append(f"第 {day} 天 {who} 做 {job}")
+                res.student_overvigor.append(f"第 {day} 天 {who} 做 {job}")
 
         # 收获（成熟即收，不靠计划里的标记）
         harvested = [g for g in growing if g["ready_day"] <= day]
@@ -392,7 +410,7 @@ def simulate(p: Params, plan_name: str) -> SimResult:
         if copper < 0:
             res.negative_cash_days.append(day)
 
-        res.rows.append(DayRow(day, hours, hours_limit, stamina, hero_limit,
+        res.rows.append(DayRow(day, hours, hours_limit, vigor, hero_limit,
                                round(copper), food, "；".join(note)))
     return res
 
@@ -404,18 +422,18 @@ def check_premises(p: Params, sims: dict[str, SimResult], sheets: dict) -> None:
     # 那种失败与数值无关，报出来只会训练人忽略 FAIL。所以局部范围里改判「跑过的都成立」，
     # 并在判定文字里写明这一轮没覆盖哪半条。
     feasible = [name for name, r in sims.items()
-                if not r.overtime_days and not r.overstamina_days
-                and not r.student_overstamina]
-    broken = {n: {"超时": r.overtime_days, "超体力": r.overstamina_days,
-                  "学生超体力": r.student_overstamina}
+                if not r.overtime_days and not r.overvigor_days
+                and not r.student_overvigor]
+    broken = {n: {"超时": r.overtime_days, "超精力": r.overvigor_days,
+                  "学生超精力": r.student_overvigor}
               for n, r in sims.items() if n not in feasible}
     total_plans = len(p("week_plan.plans"))
     partial = len(sims) < total_plans
-    # 跑过的计划本身超时超体力，是真失败，局部范围也照判。
-    check("P1a", "跑过的每份安排都装得进 19 小时与体力上限",
+    # 跑过的计划本身超时超精力，是真失败，局部范围也照判。
+    check("P1a", "跑过的每份安排都装得进 19 小时与精力上限",
           not broken,
           f"跑了 {list(sims)}；成立 {feasible}；不成立 {broken}",
-          "actions 一节的 hours 与 stamina / stamina.per_vit")
+          "actions 一节的 hours 与 vigor / vigor.per_vit")
     check_cross_plan(partial, "P1b", "至少两种一日安排成立",
                      len(feasible) >= 2,
                      f"成立的安排 {feasible}（参数表共 {total_plans} 份计划）",
@@ -448,7 +466,7 @@ def check_premises(p: Params, sims: dict[str, SimResult], sheets: dict) -> None:
           f"断粮日 {ref.negative_food_days}，现金为负日 {ref.negative_cash_days}",
           "economy.start_food / economy.start_copper / farm.crops.*.grow_days")
 
-    # P4：一次低难度委托的报酬 ÷ 时间与体力消耗
+    # P4：一次低难度委托的报酬 ÷ 时间与精力消耗
     lines = []
     ok4 = True
     for kind in ("gather", "clear", "escort"):
@@ -461,8 +479,8 @@ def check_premises(p: Params, sims: dict[str, SimResult], sheets: dict) -> None:
             * (p("week_plan.students_at_start") + 1) * p("economy.food_buy_copper")
         good = net > 0 and net >= day_food
         ok4 = ok4 and good
-        lines.append(f"{kind} 净 {net:.0f} 铜／{a['hours']}h／{a['stamina']}EN "
-                     f"= {net / a['hours']:.1f} 铜每小时、{net / a['stamina']:.2f} 铜每点体力"
+        lines.append(f"{kind} 净 {net:.0f} 铜／{a['hours']}h／{a['vigor']}EN "
+                     f"= {net / a['hours']:.1f} 铜每小时、{net / a['vigor']:.2f} 铜每点精力"
                      f"（全队一天粮食成本 {day_food} 铜）{'' if good else ' ← 不足'}")
     check("P4", "低难度委托净收益为正，且不低于全队一天的粮食成本",
           ok4, "；".join(lines),
@@ -737,10 +755,10 @@ def _exists(p: Params, path: str) -> bool:
 
 def print_curves(res: SimResult) -> None:
     say(f"\n── 四条曲线 · {res.plan} ──")
-    say(f"{'日':>2}  {'时间':>10}  {'体力':>10}  {'现金(铜)':>9}  {'粮食(份)':>9}  备注")
+    say(f"{'日':>2}  {'时间':>10}  {'精力':>10}  {'现金(铜)':>9}  {'粮食(份)':>9}  备注")
     for r in res.rows:
         say(f"{r.day:>2}  {r.hours_used:>4.1f}/{r.hours_limit:<5.1f}"
-            f"  {r.stamina_used:>4}/{r.stamina_limit:<5}"
+            f"  {r.vigor_used:>4}/{r.vigor_limit:<5}"
             f"  {r.copper:>9}  {r.food:>9}  {r.note}")
 
 
@@ -798,8 +816,9 @@ def main() -> int:
 
         sheets = analyse_attributes(p)
         say(f"[..]   属性派生：{sheets['lv1'].label} HP {sheets['lv1'].hp}／"
-            f"攻击 {sheets['lv1'].atk:.1f}；{sheets['lvmax'].label} HP {sheets['lvmax'].hp}／"
-            f"攻击 {sheets['lvmax'].atk:.1f}")
+            f"物攻 {sheets['lv1'].patk:.1f}／魔攻 {sheets['lv1'].matk:.1f}；"
+            f"{sheets['lvmax'].label} HP {sheets['lvmax'].hp}／"
+            f"物攻 {sheets['lvmax'].patk:.1f}／魔攻 {sheets['lvmax'].matk:.1f}")
 
         names = [args.plan] if args.plan else list(p("week_plan.plans").keys())
         sims = {n: simulate(p, n) for n in names}
