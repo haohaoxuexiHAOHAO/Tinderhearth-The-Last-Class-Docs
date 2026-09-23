@@ -18,7 +18,7 @@ last_verified: 2026-08-26
 | `推演-<slug>.md` | 纸面推演：把循环手算一遍找漏，验收用。归档时随需求一起移走 | 无（按需手写） |
 | [`issues/`](./issues/README.md) | 可实现条目，一条一个文件；索引即待办台账 | `/to-issues` |
 
-**进行中**：[`prd-economy-and-building.md`](./prd-economy-and-building.md) —— 经济系统与建造系统两份系统文档，生活技能的重排与档位专长同批。上一个需求「任务系统与关卡系统」已归档到 [`archive/spec/GP-40-quest-and-level/`](../archive/spec/GP-40-quest-and-level/prd.md)（**历史背景·非依据**），它的现行结论已落进正典与 [`design/任务系统.md`](../design/任务系统.md)、[`design/关卡系统.md`](../design/关卡系统.md)。**未完的部分不在归档件里，按编号活在 [待办台账](./issues/README.md)。** 下一步做什么看台账，不看本节。
+**进行中**：[`prd-equipment.md`](./prd-equipment.md) —— 装备系统一份系统文档，正典那一节的补齐同批。上一个需求「经济系统与建造系统」已归档到 [`archive/spec/GP-43-economy-and-building/`](../archive/spec/GP-43-economy-and-building/prd.md)（**历史背景·非依据**），它的现行结论已落进正典与 [`design/经济系统.md`](../design/经济系统.md)、[`design/建造系统.md`](../design/建造系统.md)。**未完的部分不在归档件里，按编号活在 [待办台账](./issues/README.md)。** 下一步做什么看台账，不看本节。
 
 `<slug>` 是简短英文标识，全小写、连字符分隔，例如 `gameplay-positioning`、`combat-feel-tuning`。
 
