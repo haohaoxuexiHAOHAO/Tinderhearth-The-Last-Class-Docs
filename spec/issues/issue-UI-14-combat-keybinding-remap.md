@@ -13,7 +13,7 @@ last_verified: 2026-09-22
 
 ## 来源
 
-- 在 [`spec/prd-growth-skill-damage.md`](../prd-growth-skill-damage.md) 那一批的讨论中定的边界，`US-007` 记账、`GP-34` 删掉正典里那句具体映射。
+- 边界在成长、技能与伤害那一批的讨论中定下，`GP-34` 已删掉正典里那句具体映射。归档件 [`archive/spec/GP-30-growth-skill-damage/`](../../archive/spec/GP-30-growth-skill-damage/prd.md)（**历史背景·非依据**）。
 - 现状是代码仓 `rules/Ui/InputBindings.cs` 的绑定表：键鼠侧 `Digit1`–`Digit6` 对应六个技能位，轻重攻击 `J`／`K`，防御 `Q`、闪避 `E`、交互 `F`、冲刺 `Shift`、跳跃 `Space`。
 
 ## 依赖

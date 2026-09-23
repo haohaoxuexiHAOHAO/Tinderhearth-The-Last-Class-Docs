@@ -18,7 +18,7 @@ last_verified: 2026-08-26
 | `推演-<slug>.md` | 纸面推演：把循环手算一遍找漏，验收用。归档时随需求一起移走 | 无（按需手写） |
 | [`issues/`](./issues/README.md) | 可实现条目，一条一个文件；索引即待办台账 | `/to-issues` |
 
-**进行中**：[`prd-growth-skill-damage.md`](./prd-growth-skill-damage.md) —— 成长、技能与伤害三份系统文档。上一个需求「基地画布、生产渠道与派工付酬」已归档到 [`archive/spec/GP-25-base-and-production/`](../archive/spec/GP-25-base-and-production/prd.md)（**历史背景·非依据**），它的现行结论已落进正典与[`生产系统`](../design/生产系统.md)。**未完的部分不在归档件里，按编号活在 [待办台账](./issues/README.md)。** 下一步做什么看台账，不看本节。
+**进行中**：[`prd-relationship-system.md`](./prd-relationship-system.md) —— 人际系统一份系统文档，连带把关系的命名层统一。上一个需求「成长、技能与伤害」已归档到 [`archive/spec/GP-30-growth-skill-damage/`](../archive/spec/GP-30-growth-skill-damage/prd.md)（**历史背景·非依据**），它的现行结论已落进正典与 [`design/`](../design/README.md) 下那三份系统文档。**未完的部分不在归档件里，按编号活在 [待办台账](./issues/README.md)。** 下一步做什么看台账，不看本节。
 
 `<slug>` 是简短英文标识，全小写、连字符分隔，例如 `gameplay-positioning`、`combat-feel-tuning`。
 
