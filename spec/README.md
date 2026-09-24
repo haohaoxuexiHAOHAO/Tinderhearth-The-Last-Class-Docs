@@ -18,7 +18,7 @@ last_verified: 2026-08-26
 | `推演-<slug>.md` | 纸面推演：把循环手算一遍找漏，验收用。归档时随需求一起移走 | 无（按需手写） |
 | [`issues/`](./issues/README.md) | 可实现条目，一条一个文件；索引即待办台账 | `/to-issues` |
 
-**进行中**：[`prd-enemy-ai-and-ally-tiers.md`](./prd-enemy-ai-and-ally-tiers.md) —— 敌人 AI、感知与视野、队友 AI 五档三样一起看。上一个需求「装备系统」已归档到 [`archive/spec/GP-46-equipment/`](../archive/spec/GP-46-equipment/prd.md)（**历史背景·非依据**），它的现行结论已落进正典与 [`design/装备系统.md`](../design/装备系统.md)、[ADR-0011](../decisions/ADR-0011-纯增益装备的窄例外.md)、[ADR-0012](../decisions/ADR-0012-宝石的两个镶嵌目标.md)。**未完的部分不在归档件里，按编号活在 [待办台账](./issues/README.md)。** 下一步做什么看台账，不看本节。
+**进行中**：[`prd-cutscene-dialogue-and-events.md`](./prd-cutscene-dialogue-and-events.md) —— 剧情演出与对话的数据格式、事件、持续引导三样一起看。上一个需求「敌人 AI、感知与视野、队友 AI 五档」已归档到 [`archive/spec/GP-49-enemy-ai-and-ally-tiers/`](../archive/spec/GP-49-enemy-ai-and-ally-tiers/prd.md)（**历史背景·非依据**），它的现行结论已落进正典与 [`design/战斗AI系统.md`](../design/战斗AI系统.md)、[`design/感知与视野系统.md`](../design/感知与视野系统.md)、[ADR-0013](../decisions/ADR-0013-战斗片段就是一屏.md)。**未完的部分不在归档件里，按编号活在 [待办台账](./issues/README.md)。** 下一步做什么看台账，不看本节。
 
 `<slug>` 是简短英文标识，全小写、连字符分隔，例如 `gameplay-positioning`、`combat-feel-tuning`。
 
