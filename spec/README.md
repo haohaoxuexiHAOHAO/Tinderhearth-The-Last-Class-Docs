@@ -18,7 +18,7 @@ last_verified: 2026-08-26
 | `推演-<slug>.md` | 纸面推演：把循环手算一遍找漏，验收用。归档时随需求一起移走 | 无（按需手写） |
 | [`issues/`](./issues/README.md) | 可实现条目，一条一个文件；索引即待办台账 | `/to-issues` |
 
-**进行中**：[`prd-save-settlement-and-stats-bus.md`](./prd-save-settlement-and-stats-bus.md) —— 存档、统计事件总线与经营侧的每日结算三样一起看，存档要等各系统的字段定型才写得出来，而结算与自动存档发生在同一时刻。上一个需求「气泡对话与日记」已归档到 [`archive/spec/NR-8-bubble-dialogue-and-diary/`](../archive/spec/NR-8-bubble-dialogue-and-diary/prd.md)（**历史背景·非依据**），它的现行结论已落进正典与 [`design/气泡对话系统.md`](../design/气泡对话系统.md)、[`design/日记系统.md`](../design/日记系统.md)。**未完的部分不在归档件里，按编号活在 [待办台账](./issues/README.md)。** 下一步做什么看台账，不看本节。
+**进行中**：[`prd-progression-and-endgame.md`](./prd-progression-and-endgame.md) —— 推进骨架与长期时间轴，含主线任务与结局判定；它排在全部基础文档之后，因为前几批留给它的口子要先各有对象。上一个需求「存档、统计事件总线与每日结算」已归档到 [`archive/spec/GP-54-save-settlement-and-stats-bus/`](../archive/spec/GP-54-save-settlement-and-stats-bus/prd.md)（**历史背景·非依据**），它的现行结论已落进 [`design/存档系统.md`](../design/存档系统.md)、[`design/统计事件总线系统.md`](../design/统计事件总线系统.md)、[`design/每日结算系统.md`](../design/每日结算系统.md) 与 [ADR-0015](../decisions/ADR-0015-存档的版本与缺字段口径.md)。**未完的部分不在归档件里，按编号活在 [待办台账](./issues/README.md)。** 下一步做什么看台账，不看本节。
 
 `<slug>` 是简短英文标识，全小写、连字符分隔，例如 `gameplay-positioning`、`combat-feel-tuning`。
 
