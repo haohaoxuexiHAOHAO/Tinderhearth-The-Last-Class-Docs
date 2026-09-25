@@ -877,9 +877,12 @@ def main() -> int:
     bad = [c.tag for c in CHECKS if not c.ok]
     say("")
     claims_code = check_doc_claims(len(sims) < len(p("week_plan.plans")))
-    say(f"\n覆盖量：读了 {len(p.reads)} 个参数路径；判定 {len(premises)} 条数值前提 + "
-        f"{len(extra)} 条 PRD 附加约束；推演 {len(sims)} 份计划 × "
-        f"{len(next(iter(sims.values())).rows)} 天")
+    # 前提数与判定数不是同一个数：正典给的是六条前提（P1–P6），而 P1 在这里拆成两个判定
+    # （P1a 按份逐个判、P1b 判「至少两种成立」）。自报两个数，免得读者对着一个数以为有一处过期。
+    premise_ids = {c.tag.rstrip("abcdefghijklmnopqrstuvwxyz") for c in premises}
+    say(f"\n覆盖量：读了 {len(p.reads)} 个参数路径；判定 {len(premise_ids)} 条数值前提"
+        f"（拆成 {len(premises)} 个判定）+ {len(extra)} 条 PRD 附加约束；"
+        f"推演 {len(sims)} 份计划 × {len(next(iter(sims.values())).rows)} 天")
     say(f"结果：{len(CHECKS) - len(bad)}/{len(CHECKS)} 条通过"
         f"／{len(bad)} 条不成立{('：' + '、'.join(bad)) if bad else ''}")
     unjudged = [c.tag for c in CHECKS if "局部范围未判" in c.name]
