@@ -284,16 +284,27 @@ def analyse_attributes(p: Params) -> dict:
           f"（训练是主要来源）",
           "growth.talent_points_cap / growth.talent_points_from_training")
 
-    # 精准防御回蓝效率不得高于进攻回蓝（战斗与关卡正典的硬约束）。
+    # 两份精准回报的回蓝都不得高于进攻回蓝，而闪避那份还要低于防御那份。
+    #
+    # 这条判两件，因为正典给的是一条约束加一个顺序：
+    #   ① 两份精准回报都不高于进攻回蓝 —— 原先只量了防御那一份，扩到闪避**不是新约束**，
+    #      是把同一条量到对的地方（与 C4 换量测点同一形状）；
+    #   ② 闪避那份不高于防御那份 —— 闪避天生多了位移与穿多段的无敌，回报等同就让精准
+    #      防御那套设计冗余。这是正典写的顺序，不判的话它只是一句散文。
     atk_mp = derive("进攻回蓝MP每秒",
                     p("resources.mp_per_light_hit") * p("resources.light_hits_per_second"))
     guard_mp = derive("精准防御回蓝MP每秒",
                       p("resources.perfect_guard_mp")
                       * p("resources.perfect_guard_opportunities_per_second"))
-    check("C3", "精准防御回蓝效率不高于进攻回蓝",
-          guard_mp <= atk_mp,
-          f"进攻 {atk_mp:.2f} MP/s，精准防御 {guard_mp:.2f} MP/s",
-          "resources.perfect_guard_mp / resources.perfect_guard_opportunities_per_second")
+    dodge_mp = derive("精准闪避回蓝MP每秒",
+                      p("resources.perfect_dodge_mp")
+                      * p("resources.perfect_dodge_opportunities_per_second"))
+    check("C3", "两份精准回报的回蓝都不高于进攻回蓝，且闪避那份不高于防御那份",
+          guard_mp <= atk_mp and dodge_mp <= atk_mp and dodge_mp <= guard_mp,
+          f"进攻 {atk_mp:.2f} MP/s，精准防御 {guard_mp:.2f} MP/s，"
+          f"精准闪避 {dodge_mp:.2f} MP/s",
+          "resources.perfect_guard_mp / resources.perfect_dodge_mp / "
+          "resources.perfect_dodge_opportunities_per_second")
 
     # 训练经验必须明显低于出征。
     sortie_exp = p("growth.exp_per_sortie_low")
@@ -591,6 +602,91 @@ def check_premises(p: Params, sims: dict[str, SimResult], sheets: dict) -> None:
         "growth.exp_curve_base / growth.exp_curve_exponent / economy.debt_principal_copper",
         "还债天数按收入最高的那份计划算，只跑一份时这个基准是任意的")
 
+    # 附加：冬季那一季 —— 没有粮食作物，口粮靠入冬储备与采购（时间与经营正典）。
+    #
+    # 判三件，因为「撑过去」这句话有三个各自会静默失效的地方：**前提**（真的没有冬季粮食
+    # 作物 —— 有一种就说明参数表加了作物而正典没跟着改）、**撑得住**（逐日走一遍不断粮）、
+    # **有代价**（那笔开销占得住一季净收入的一个区间；没有下界就是一句设定，没有上界就是
+    # 一段无事可做的停滞）。少判哪一件，那一件就变回一句没人验的散文。
+    winter_food = sorted(n for n, c in crops.items()
+                         if c["food"] and "冬" in c["seasons"])
+    winter_days = p("time.season_days")
+    winter_need = winter_days * per_day
+    food_price = p("economy.food_buy_copper")
+    winter_cost = winter_need * food_price
+    season_net = net_per_day * winter_days
+    cost_share = derive("冬季口粮占净收入比",
+                        winter_cost / season_net if season_net > 0 else float("inf"))
+    # 入冬储备下限：冬季净收入买不到的那一部分，钳在零以上。为零说明零储备也撑得过去、
+    # 储备只是缓冲（代价落在现金流上）；一旦为正，那个数就是秋末必须留的粮。
+    affordable = season_net / food_price if food_price > 0 else 0.0
+    reserve_floor = derive("入冬储备下限份", max(0.0, winter_need - affordable))
+    # 逐日走一遍，**从零储备起算**：口粮只能买（冬季没有粮食作物），而买的钱只能来自冬季
+    # 自己的收入 —— 不带入上一季攒下的粮与钱。这个口径比正典那句更严，取它是因为「上一季
+    # 攒了多少」是玩家行为、不是参数；而零储备撑得住，储备就只是缓冲。
+    #
+    # **起始储备刻意不取 reserve_floor。** 取它的话这一段按定义就撑得住（那个下限正是
+    # 「收入买不到的那一部分」），于是断粮那一半永远判不到东西 —— 实测撞过：把粮价调到
+    # 十几倍，下限跟着涨上去，断粮日仍然是空的。
+    #
+    # 口径写明：在「日净收入是个常数」这个模型下，这一段等价于「一天的饭钱不得高于一天的
+    # 净收入」。留成逐日走是因为报出来的「断粮日」要是走出来的结果，而不是一句由除法推出来
+    # 的断言 —— 收入模型将来变细（按计划逐日、季节事件调价）时这一段不用重写。
+    stock, purse, starved = 0.0, 0.0, []
+    for wd in range(1, winter_days + 1):
+        purse += net_per_day
+        if stock < per_day:
+            short = per_day - stock
+            cost = short * food_price
+            if purse < cost:
+                starved.append(wd)
+                stock = 0.0
+                continue
+            purse -= cost
+            stock += short
+        stock -= per_day
+    lo_share, hi_share = 0.10, 0.50
+    check_cross_plan(
+        partial, "C11", "冬季那一季撑得住而且有代价",
+        not winter_food and not starved and lo_share <= cost_share <= hi_share,
+        f"冬季的粮食作物 {winter_food or '一种都没有'}；整季口粮 {winter_need} 份 × "
+        f"{food_price} 铜 = {winter_cost:.0f} 铜，占冬季净收入 {season_net:.0f} 铜的 "
+        f"{cost_share:.0%}（区间 {lo_share:.0%}–{hi_share:.0%}）；入冬储备下限 "
+        f"{reserve_floor:.0f} 份；零储备逐日走一遍的断粮日 {starved or '无'}",
+        "farm.crops / economy.food_buy_copper / economy.mission_reward_copper",
+        "冬季净收入按收入最高的那份计划算，只跑一份时这个基准是任意的")
+
+    # 附加：经营与出征两条收入的比 —— 一边彻底盖过另一边，「这一季多种地还是多出门」就
+    # 不是选择了（正典把经营建造与关卡制动作放在同一条循环的两半）。
+    #
+    # **口径与 P6 刻意不同，两者是两件事**：本条按基础价算、含种子支出、把自产的粮食按买价
+    # 折成钱（不折就等于说「自己种的粮不值钱」），量的是**两条路之间**；P6 叠着需求与供给
+    # 两层，量的是**同一条路里的两种种法**。两边都不含人力 —— 工资比例还没有值，配对要求
+    # 写在数值模型的尚未给值表。
+    def farm_season_income(crop_name: str) -> float:
+        c = crops[crop_name]
+        cycles = p("time.season_days") // c["grow_days"]
+        units = c["yield_per_cell"] * cells
+        unit_price = food_price if c["food"] else c["sell_copper"]
+        return cycles * (units * unit_price - c["seed_copper"] * cells)
+
+    farm_pick = max(crops, key=farm_season_income)
+    farm_income = derive("经营一季收入铜", farm_season_income(farm_pick))
+    sortie_income = derive("出征一季收入铜", net_per_day * winter_days)
+    income_ratio = derive("经营出征收入比",
+                          farm_income / sortie_income if sortie_income > 0
+                          else float("inf"))
+    lo_ratio, hi_ratio = 0.5, 2.0
+    check_cross_plan(
+        partial, "C12", f"经营总收入 ÷ 出征总收入落在 {lo_ratio}–{hi_ratio} 倍",
+        lo_ratio <= income_ratio <= hi_ratio,
+        f"经营：一季连种「{farm_pick}」在 {cells} 格上得 {farm_income:.0f} 铜"
+        f"（自产粮按 {food_price} 铜折算，已扣种子，不叠需求与供给两层）；"
+        f"出征：按「{best.plan}」的日净收入 {net_per_day:.1f} 铜折一季 "
+        f"{sortie_income:.0f} 铜；比 {income_ratio:.2f}。两边都不含人力",
+        "farm.crops / farm.starting_plot_cells / economy.mission_reward_copper",
+        "出征那一侧按收入最高的那份计划算，只跑一份时这个基准是任意的")
+
     # 附加：容量必须造成一次取舍，但不频繁被迫丢弃
     kinds = p("capacity.expected_sortie_item_kinds")
     slots = p("capacity.backpack_slots_by_level")[0]
@@ -619,8 +715,10 @@ DOC_CLAIMS: tuple[tuple[str, str, str, int], ...] = (
     ("C4 的 1 级实测比",      r"当前实测：1 级 ([\d.]+) 倍",            "薪尽火传下输出比1级",   2),
     ("C4 的满级实测比",       r"当前实测：1 级 [\d.]+ 倍，满级 ([\d.]+) 倍",
                                                                         "薪尽火传下输出比满级",  2),
-    ("进攻回蓝效率",          r"当前是 ([\d.]+) MP/s",                  "进攻回蓝MP每秒",    2),
-    ("精准防御回蓝效率",      r"MP/s 对 ([\d.]+) MP/s",                 "精准防御回蓝MP每秒", 2),
+    ("进攻回蓝效率",          r"当前是进攻 ([\d.]+) MP/s",              "进攻回蓝MP每秒",    2),
+    ("精准防御回蓝效率",      r"精准防御 ([\d.]+) MP/s",                "精准防御回蓝MP每秒", 2),
+    ("精准闪避回蓝效率",      r"精准闪避 ([\d.]+) MP/s",                "精准闪避回蓝MP每秒", 2),
+    ("C12 的经营出征收入比",  r"当前实测比 ([\d.]+)",                   "经营出征收入比",     2),
     ("第一次收获在第几天",    r"第一次收获在第 (\d+) 天",               "第一次收获天",      0),
     ("收获时的缓冲天数",      r"= ([\d.]+) 天缓冲",                     "收获时缓冲天数",    2),
     ("一次出征占背包的比例",  r"占初级背包 \d+ 格的 (\d+)%",            "背包占用百分比",    0),

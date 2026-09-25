@@ -73,11 +73,15 @@
   },
 
   "resources": {
+    "//两份精准回报": "精准防御与精准闪避都奖励精确操作，正典定了闪避那份更低（战斗与关卡 · 防御与失衡）。判据 C3 判两件：两份都不高于进攻回蓝，且闪避那份不高于防御那份。精准闪避那两个是未校准起步值，校准归 GP-6 与 GP-7。",
     "mp_per_light_hit": 3,
     "light_hits_per_second": 1.5,
     "perfect_guard_mp": 2,
     "perfect_guard_hp_ratio": 0.02,
     "perfect_guard_opportunities_per_second": 0.5,
+    "perfect_dodge_mp": 1,
+    "perfect_dodge_opportunities_per_second": 0.5,
+    "cast_interrupt_mp_refund_ratio": 0.5,
     "sp_dodge": 12,
     "sp_guard_per_second": 8,
     "stagger_sp_refund_ratio": 0.35
