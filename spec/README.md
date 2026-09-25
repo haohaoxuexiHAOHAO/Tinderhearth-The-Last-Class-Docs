@@ -18,7 +18,7 @@ last_verified: 2026-08-26
 | `推演-<slug>.md` | 纸面推演：把循环手算一遍找漏，验收用。归档时随需求一起移走 | 无（按需手写） |
 | [`issues/`](./issues/README.md) | 可实现条目，一条一个文件；索引即待办台账 | `/to-issues` |
 
-**进行中**：[`prd-codex-and-city-map.md`](./prd-codex-and-city-map.md) —— 图鉴与城区地图导航；它们排在最后，因为两样都被别的文档显式推开而自己一直没有家。上一个需求「推进骨架与长期时间轴」已归档到 [`archive/spec/NR-11-progression-and-endgame/`](../archive/spec/NR-11-progression-and-endgame/prd.md)（**历史背景·非依据**），它的现行结论已落进 [`design/主线推进系统.md`](../design/主线推进系统.md) 与 [ADR-0016](../decisions/ADR-0016-推进挂在曾经发生过的事上.md)。**未完的部分不在归档件里，按编号活在 [待办台账](./issues/README.md)。** 下一步做什么看台账，不看本节。
+**进行中**：[`prd-canon-hardening.md`](./prd-canon-hardening.md) —— 基石夯实，分三轮：第一轮是别的系统建在上面的裁定，第二轮是已经写错但改动面只在文档上的，第三轮是缺口立项。上一个需求「图鉴与城区地图导航」已归档到 [`archive/spec/GP-58-codex-and-city-map/`](../archive/spec/GP-58-codex-and-city-map/prd.md)（**历史背景·非依据**），它的现行结论已落进 [`design/图鉴系统.md`](../design/图鉴系统.md) 与 [`design/地图与导航系统.md`](../design/地图与导航系统.md)。**未完的部分不在归档件里，按编号活在 [待办台账](./issues/README.md)** —— `GP-58` 与 `GP-59` 是它们的落地编号。下一步做什么看台账，不看本节。
 
 `<slug>` 是简短英文标识，全小写、连字符分隔，例如 `gameplay-positioning`、`combat-feel-tuning`。
 
