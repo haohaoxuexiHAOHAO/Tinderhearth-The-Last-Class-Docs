@@ -162,8 +162,8 @@ class Sheet:
     effective_hp: float = 0.0
 
     def power(self, multiplier: float) -> float:
-        """战力＝有效 HP × 输出。**走物理那一路**：普攻是物理的，判据 C4 也按普攻算，
-        两条判据用同一个基准才比得出意义。取大或加权会让战力差变成一个说不清由谁贡献的数。"""
+        """战力＝有效 HP × 输出。**走物理那一路**：普攻是物理的，C4 与 C6 也拿普攻当探针，
+        三条判据用同一个基准才比得出意义。取大或加权会让战力差变成一个说不清由谁贡献的数。"""
         dps = self.patk * multiplier * self.atk_speed
         return self.effective_hp * dps
 
@@ -239,13 +239,39 @@ def analyse_attributes(p: Params) -> dict:
           "derived.hp_base / derived.patk_per_str / derived.matk_per_int / move_multipliers")
 
     # 主角伤害必须显著低于学生（人物正典：主角低伤辅助，伤害来自学生）。
-    ratio = derive("主角学生轻攻击比",
-                   p("move_multipliers.protagonist_light") / p("move_multipliers.student_light"))
-    check("C4", "主角伤害显著低于学生（轻攻击倍率比 ≤ 0.5）",
-          ratio <= 0.5,
-          f"主角 {p('move_multipliers.protagonist_light')} ÷ 学生 "
-          f"{p('move_multipliers.student_light')} = {ratio:.2f}",
-          "move_multipliers.protagonist_light")
+    #
+    # **量测点在状态上，不在倍率上。** 倍率表里主角与学生同名招式同值，削弱全部由
+    # 「薪尽火传」那条永久状态承担。量倍率之比会漏掉状态那一层 —— 而漏掉的那一层正是
+    # 全部削弱，于是判据会一直报通过、实际比值却是另一个数。
+    #
+    # 这条判两件事，因为「削弱只有一个来源」要这两件同时成立：
+    #   ① 同名招式两边同值 —— 不然倍率与状态各削一次，就是削两次；
+    #   ② 状态在场时的实际输出比 ≤ 0.5 —— 削得够，教练定位才不只存在于文档里。
+    # 只判 ② 挡不住 ①：再压低主角的倍率只会让比值更小，② 照样通过。
+    sl = p("move_multipliers.student_light")
+    sh = p("move_multipliers.student_heavy")
+    same_mult = ml == sl and p("move_multipliers.protagonist_heavy") == sh
+    self_f = p("flame_passed_on.protagonist_output_factor")
+    ally_f = p("flame_passed_on.student_output_factor")
+
+    def output(sheet: Sheet, mult: float, factor: float) -> float:
+        """「薪尽火传」在场时的实际输出。普攻当探针，与 C1、C6 同一个基准。"""
+        return sheet.patk * mult * sheet.atk_speed * factor
+
+    # 两端各判一次：主角起步四项都比学生高一点，所以两端的比值不一样，只量一端会漏掉另一端。
+    pro_lv1, stu_lv1 = output(lv1, ml, self_f), output(st1, sl, ally_f)
+    pro_max, stu_max = output(lvmax, ml, self_f), output(stmax, sl, ally_f)
+    ratio_lv1 = derive("薪尽火传下输出比1级", pro_lv1 / stu_lv1)
+    ratio_max = derive("薪尽火传下输出比满级", pro_max / stu_max)
+    check("C4", "「薪尽火传」在场时主角实际输出显著低于学生（比值 ≤ 0.5，两端各判）",
+          same_mult and ratio_lv1 <= 0.5 and ratio_max <= 0.5,
+          f"倍率两边{'同值' if same_mult else '**不同值，削弱有两个来源**'}"
+          f"（轻 {ml}／{sl}，重 {p('move_multipliers.protagonist_heavy')}／{sh}）；"
+          f"状态 ×{self_f} 对 ×{ally_f}；"
+          f"1 级 {pro_lv1:.1f} ÷ {stu_lv1:.1f} = {ratio_lv1:.2f}，"
+          f"满级 {pro_max:.1f} ÷ {stu_max:.1f} = {ratio_max:.2f}",
+          "flame_passed_on.protagonist_output_factor / "
+          "flame_passed_on.student_output_factor / move_multipliers")
 
     # 天赋点总量必须显著少于节点数。
     nodes = p("growth.talent_nodes_total")
@@ -590,7 +616,9 @@ DOC_CLAIMS: tuple[tuple[str, str, str, int], ...] = (
     ("C9 的两条目标天数比",   r"还债约 \d+ 天，比 ([\d.]+)",            "两条目标天数比",    2),
     ("经济一节的还债天数",    r"约 (\d+) 天净收入",                     "还债天数",          0),
     ("经济一节的每天利息",    r"利率只做到每天 (\d+) 铜",               "每天利息铜",        0),
-    ("主角与学生的轻攻击比",  r"主角的轻攻击倍率是学生的 ([\d.]+) 倍",  "主角学生轻攻击比",  2),
+    ("C4 的 1 级实测比",      r"当前实测：1 级 ([\d.]+) 倍",            "薪尽火传下输出比1级",   2),
+    ("C4 的满级实测比",       r"当前实测：1 级 [\d.]+ 倍，满级 ([\d.]+) 倍",
+                                                                        "薪尽火传下输出比满级",  2),
     ("进攻回蓝效率",          r"当前是 ([\d.]+) MP/s",                  "进攻回蓝MP每秒",    2),
     ("精准防御回蓝效率",      r"MP/s 对 ([\d.]+) MP/s",                 "精准防御回蓝MP每秒", 2),
     ("第一次收获在第几天",    r"第一次收获在第 (\d+) 天",               "第一次收获天",      0),

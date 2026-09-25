@@ -58,11 +58,18 @@
   },
 
   "move_multipliers": {
-    "//": "主角是低伤连击加辅助定位，伤害来自学生（人物正典）。倍率因此显著低。",
-    "protagonist_light": 0.35,
-    "protagonist_heavy": 0.60,
+    "//": "主角与学生同名招式同值。主角为什么伤害低不在这一层 —— 全部由 flame_passed_on 那条状态承担，见数值模型「招式倍率」那一段。",
+    "protagonist_light": 0.90,
+    "protagonist_heavy": 1.50,
     "student_light": 0.90,
     "student_heavy": 1.50
+  },
+
+  "flame_passed_on": {
+    "//": "「薪尽火传」两侧的幅度：主角出征时常驻的那条永久状态，降他自己、提在队学生（人物正典）。判据 C4 量的就是这两个数。",
+    "//未校准": "这两个是未校准的起步值，取成与原先倍率之比同量级；真正的值要等技能与队伍内容存在，配对要求见数值模型的尚未给值表。",
+    "protagonist_output_factor": 0.40,
+    "student_output_factor": 1.15
   },
 
   "resources": {
