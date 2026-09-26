@@ -26,7 +26,7 @@ last_verified: 2026-09-18
 | --- | --- | --- |
 | 需求 | `/prd` | `spec/prd-<slug>.md`，含验收清单。**写轻** —— 它是给作者确认范围的，不是实现契约 |
 | 系统契约 | `/to-design` | `design/<系统名>.md`（[SYSTEM 模板](./templates/SYSTEM.md)的固定骨架，节数看那一份）。**活文档**：一个系统一份，随实现更新 |
-| 方案论证 | `/to-design` | `design/proposals/<slug>.md`（[DESIGN 模板](./templates/DESIGN.md)的 11 节），含被放弃方案与理由。**一次性**：结论迁出后归档 |
+| 方案论证 | `/to-design` | `design/proposals/<slug>.md`（[DESIGN 模板](./templates/DESIGN.md)的固定骨架，节数看那一份），含被放弃方案与理由。**一次性**：结论迁出后归档 |
 | 跨域取舍 | `/write-adr` | `decisions/ADR-NNNN-*.md`，影响多系统或难以撤销时才写 |
 | 拆条目 | `/to-issues` | `spec/issues/issue-<ID>-<slug>.md` + 台账加行 |
 | 评审 | `/review-it` | 三个维度：正确性、命名可读性、有没有把推断当事实。接受与否决都写理由 |
