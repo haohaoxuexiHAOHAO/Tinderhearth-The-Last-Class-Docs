@@ -166,6 +166,25 @@ LEDGER_REL = "spec/issues/README.md"
 ISSUE_ID_RE = re.compile(r"\b(?:GP|NR|UI|ART|ENG|DOC)-\d+\b")
 LEDGER_ROW_ID_RE = re.compile(r"^\|\s*`((?:GP|NR|UI|ART|ENG|DOC)-\d+)`\s*\|", re.MULTILINE)
 
+# ── 指向已关闭编号的引用（DOC-100）────────────────────────────────
+# 台账那张「已归档编号」表的标题，以及域表整行（要取备注那一格判状态词）。
+ARCHIVED_HEADING = "## 已归档编号"
+LEDGER_ROW_RE = re.compile(
+    r"^\|\s*`((?:GP|NR|UI|ART|ENG|DOC)-\d+)`\s*\|[^|]*\|[^|]*\|(.*)$", re.MULTILINE)
+# 状态词表的家在台账那一页「状态词」那一节（`DOC-98`）。**这里只需要「哪个算关闭」**，
+# 所以只钉这一个词；别的值都表示还开着，多钉一个就是又给那张表开一个家。
+STATUS_CLOSED = "已完成"
+# 只判长期权威文档。台账自己是状态的家；`archive/` 与已接受的 ADR 不许用今天的说法
+# 改写；`spec/` 下是过程文件，会随需求归档走掉。
+CLOSED_REF_SCOPE = ("canon/", "design/")
+# 唯一的放过形式：`[`X`](…/spec/issues/README.md)`。捕获组 1 是编号本身的起始位置。
+LEDGER_LINK_RE = re.compile(
+    r"\[`((?:GP|NR|UI|ART|ENG|DOC)-\d+)`\]\([^)]*spec/issues/README\.md\)")
+# **只认反引号里的编号。** 全库引编号一律加反引号，而不加反引号的那些恰恰不是引用：
+# 归档目录名里就带编号（`archive/spec/GP-2-numeric-model/`），按裸编号判会把路径
+# 判成过期指针 —— 实测第一次跑就撞到这一处。捕获组 1 是编号本身。
+ISSUE_ID_TICKED_RE = re.compile(r"`((?:GP|NR|UI|ART|ENG|DOC)-\d+)`")
+
 # ── 行尾（ENG-9）──────────────────────────────────────────────────────
 # 策略本身不在这里复述：`.gitattributes` 是行尾策略的唯一权威源，在 Python 里再写
 # 一份 glob 表就是第二处会漂移的说法。改了 `.gitattributes`，本检查自动跟着变。
@@ -919,6 +938,76 @@ def check_issue_ids(docs: list[Doc], rep: Report) -> None:
                               f"（补进 {LEDGER_REL}，或改掉这处引用）")
 
 
+def closed_issue_ids(ledger_text: str) -> set[str]:
+    """哪些编号已经关闭。两处都要读，少读一处守卫就只覆盖一半。
+
+    ① 域表里状态词为「已完成」的；② 「已归档编号」那张表里的全部。
+    状态词那张词表的家在台账自己那一页（`DOC-98`），**这里按它解析，不另立一套**。
+    """
+    split = ledger_text.find(ARCHIVED_HEADING)
+    open_part = ledger_text if split < 0 else ledger_text[:split]
+    arch_part = "" if split < 0 else ledger_text[split:]
+
+    closed = set(LEDGER_ROW_ID_RE.findall(arch_part))
+    for m in LEDGER_ROW_RE.finditer(open_part):
+        note = m.group(2).strip().lstrip("*").strip()
+        if note.startswith(STATUS_CLOSED):
+            closed.add(m.group(1))
+    return closed
+
+
+def check_closed_issue_refs(docs: list[Doc], rep: Report) -> None:
+    """活文档不许拿已关闭的编号当待定项的归处（`DOC-100`）。
+
+    **为什么原来的门禁接不住它**：链接仍然有效、编号在台账里也仍然解析得到，
+    所以断链检查与 `check_issue_ids` 都为真。指针指错的唯一症状是「读者顺着它
+    走会得出反结论」—— 而在这条之前，那件事没有任何执行体在判。实测起因：正典
+    与 `design/` 合起来有上百处指向已归档或已完成的编号，其中「归 `GP-2`」那一批
+    会让人以为那个值还没定，而它的现行事实早就在别处了。
+
+    **放过形式只有一种：写成指台账的链接。** 那样读者一跳就落到台账那一行，看得
+    到它已经关闭、现行事实在哪 —— 过期于是从「查不出来的错」变成「一跳就看见的
+    重定向」。历史引用（某条判断当初记在哪）本来就该用这个形式，所以它不是例外，
+    是同一条纪律。
+
+    **判定面只有 `canon/` 与 `design/`**，理由是它们是长期权威文档：台账自己就是
+    状态的家；`archive/` 与已接受的 ADR 按规则不许用今天的说法改写；`spec/` 下的
+    过程文件会随需求归档走掉。
+
+    **不判「所有裸编号都要写成链接」**：那条形式上更整齐，但要动的面大得多（全库
+    裸编号是这一批的好几倍），而收益只落在已关闭那一小撮上 —— 判法却要动全部。
+    按关闭状态判是把守卫对准真正的失败模式。
+    """
+    ledger = next((d for d in docs if d.rel == LEDGER_REL), None)
+    if ledger is None:
+        return                      # check_single_ledger 已经报过缺失
+    closed = closed_issue_ids(ledger.text)
+    if not closed:
+        rep.fail(LEDGER_REL, "台账里解析不出任何已关闭的编号，这一轮「指向已关闭编号」"
+                             "**没有执行**（不是通过）—— 状态词或已归档那张表的形状变了")
+        return
+
+    checked = 0
+    for doc in docs:
+        if not doc.rel.startswith(CLOSED_REF_SCOPE) or doc.in_archive:
+            continue
+        body = strip_fenced(doc.text)
+        # 先把「写成指台账链接」的那些编号的位置圈出来，再逐个引用看它落不落在里面。
+        # 先算范围比边扫边往两侧摸字符可靠 —— 后者要同时猜对方括号、反引号与括号。
+        allowed = {m.start(1) for m in LEDGER_LINK_RE.finditer(body)}
+        for m in ISSUE_ID_TICKED_RE.finditer(body):
+            checked += 1
+            got = m.group(1)
+            if got not in closed or m.start(1) in allowed:
+                continue
+            line_no = body[: m.start()].count("\n") + 1
+            rep.fail(doc.rel, f"L{line_no} `{got}` 已经关闭，不该再当归处使用"
+                              f"（改成指现行落点；确实要引这段历史就把它写成"
+                              f"指台账的链接）")
+    rep.note(f"已关闭编号覆盖量：台账里 {len(closed)} 个编号已关闭，"
+             f"在 {'／'.join(CLOSED_REF_SCOPE)} 下检查 {checked} 处编号引用")
+
+
 def check_reachable(docs: list[Doc], rep: Report) -> None:
     """从 README.md 出发能否走到每份非归档文档（WORKFLOW §6 入口可达）。"""
     by_rel = {d.rel: d for d in docs}
@@ -1075,6 +1164,7 @@ def main() -> int:
     # 转成 CRLF 的往往正是你以为自己没碰过的文件，而且它覆盖 md 之外的 py。
     check_single_ledger(all_docs, rep)
     check_issue_ids(all_docs, rep)
+    check_closed_issue_refs(all_docs, rep)
     check_reachable(all_docs, rep)
     check_section_refs(all_docs, rep)
     check_system_upstream(all_docs, rep)

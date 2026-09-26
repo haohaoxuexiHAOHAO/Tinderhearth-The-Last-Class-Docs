@@ -18,7 +18,7 @@ last_verified: 2026-08-26
 | `推演-<slug>.md` | 纸面推演：把循环手算一遍找漏，验收用。归档时随需求一起移走 | 无（按需手写） |
 | [`issues/`](./issues/README.md) | 可实现条目，一条一个文件；索引即待办台账 | `/to-issues` |
 
-**进行中**：无。上一个需求「系统文档读得懂」已归档到 [`archive/spec/DOC-89-doc-readability/`](../archive/spec/DOC-89-doc-readability/prd.md)（**历史背景·非依据**），它的现行结论在[术语表](../reference/术语表.md)、[SYSTEM 模板](../templates/SYSTEM.md)、[ADR-0019](../decisions/ADR-0019-系统文档骨架加术语一节.md)与 `design/` 下那批系统文档自己身上，去处清单在那份归档件的文件头。再往前那一个「设计闭环」在 [`archive/spec/DOC-64-design-closure/`](../archive/spec/DOC-64-design-closure/prd.md)（**历史背景·非依据**）。**下一步做什么看 [待办台账](./issues/README.md)，不看本节** —— 排在最前面的是 `DOC-97`（正典对账），它的取舍已由作者定过、清单在那一条的条目文件里。
+**进行中**：无。上一个需求「正典对账」已归档到 [`archive/spec/DOC-97-canon-reconciliation/`](../archive/spec/DOC-97-canon-reconciliation/prd.md)（**历史背景·非依据**），它的现行事实在正典那九份自己身上、[待办台账](./issues/README.md)的「状态词」那一节，以及 `tools/check_docs.py` 里那条「不许拿已关闭的编号当归处」的守卫。再往前那一个「系统文档读得懂」已归档到 [`archive/spec/DOC-89-doc-readability/`](../archive/spec/DOC-89-doc-readability/prd.md)（**历史背景·非依据**），它的现行结论在[术语表](../reference/术语表.md)、[SYSTEM 模板](../templates/SYSTEM.md)、[ADR-0019](../decisions/ADR-0019-系统文档骨架加术语一节.md)与 `design/` 下那批系统文档自己身上，去处清单在那份归档件的文件头。再往前那一个「设计闭环」在 [`archive/spec/DOC-64-design-closure/`](../archive/spec/DOC-64-design-closure/prd.md)（**历史背景·非依据**）。**下一步做什么看 [待办台账](./issues/README.md)，不看本节** —— 排在最前面的是 `DOC-97`（正典对账），它的取舍已由作者定过、清单在那一条的条目文件里。
 
 `<slug>` 是简短英文标识，全小写、连字符分隔，例如 `gameplay-positioning`、`combat-feel-tuning`。
 
