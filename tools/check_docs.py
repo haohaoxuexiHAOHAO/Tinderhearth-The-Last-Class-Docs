@@ -60,10 +60,62 @@ PROPOSAL_HOME = "design/proposals/"  # type: design 必须落在这里
 # 骨架（templates/SYSTEM.md 与 templates/DESIGN.md 是人读的权威源，这两行是它们的
 # 可执行副本 —— 改模板的人要回来改这里，这是承认得起的一处重复：不复制就没有守卫）。
 # 末尾允许追加以「附录」开头的小节，别的都不许多、不许少、不许换顺序。
-SYSTEM_SECTIONS = ("摘要", "上游约束", "结构", "接口", "边界与非目标", "理由与取舍", "验收", "下游同步")
+SYSTEM_SECTIONS = ("摘要", "术语", "上游约束", "结构", "接口", "边界与非目标", "理由与取舍", "验收", "下游同步")
 DESIGN_SECTIONS = ("摘要", "背景与动机", "上游约束", "当前事实与证据", "设计",
                    "理由与取舍", "兼容性", "实现与过渡", "边界与非目标", "验收", "下游同步")
 APPENDIX_PREFIX = "附录"
+
+# ── 术语（ADR-0019）───────────────────────────────────────────────────
+# 分家的判据是「这个词有几个家」：跨页共用的归共用表，只有一页在用的归那一页的
+# 「术语」节，两处都有就是两个家。三条判定各挡一种会静默发生的错，见 `DOC-93`。
+GLOSSARY_REL = "reference/术语表.md"
+TERMS_SECTION = "术语"
+# 共用表末尾那张「会撞」的表是交叉索引、不是定义 —— 同一个词在那里再出现一次是
+# 应该的，所以取词条时切到它为止。判据那一份自己写着（「收词判据」一节）。
+GLOSSARY_CROSS_INDEX = "## 这几个词会撞"
+# 词条 = 表格行首那个加粗词：`| **X** | …`。两张表同一个形状。
+TERM_ROW_RE = re.compile(r"^\|\s*\*\*(.+?)\*\*\s*\|", re.MULTILINE)
+ANY_HEADING_RE = re.compile(r"^#{1,6}\s", re.MULTILINE)
+
+# ── 图（templates/SYSTEM.md 的「什么时候该画图」）──────────────────────
+# 图比散文更容易悄悄过期，因为看图的人不会逐条核对。两条判定：每张图旁有重画
+# 条件、图里的标签在正文找得到。第二条把「图不许引入正文没有的事实」变成可判的。
+MERMAID_OPEN_RE = re.compile(r"^\s*```\s*mermaid\s*$", re.IGNORECASE)
+# 重画条件那一行的形状**写死在模板里**，这是它的可执行副本 —— 两处不许各写一个
+# 样子。要求冒号后面有内容，否则空着一行也能过。
+REDRAW_RE = re.compile(r"^\*\*重画条件\*\*：\S")
+# 图型声明行（每个块的第一行），不是标签。
+MERMAID_TYPE_RE = re.compile(
+    r"^\s*(flowchart|graph|stateDiagram(-v2)?|sequenceDiagram|classDiagram"
+    r"|erDiagram|gantt|journey|pie|mindmap|timeline|gitGraph|quadrantChart)\b",
+    re.IGNORECASE)
+# Mermaid 自己的关键字行：它们是记号，不是作者写的事实。
+MERMAID_KEYWORD_RE = re.compile(
+    r"^\s*(note\s+(right|left|over)\b|end\s+note\b|end\s*$|direction\b|classDef\b"
+    r"|class\b|style\b|linkStyle\b|click\b|accTitle\b|accDescr\b|%%)",
+    re.IGNORECASE)
+# 连线的各种写法。切开它就得到两头的节点。**必须先切连线再找括号** ——
+# 否则箭头那个 `>` 会被当成节点形状的开括号，把半行文字吞进标签里（踩过）。
+MERMAID_ARROW_RE = re.compile(r"<?-{2,}[->ox]?|<?={2,}[=>]?|\.{2,}->?|--[ox]")
+# 节点里的显示文字：`A["文字"]`、`B(文字)`、`C{文字}`、`D[[文字]]` 都算。
+# 开括号里刻意不含 `>`：Mermaid 那个 `id>文字]` 的形状本库不用，而放它进来会与箭头打架。
+MERMAID_BRACKET_RE = re.compile(r"[\[\(\{]{1,2}\s*\"?(.*?)\"?\s*[\]\)\}]{1,2}")
+# 带显示文字的节点声明，连标识一起取：组 1 是标识、组 2 是显示文字。
+MERMAID_NODE_RE = re.compile(
+    r"([A-Za-z0-9_\u4e00-\u9fff]+)\s*[\[\(\{]{1,2}\s*\"?(.*?)\"?\s*[\]\)\}]{1,2}")
+# 连线上的文字：`-->|文字|`。
+MERMAID_PIPE_RE = re.compile(r"\|([^|]+)\|")
+
+# ── 句长（FR-20）──────────────────────────────────────────────────────
+# **上限的家就是下面这一行**，模板、PRD 与台账都只说「有上限」、不复述这个数。
+# 它按实测分布定，定它的那一次见 `DOC-93` 的验证结果表。
+# 它**按实测分布定，不是拍的**：线放在 P99 之上、长尾已经走平的那一段，再往下调
+# 一档就要一次报出几十条。一条误报多的门禁会被绕过，而被绕过的门禁比没有门禁更坏。
+# 定它那一次的分布由 `python tools/audit_readability.py` 打出来，**数字记在 `DOC-93`
+# 的验证结果表里、不抄到这里** —— 抄过来就是一份会静默过期的历史数字。
+SENTENCE_LIMIT = 150
+SENTENCE_END = "。！？"
+FENCE_LINE_RE = re.compile(r"^\s*```")
 
 # ── 引用纪律（WORKFLOW §3.5）──────────────────────────────────────────
 # 为什么这三条要有守卫：它们过期时**链接仍然有效**，检查器原来查不出来。实测
@@ -423,7 +475,7 @@ def check_skeleton(doc: Doc, rep: Report) -> None:
     got = [l[3:].strip() for l in doc.text.splitlines() if l.startswith("## ")]
     head, tail = got[: len(want)], got[len(want):]
     if tuple(head) != want:
-        rep.fail(doc.rel, f"二级标题不符合骨架（{'SYSTEM' if t == 'system' else 'DESIGN'} 模板）：\n"
+        rep.fail(doc.rel, f"二级标题不符合骨架（{'SYSTEM' if want is SYSTEM_SECTIONS else 'DESIGN'} 模板）：\n"
                           f"        应为：{' / '.join(want)}\n"
                           f"        实为：{' / '.join(got) or '（没有二级标题）'}")
         return
@@ -431,6 +483,262 @@ def check_skeleton(doc: Doc, rep: Report) -> None:
         if not extra.startswith(APPENDIX_PREFIX):
             rep.fail(doc.rel, f"骨架之后多了一节「{extra}」；"
                               f"末尾只允许以「{APPENDIX_PREFIX}」开头的小节")
+
+
+def glossary_terms(text: str) -> list[str]:
+    """共用表的词条。切到「会撞」那张表为止 —— 它是交叉索引，不是定义。"""
+    cut = text.find(GLOSSARY_CROSS_INDEX)
+    return TERM_ROW_RE.findall(text if cut < 0 else text[:cut])
+
+
+def terms_section(text: str) -> tuple[str, list[str]]:
+    """返回（「术语」那一节的正文, 它列的词条）。没有这一节就返回空。
+
+    骨架守卫已经判过这一节存不存在与排在哪，所以这里只负责取内容。
+    """
+    m = re.search(rf"^##\s*{TERMS_SECTION}\s*$", text, re.MULTILINE)
+    if not m:
+        return "", []
+    rest = text[m.end():]
+    nxt = ANY_HEADING_RE.search(rest)
+    body = rest if nxt is None else rest[: nxt.start()]
+    return body, TERM_ROW_RE.findall(body)
+
+
+def check_terms(docs: list[Doc], rep: Report) -> None:
+    """术语三条（ADR-0019 的验证方法表）。
+
+    各挡一种**过期时没有任何东西会报错**的错：抄一张与本页无关的表（词在表里、
+    正文里没有）、一个词有两个家（共用表与某页术语节都写了它）、那张共用表只增
+    不减地膨胀（词条没有任何系统文档在用）。
+
+    共用表缺失或一个词条都解析不出来时判失败，不是跳过 —— 否则这三条会假装工作。
+    """
+    glossary = next((d for d in docs if d.rel == GLOSSARY_REL), None)
+    if glossary is None:
+        rep.fail(GLOSSARY_REL, "共用术语表缺失，术语三条判定这一轮**没有执行**（不是通过）")
+        return
+    shared = glossary_terms(glossary.text)
+    if not shared:
+        rep.fail(GLOSSARY_REL, "一个词条都没解析出来（词条 = 表格行首的加粗词），"
+                               "说明词条解析坏了，这一轮**没有执行**")
+        return
+
+    systems = [d for d in docs if d.meta.get("type") in LONGLIVED_TYPES and not d.is_template]
+    if not systems:
+        rep.fail("术语守卫", f"一份 {sorted(LONGLIVED_TYPES)} 的文档都没检到，"
+                            f"这一轮**没有执行**")
+        return
+
+    shared_set = set(shared)
+    listed = 0
+    for doc in systems:
+        body, own = terms_section(doc.text)
+        if not body:
+            continue                       # 缺这一节由骨架守卫报
+        elsewhere = doc.text.replace(body, "", 1)
+        for t in own:
+            listed += 1
+            if t in shared_set:
+                rep.fail(doc.rel, f"术语节里的「{t}」在[共用术语表]({GLOSSARY_REL})里也有 —— "
+                                  f"一个词两个家。删掉本页这一行，或把它从共用表里删掉")
+            if t not in elsewhere:
+                rep.fail(doc.rel, f"术语节列了「{t}」，但本页正文里一次都没用到它 —— "
+                                  f"抄一张与本页无关的表比没有表更误导")
+
+    for t in shared:
+        if not any(t in d.text for d in systems):
+            rep.fail(GLOSSARY_REL, f"词条「{t}」没有任何系统文档在用 —— "
+                                   f"删掉它，否则这张表只增不减地膨胀")
+    rep.note(f"术语覆盖量：共用表 {len(shared)} 条词条／"
+             f"{len(systems)} 份长期规格的术语节合计 {listed} 条")
+
+
+def mermaid_blocks(text: str) -> list[tuple[int, list[str], str]]:
+    """文档里的每张 Mermaid 图：(块首行号, 块内各行, 块后第一处非空行)。
+
+    块后那一行拿来判重画条件。取「第一处非空行」而不是「紧邻下一行」，是因为
+    Markdown 里图与说明之间照惯例空一行。
+    """
+    lines = text.splitlines()
+    out = []
+    i = 0
+    while i < len(lines):
+        if not MERMAID_OPEN_RE.match(lines[i]):
+            i += 1
+            continue
+        start = i
+        i += 1
+        body = []
+        while i < len(lines) and not lines[i].strip().startswith("```"):
+            body.append(lines[i])
+            i += 1
+        i += 1                              # 跳过收尾围栏
+        after = next((lines[j].strip() for j in range(i, len(lines)) if lines[j].strip()), "")
+        out.append((start + 1, body, after))
+    return out
+
+
+def mermaid_labels(body: list[str]) -> list[str]:
+    """一张图里作者写下的标签文字，顺序去重。
+
+    **只取节点上读者看得见的字**，外加 note 块里的正文。两样刻意不取：
+
+    - **Mermaid 自己的记号**（图型声明、`[*]`、连线符号、`note`／`end` 这些关键字）
+      不是作者写的事实。
+    - **连线上的文字**（`-->|是|`、状态图 `: 超时` 那一段）。理由不是嫌麻烦：一条
+      连线文字是**为这张图写的条件**，而它编码的那个事实 —— 这条流转存在 —— 已经
+      由它连起来的两个节点承载了；而节点说的是「这个东西在本系统里存在」，那才是
+      「图不许引入正文没有的事实」要挡的。实测还有一层：连线文字大半是 `是`／
+      `没有`／`到了` 这类分支词，它们在正文里找得到也证明不了任何事。**连线文字的
+      措辞因此归人读**（[ADR-0009](../decisions/ADR-0009-编辑器主导的开发模式.md) 的分工）。
+    """
+    # 先收一遍「标识 → 显示文字」：同一个节点后文常被裸引用（`本子 --> 解锁`），
+    # 那处写的是标识、读者看到的仍是显示文字。不先收这一遍就会把标识当标签报。
+    shown: dict[str, str] = {}
+    for raw in body:
+        for m in MERMAID_NODE_RE.finditer(raw):
+            shown[m.group(1)] = m.group(2).strip()
+
+    out: list[str] = []
+
+    def add(s: str) -> None:
+        s = shown.get(s.strip(), s).strip().strip('"').strip()
+        # 纯记号与纯数字不算标签：它们在正文里找不到也说明不了任何事
+        if s and s != "[*]" and not re.fullmatch(r"[\W\d_]+", s):
+            if s not in out:
+                out.append(s)
+
+    for raw in body:
+        line = raw.strip()
+        if not line or MERMAID_TYPE_RE.match(line) or line.startswith("%%"):
+            continue
+        m = re.match(r"^note\s+(?:right|left|over)\s+of\s+(.+?)\s*$", line, re.IGNORECASE)
+        if m:
+            add(m.group(1))                 # note 挂在哪个节点上，那也是个标签
+            continue
+        if MERMAID_KEYWORD_RE.match(line):
+            continue
+        line = MERMAID_PIPE_RE.sub(" ", line)   # 连线文字不判，见上面的理由
+        for seg in MERMAID_ARROW_RE.split(line):
+            seg = seg.strip()
+            if not seg:
+                continue
+            decls = list(MERMAID_NODE_RE.finditer(seg))
+            if decls:
+                # 有显示文字的节点：**只算显示文字**。标识（`本子` 之于
+                # `本子["当事人那本"]`）是程序内名字，永远不渲染给读者，
+                # 拿它去正文里找是凭构造就会失败的误报。
+                for m in decls:
+                    add(m.group(2))
+                continue
+            # 状态图把连线文字写在冒号后面：`A --> B: 条件`，冒号后那段不判
+            head, _, _cond = seg.partition(":")
+            add(head)                       # 裸节点（没有显示文字，标识就是渲染出来的字）
+    return out
+
+
+def prose_sentences(text: str) -> list[tuple[int, str]]:
+    """正文段落里的句子，返回 (行号, 句子)。
+
+    **不判的行**（FR-20 的误报面）：围栏块（含 Mermaid）、表格行、标题、引用块。
+    表格行天生是长的（一格里一句话），代码与图不是给人读的散文，引用块是文首那段
+    元信息。把它们算进来，这条判定的命中里绝大多数都不是「长句」。
+
+    量之前先剥掉 Markdown 记号：链接只留显示文字（链接目标不是读者读的字，一条
+    相对路径能凭空加四十个字符）、反引号与加粗只留里面的字、行首列表记号不算。
+    **剥不干净的也写明**：行内 HTML 与脚注不剥，本库没有用它们。
+    """
+    out: list[tuple[int, str]] = []
+    in_fence = False
+    for i, raw in enumerate(text.splitlines(), 1):
+        if FENCE_LINE_RE.match(raw):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        s = raw.strip()
+        if not s or s.startswith(("|", ">", "#", "---", "***")):
+            continue
+        s = MD_LINK_RE.sub(r"\1", s)          # [文字](目标) → 文字
+        s = re.sub(r"`([^`]*)`", r"\1", s)    # `代码` → 代码
+        s = re.sub(r"\*{1,3}([^*]+)\*{1,3}", r"\1", s)
+        s = LIST_ITEM_RE.sub("", s).strip()
+        buf = ""
+        for ch in s:
+            buf += ch
+            if ch in SENTENCE_END:
+                if buf.strip():
+                    out.append((i, buf.strip()))
+                buf = ""
+        if buf.strip():
+            out.append((i, buf.strip()))
+    return out
+
+
+def check_sentence_length(doc: Doc, rep: Report) -> int:
+    """正文段落里的单句不超过字数上限（FR-20）。
+
+    上限那个数**只写在 `SENTENCE_LIMIT` 一处**，模板与 PRD 都不复述它。它是按实测
+    分布定的，不是拍的：定它那一次用 `python tools/audit_readability.py` 只列不判地
+    看全库分布，把线放在长尾的起点。**为什么不放在中位或 P90**：那样会一次报出几百
+    条，而一条误报多的门禁会被绕过，被绕过的门禁比没有门禁更坏。这条挡的是「长句
+    重新长回来」，所以它是棘轮 —— 不让最长的那一档再变长，不追求把全库拉到中位。
+
+    **只判长期规格**（`type: system`／`model`），有两条理由而不是一条：① 那正是
+    定上限时量过的那一群，把一个没量过的群体套上这个数，那个数就没有依据了；
+    ② 冻结的体裁（归档件、已接受的 ADR）按规则不许用今天的说法改写，而正典这一轮
+    明确不动 —— 对改不动的东西设门禁，只会逼人绕过它。别处的句长由人读时把握。
+
+    返回量的句子数，供自报覆盖量用。
+    """
+    if doc.meta.get("type") not in LONGLIVED_TYPES or doc.is_template or doc.in_archive:
+        return 0
+    sentences = prose_sentences(doc.text)
+    for line_no, s in sentences:
+        if len(s) > SENTENCE_LIMIT:
+            rep.fail(doc.rel, f"L{line_no} 单句 {len(s)} 字，超过上限 {SENTENCE_LIMIT} —— "
+                              f"拆成两句（拆句不得改变这句话的结论）：\n"
+                              f"        {s[:60]}…")
+    return len(sentences)
+
+
+def check_diagrams(doc: Doc, rep: Report) -> tuple[int, int]:
+    """图两条：每张图旁有重画条件、图里的标签在本页找得到。
+
+    为什么这两条值得各占一条判定：**图最主要的失效方式是静默腐烂** —— 流转改了
+    而图没改，读者照着图走，而没有任何东西报错。重画条件那一行让「什么时候该重画」
+    有个固定位置；标签核对让「图不许引入正文没有的事实」变成可判的。
+
+    标签按**子串**比，所以「超时」对得上「超时自然站起」。返回（图数, 标签数）
+    供自报覆盖量用。
+    """
+    if doc.is_template or doc.in_archive:
+        return 0, 0
+    blocks = mermaid_blocks(doc.text)
+    if not blocks:
+        return 0, 0
+    # 干草堆 = 全文减掉所有 Mermaid 块。不减的话图里的标签总能在自己那一行找到，
+    # 这条判定就永远为真。
+    haystack = doc.text
+    for _, body, _ in blocks:
+        for line in body:
+            haystack = haystack.replace(line, "")
+
+    labels_seen = 0
+    for line_no, body, after in blocks:
+        if not REDRAW_RE.match(after):
+            rep.fail(doc.rel, f"L{line_no} 这张 Mermaid 图旁没有重画条件那一行 —— "
+                              f"形状固定为 `**重画条件**：<什么改动之后要重画>`"
+                              f"（模板里那一行长什么样，守卫判的就是它）")
+        for label in mermaid_labels(body):
+            labels_seen += 1
+            if label not in haystack:
+                rep.fail(doc.rel, f"L{line_no} 那张图里的标签「{label}」"
+                                  f"在本页正文与表里都找不到 —— "
+                                  f"图是导航，不是第二份权威；要么正文补上这件事，"
+                                  f"要么把标签改成正文里的说法")
+    return len(blocks), labels_seen
 
 
 def section_anchors(text: str) -> list[str]:
@@ -786,6 +1094,7 @@ def main() -> int:
         return 0
 
     rep = Report()
+    diagrams = labels = sentences = 0
     for doc in scope:
         check_front_matter(doc, rep)
         check_links(doc, rep)
@@ -795,6 +1104,12 @@ def main() -> int:
         check_ordinal_refs(doc, rep)
         check_self_count(doc, rep)
         check_code_paths(doc, rep)
+        d, l = check_diagrams(doc, rep)
+        diagrams += d
+        labels += l
+        sentences += check_sentence_length(doc, rep)
+    rep.note(f"图覆盖量：检查 {diagrams} 张 Mermaid 图、{labels} 个标签")
+    rep.note(f"句长覆盖量：量 {sentences} 句正文（上限 {SENTENCE_LIMIT} 字）")
     # 全库级检查始终看全量，否则「第二台账」「断号」「入口可达」根本查不出来。
     # 行尾也在这一档：被静默转成 CRLF 的往往正是你以为自己没碰过的文件，
     # 而且它覆盖 md 之外的 sh 与 py —— 按改动清单裁剪等于放走高危的那一类。
@@ -803,6 +1118,7 @@ def main() -> int:
     check_reachable(all_docs, rep)
     check_section_refs(all_docs, rep)
     check_system_upstream(all_docs, rep)
+    check_terms(all_docs, rep)
     check_code_repo_present(rep)
     check_line_endings(rep)
 

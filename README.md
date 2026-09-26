@@ -32,6 +32,7 @@ last_verified: 2026-08-25
 | 玩法与系统 | [玩法定位](./canon/gameplay/玩法定位.md)（总纲）· [时间与经营](./canon/gameplay/时间与经营.md) · [角色与成长](./canon/gameplay/角色与成长.md) · [战斗与关卡](./canon/gameplay/战斗与关卡.md)。系统细化见[系统文档](./design/README.md) |
 | 美术与文案 | [像素绘制原则](./production/像素绘制原则.md) · [文案写作规范](./production/文案写作规范.md) |
 | 学习与排错 | [C# 学习](./reference/学习CSharp-Java程序员向.md) · [踩坑记录](./reference/踩坑记录.md) |
+| 词汇 | [术语表](./reference/术语表.md)（文档里那批自造词，跨多份共用的那些；只在一份里用的词在那一份自己的「术语」节） |
 | 需求与待办 | [spec/](./spec/README.md)（进行中需求）· [待办台账](./spec/issues/README.md)（唯一待办索引） |
 | 数值 | [数值模型](./design/数值模型.md)（公式与判据）· 值在 `design/numeric-model-params.json`，推演入口 `python tools/simulate_week.py` |
 | 流程与设计 | [WORKFLOW](./WORKFLOW.md)（工作流规则）· [系统文档与提案](./design/README.md)（`design/` 根下是系统文档，`proposals/` 下是一次性提案，体裁规则见 [ADR-0010](./decisions/ADR-0010-文档体裁与系统文档归位.md)） |
