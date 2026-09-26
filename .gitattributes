@@ -1,19 +1,20 @@
 # 行尾策略。
 #
 # 为什么需要：本机 core.autocrlf=true。没有这份文件时，Git 会在检出时把所有文本
-# 转成 CRLF —— 包括 .githooks/pre-push。那是个 #!/bin/sh 脚本，带 \r 时 Git Bash
-# 会报 `bad interpreter: /bin/sh^M` 直接不执行，**文档准出检查就静默失效了**，
-# 而且不会有任何提示。这正是「守卫必须能自证，不能悄悄空转」要防的情况。
+# 转成 CRLF，而本仓库要求仓库内与工作区一律 LF。这条策略的执行体是
+# `python tools/check_docs.py` 的行尾判定：不合规就 FAIL，`--fix-eol` 按本文件
+# 声明的方向改回来。**本文件是行尾策略的唯一权威源**，检查器不另写一份 glob 表。
+#
+# 起因是一次真实故障：当时仓库里还有一个 #!/bin/sh 的推送前钩子，它被整份转成
+# CRLF 之后 Git Bash 报 `bad interpreter: /bin/sh^M` 直接不执行，而且**没有任何
+# 提示** —— 一道门禁就那样静默失效了。那个钩子随 `ADR-0009` 删掉了，但「行尾会
+# 被悄悄改掉、且不报错」这件事没变，所以策略留着。
 #
 # 仓库内一律存 LF（`text=auto`），工作区也一律用 LF（`eol=lf`）。
-# Markdown、Python 与 sh 在 Windows 上用 LF 都没问题，VS Code 默认也认。
+# Markdown 与 Python 在 Windows 上用 LF 都没问题，VS Code 默认也认。
 * text=auto eol=lf
 
 # 例外：批处理文件在 Windows 上必须是 CRLF，否则 cmd 解析会出错。
 # 目前仓库里没有，先写在这里免得以后有人加了再踩一次。
 *.bat text eol=crlf
 *.cmd text eol=crlf
-
-# 显式钉住钩子脚本。上面的通配已经覆盖，这一行是为了让意图可见 ——
-# 有人将来改通配规则时，能看到这个文件的行尾不是可以随便动的。
-.githooks/* text eol=lf

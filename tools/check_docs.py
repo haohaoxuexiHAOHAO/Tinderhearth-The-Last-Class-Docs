@@ -8,8 +8,10 @@
 用法（从设计仓根目录运行）：
     python tools/check_docs.py            # 全量检查，退出码 = FAIL 数量（上限 1）
     python tools/check_docs.py --report    # 只打规模趋势表，不判定
-    python tools/check_docs.py --changed-only   # 只检查 git 里有改动的 md（给 hook 用）
     python tools/check_docs.py --fix-eol   # 只把行尾改回 .gitattributes 声明的样子
+
+**没有任何东西会自动跑它。** 推送前钩子随 `ADR-0009` 删了，所以准出全靠人在
+提交前自己跑一次；跑没跑过看不出来，这是那次决定明知并接受的代价。
 
 输出约定（CONVENTIONS §17 的通用规则）：
     固定 UTF-8；每条问题打成 [FAIL] 或 [WARN]；末尾打一行 EXIT= 摘要。
@@ -30,7 +32,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 if hasattr(sys.stdout, "reconfigure"):
-    # 被 pre-push 或 hook 重定向调用时，默认编码可能不是 UTF-8，打第一个中文就崩。
+    # 输出被重定向到文件或管道时，默认编码可能不是 UTF-8，打第一个中文就崩。
     sys.stdout.reconfigure(encoding="utf-8")
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -244,17 +246,13 @@ def all_markdown() -> list[Path]:
     )
 
 
-def collect(changed_only: bool) -> list[Doc]:
-    paths: list[Path] | None = None
-    if changed_only:
-        paths = git_changed_markdown()
-        if paths is None:
-            print("[WARN] 无法从 git 取改动清单，退回全量扫描")
-            paths = all_markdown()
-    if paths is None:
-        paths = all_markdown()
+def collect() -> list[Doc]:
+    """全库的 Markdown。**刻意没有「只看改动的」那一档** —— 它原来只给推送前钩子
+    省时间用，而那个钩子随 `ADR-0009` 删了，留着就是一条没有调用者的分支。全量扫
+    这个体量本来也只要几秒，而按改动清单裁剪会放走「你以为自己没碰过」的那类文件。
+    """
     docs = []
-    for p in paths:
+    for p in all_markdown():
         if not p.is_file():
             continue
         text = p.read_text(encoding="utf-8-sig")
@@ -262,47 +260,15 @@ def collect(changed_only: bool) -> list[Doc]:
     return docs
 
 
-def git_changed_markdown() -> list[Path] | None:
-    """返回工作区里有改动（含未跟踪）的 md 路径。给 hook 省时间用。
-
-    返回 None 表示「问不出来」（没装 git、不是仓库），调用方应退回全量扫描，
-    而不是当成「没有改动」—— 静默跳过比慢一点坏得多。
-
-    两个坑，都踩过：
-    1. `core.quotepath` 默认为 true，git 会把中文文件名转义成 \\344\\272\\272 这种八进制。
-       按原样拼路径会得到不存在的文件，于是**中文名文档被静默跳过**。
-       本项目文档大半是中文名，那等于检查器假装工作。用 `-c core.quotepath=false` 关掉。
-    2. 行尾用 `-z` 的 NUL 分隔，避免文件名里的空格或引号把字段切错。
-    """
-    try:
-        out = subprocess.run(
-            ["git", "-c", "core.quotepath=false", "status",
-             "--porcelain", "--untracked-files=all", "-z"],
-            cwd=ROOT, capture_output=True, check=True,
-        ).stdout.decode("utf-8", errors="replace")
-    except (subprocess.CalledProcessError, FileNotFoundError, OSError):
-        return None
-
-    fields = [f for f in out.split("\0") if f]
-    result, skip_next = [], False
-    for field in fields:
-        if skip_next:                      # 重命名的「原路径」紧跟在后面，跳过
-            skip_next = False
-            continue
-        status, _, name = field[:2], field[2:3], field[3:]
-        if status.startswith("R") or status.startswith("C"):
-            skip_next = True               # -z 模式下 R/C 会多输出一个原路径字段
-        if name.endswith(".md"):
-            result.append(ROOT / name)
-    return result
-
-
 def git_managed_files() -> list[str] | None:
     """git 会管的文件：已跟踪 + 未被忽略的未跟踪。返回 None 表示问不出来。
 
     用 git 枚举而不是自己遍历目录，是为了让 `.gitignore` 自动生效 —— 否则
-    `__pycache__/`、`.vs/` 之类的产物都会被拖进行尾检查。`-z` 分隔避免中文名被
-    `core.quotepath` 转义成八进制（这个坑见 git_changed_markdown 的注释）。
+    `__pycache__/`、`.vs/` 之类的产物都会被拖进行尾检查。
+
+    **`-z` 不是可选的。** `core.quotepath` 默认为 true，git 会把中文文件名转义成
+    `\\344\\272\\272` 这种八进制；按原样拼路径会得到不存在的文件，于是**中文名文档被
+    静默跳过**。本项目文档大半是中文名，那等于检查器假装工作。这个坑踩过一次。
     """
     try:
         out = subprocess.run(
@@ -988,9 +954,10 @@ def check_line_endings(rep: Report) -> None:
     为什么需要：`.gitattributes` 钉了 `* text=auto eol=lf`，却没有任何检查能发现
     工作区违反它 —— 有声明、无执行体。实测编辑工具把
     `reference/踩坑记录.md` 从 191 行纯 LF 整份转成 201 行全 CRLF，全程无提示
-    （踩坑记录 28）。单份 md 是低危，提交时索引会被规范化；**同一机制作用在
-    `.githooks/pre-push` 上就是高危** —— 那是 `#!/bin/sh` 脚本，带 `\r` 时
-    Git Bash 报 `bad interpreter: /bin/sh^M` 直接不执行，**文档准出检查静默失效**。
+    （踩坑记录 28）。单份 md 是低危，提交时索引会被规范化；**同一机制作用在可执行
+    脚本上就是高危** —— 当时仓库里那个 `#!/bin/sh` 的推送前钩子被整份转成 CRLF
+    之后，Git Bash 报 `bad interpreter: /bin/sh^M` 直接不执行，而**没有任何提示**。
+    那个钩子随 `ADR-0009` 删了，但 `tools/` 下的 py 入口仍在这条策略的覆盖面里。
 
     为什么不用 `git diff --check`：它对行尾只给 warning，退出码仍是 0，
     当不了门禁。而且它只看有 diff 的部分，未跟踪的新文件根本不进它的视野。
@@ -1074,7 +1041,6 @@ def print_report(docs: list[Doc]) -> None:
 def main() -> int:
     ap = argparse.ArgumentParser(description="设计仓文档准出检查")
     ap.add_argument("--report", action="store_true", help="只打规模趋势表，不判定")
-    ap.add_argument("--changed-only", action="store_true", help="只检查有改动的 md（给 hook 用）")
     ap.add_argument("--fix-eol", action="store_true",
                     help="把行尾改回 .gitattributes 声明的样子，不做其他检查")
     args = ap.parse_args()
@@ -1082,15 +1048,9 @@ def main() -> int:
     if args.fix_eol:
         return fix_line_endings()
 
-    all_docs = collect(changed_only=False)
+    scope = all_docs = collect()
     if args.report:
         print_report(all_docs)
-        return 0
-
-    scope = collect(changed_only=True) if args.changed_only else all_docs
-    if args.changed_only and not scope:
-        print("[OK] 没有改动的 Markdown，跳过检查")
-        print("EXIT=0")
         return 0
 
     rep = Report()
@@ -1110,9 +1070,9 @@ def main() -> int:
         sentences += check_sentence_length(doc, rep)
     rep.note(f"图覆盖量：检查 {diagrams} 张 Mermaid 图、{labels} 个标签")
     rep.note(f"句长覆盖量：量 {sentences} 句正文（上限 {SENTENCE_LIMIT} 字）")
-    # 全库级检查始终看全量，否则「第二台账」「断号」「入口可达」根本查不出来。
-    # 行尾也在这一档：被静默转成 CRLF 的往往正是你以为自己没碰过的文件，
-    # 而且它覆盖 md 之外的 sh 与 py —— 按改动清单裁剪等于放走高危的那一类。
+    # 下面这几条按定义要看全量：「第二台账」「断号」「入口可达」「共用表里没人用
+    # 的词条」都是全库级的事实，只看一部分文件根本查不出来。行尾也一样 —— 被静默
+    # 转成 CRLF 的往往正是你以为自己没碰过的文件，而且它覆盖 md 之外的 py。
     check_single_ledger(all_docs, rep)
     check_issue_ids(all_docs, rep)
     check_reachable(all_docs, rep)
@@ -1127,16 +1087,7 @@ def main() -> int:
     for line in rep.fails:
         print(line)
 
-    # 自报覆盖量：--changed-only 模式下若漏扫（例如文件名转义导致路径解析失败），
-    # 必须能看出来，否则检查器会假装工作。这个坑真踩过一次。
     scanned = len(scope)
-    if args.changed_only:
-        missing = sorted(set(d.rel for d in scope) - set(d.rel for d in all_docs))
-        if missing:
-            print(f"[FAIL] 改动清单里有 {len(missing)} 个路径不在全库扫描结果中，"
-                  f"说明路径解析有问题：{missing[:5]}")
-            rep.fails.append("覆盖量自检失败")
-        print(f"覆盖量：改动 {scanned} 份 / 全库 {len(all_docs)} 份")
     for line in rep.notes:
         print(line)
 
