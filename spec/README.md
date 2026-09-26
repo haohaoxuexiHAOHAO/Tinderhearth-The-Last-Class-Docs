@@ -18,7 +18,7 @@ last_verified: 2026-08-26
 | `推演-<slug>.md` | 纸面推演：把循环手算一遍找漏，验收用。归档时随需求一起移走 | 无（按需手写） |
 | [`issues/`](./issues/README.md) | 可实现条目，一条一个文件；索引即待办台账 | `/to-issues` |
 
-**进行中**：[`prd-design-closure.md`](./prd-design-closure.md) —— 设计闭环，分五轮：挡着别人的空格、正典口径、玩法上的洞、叙事结构与口径，界面排最后（它要读前四轮的结论）。上一个需求「基石夯实」已归档到 [`archive/spec/DOC-65-canon-hardening/`](../archive/spec/DOC-65-canon-hardening/prd.md)（**历史背景·非依据**），它的现行结论散在被改的那几份正典与系统文档里，去处清单在那份归档件的文件头。**未完的部分不在归档件里，按编号活在 [待办台账](./issues/README.md)** —— `GP-60` 的落地，加 `NR-15`／`ART-7`／`ART-8`／`DOC-72` 各剩的一条作者实机确认。下一步做什么看台账，不看本节。
+**进行中**：无。上一个需求「设计闭环」已归档到 [`archive/spec/DOC-64-design-closure/`](../archive/spec/DOC-64-design-closure/prd.md)（**历史背景·非依据**），它的现行结论散在被改的那几份正典与系统文档里，去处清单在那份归档件的文件头。**未完的部分不在归档件里，按编号活在 [待办台账](./issues/README.md)** —— 那批界面与玩法编号的落地、`UI-26` 与 `GP-74` 的实现、`DOC-86` 与 `DOC-88` 那两条，以及全部作者实机确认项（清单在[`界面系统`](../design/界面系统.md)的「验收」节）。**文档侧的设计闭环到此为止，下一步是落地。** 下一步做什么看台账，不看本节。
 
 `<slug>` 是简短英文标识，全小写、连字符分隔，例如 `gameplay-positioning`、`combat-feel-tuning`。
 
