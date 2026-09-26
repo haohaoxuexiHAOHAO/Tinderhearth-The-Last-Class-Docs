@@ -1,11 +1,13 @@
 ---
-type: workdoc
-status: draft
+type: archive
+status: archived
 owner: project
 last_verified: 2026-09-26
 ---
 
 # DOC-89：共用术语表落地
+
+> **只读历史归档，不得作为现行依据。** 现行事实在[术语表](../../../reference/术语表.md)（含收词判据与词条形状）；状态在[待办台账](../../../spec/issues/README.md)。
 
 ## 目标
 
@@ -13,7 +15,7 @@ last_verified: 2026-09-26
 
 ## 来源
 
-PRD：[`spec/prd-doc-readability.md`](../prd-doc-readability.md) 的 `US-001`。
+PRD：[`spec/prd-doc-readability.md`](./prd.md) 的 `US-001`。
 
 ## 依赖
 
@@ -21,8 +23,8 @@ PRD：[`spec/prd-doc-readability.md`](../prd-doc-readability.md) 的 `US-001`。
 
 ## 验收标准
 
-- [x] 可核对：[`reference/术语表.md`](../../reference/术语表.md) 存在，文件头四项齐全，`type: reference`。
-- [x] 可核对：已接入[总索引](../../README.md)的文档地图（否则检查器报「从 README 无法到达」）。
+- [x] 可核对：[`reference/术语表.md`](../../../reference/术语表.md) 存在，文件头四项齐全，`type: reference`。
+- [x] 可核对：已接入[总索引](../../../README.md)的文档地图（否则检查器报「从 README 无法到达」）。
 - [x] 可核对：**收词判据只在这份表里写一次** —— 阈值那个数的家是那一份的「收词判据」一节，PRD、模板与台账都只链接、不复述。
 - [x] 可核对：领域词条各有一句白话加一条指向权威定义所在**那份文档**的链接，且不复制被链文档的正文。**指到文档而不指到节**，理由写在那一份里。
 - [x] 可核对：方法论词条各有一句白话，并写明**为什么不用大白话代替** —— 本表是它们的家，不指向别处当定义源。
@@ -43,7 +45,7 @@ PRD：[`spec/prd-doc-readability.md`](../prd-doc-readability.md) 的 `US-001`。
 
 - **模糊点**：文件叫什么。
 - **选择**：`reference/术语表.md`。
-- **理由**：原先在 PRD 里写的是「设计术语表」，而「设计」是体裁词 —— [design/README.md](../../design/README.md) 的命名规则明说名字不带体裁词。守卫只对 `system`／`model` 判后缀，所以这一条不会报错，但**一条自己不遵守的命名规则比没有规则更坏**。
+- **理由**：原先在 PRD 里写的是「设计术语表」，而「设计」是体裁词 —— [design/README.md](../../../design/README.md) 的命名规则明说名字不带体裁词。守卫只对 `system`／`model` 判后缀，所以这一条不会报错，但**一条自己不遵守的命名规则比没有规则更坏**。
 
 ### 偏离
 
