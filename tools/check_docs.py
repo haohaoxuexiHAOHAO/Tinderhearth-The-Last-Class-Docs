@@ -174,6 +174,9 @@ LEDGER_ROW_RE = re.compile(
 # 状态词表的家在台账那一页「状态词」那一节（`DOC-98`）。**这里只需要「哪个算关闭」**，
 # 所以只钉这一个词；别的值都表示还开着，多钉一个就是又给那张表开一个家。
 STATUS_CLOSED = "已完成"
+# 台账单行备注的字数上限。**这个数只写在这里**，台账与技能文件都不复述它。
+# 定它的依据与它为什么是棘轮写在 `check_ledger_note_length` 的文档字符串里。
+LEDGER_NOTE_LIMIT = 500
 # 只判长期权威文档。台账自己是状态的家；`archive/` 与已接受的 ADR 不许用今天的说法
 # 改写；`spec/` 下是过程文件，会随需求归档走掉。
 CLOSED_REF_SCOPE = ("canon/", "design/")
@@ -1072,6 +1075,45 @@ def check_content_baseline_owners(docs: list[Doc], rep: Report) -> int:
     return checked
 
 
+def check_ledger_note_length(docs: list[Doc], rep: Report) -> int:
+    """台账备注不许超过上限，返回量过的行数（`DOC-17` 的修根办法）。
+
+    **这条判的是文档卫生，在 Godot 里看不出来** —— 符合「该不该留一个入口」那条
+    判据。它挡的是一种只会单向恶化的东西：备注里塞进落地顺序与整段理由之后没有
+    任何东西会报，于是台账从索引长成一份查不动的说明书。原先上限只写在
+    `/to-issues` 的纪律里，而纪律不会报错。
+
+    **上限那个数按实测分布定，不是拍的。** 定它那一次把全部域表行的长度排了一遍：
+    中位在两百出头、往上是一条平滑的坡，而 500 字往上有一个明显的断口（第三长的
+    行比第二长的短一百多字）。线放在断口上，命中的就是真正长过头的那几行。
+
+    **它是棘轮，不是一次清理**：目标是「最长的那一档不再变长」，而不是把全库拉到
+    中位。放在中位会一次报出上百行，而一条误报多的门禁会被绕过 —— 被绕过的门禁比
+    没有门禁更坏（与句长那一条同一个理由）。
+
+    **改法不是删字，是搬家**：解释移进该行链接的 issue 文件，台账只留状态词、链接
+    与落地顺序。
+    """
+    ledger = next((d for d in docs if d.rel == LEDGER_REL), None)
+    if ledger is None:
+        return 0                    # check_single_ledger 已经报过缺失
+    open_part = ledger.text.split(ARCHIVED_HEADING)[0]
+    counted = 0
+    for m in LEDGER_ROW_RE.finditer(open_part):
+        note = m.group(2).strip().rstrip("|").strip()
+        counted += 1
+        if len(note) > LEDGER_NOTE_LIMIT:
+            line_no = open_part[: m.start()].count("\n") + 1
+            rep.fail(LEDGER_REL, f"L{line_no} `{m.group(1)}` 的备注 {len(note)} 字，"
+                                 f"超过上限 {LEDGER_NOTE_LIMIT} —— "
+                                 f"把解释搬进它链接的 issue 文件，"
+                                 f"本行只留状态词、链接与落地顺序")
+    if not counted:
+        rep.fail(LEDGER_REL, "一行域表都没解析出来，备注长度这一条**没有执行**"
+                             "（不是通过）—— 域表的行形状变了")
+    return counted
+
+
 def check_reachable(docs: list[Doc], rep: Report) -> None:
     """从 README.md 出发能否走到每份非归档文档（WORKFLOW §6 入口可达）。"""
     by_rel = {d.rel: d for d in docs}
@@ -1231,6 +1273,8 @@ def main() -> int:
     check_closed_issue_refs(all_docs, rep)
     baseline_rows = check_content_baseline_owners(all_docs, rep)
     rep.note(f"内容规模基准覆盖量：核了 {baseline_rows} 行的「谁在等它」")
+    note_rows = check_ledger_note_length(all_docs, rep)
+    rep.note(f"台账备注覆盖量：量 {note_rows} 行域表备注（上限 {LEDGER_NOTE_LIMIT} 字）")
     check_reachable(all_docs, rep)
     check_section_refs(all_docs, rep)
     check_system_upstream(all_docs, rep)
