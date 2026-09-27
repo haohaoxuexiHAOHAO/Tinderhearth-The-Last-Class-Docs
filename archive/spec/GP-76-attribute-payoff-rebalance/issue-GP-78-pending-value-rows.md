@@ -1,11 +1,13 @@
 ---
 type: workdoc
-status: awaiting-verify
+status: archived
 owner: project
-last_verified: 2026-09-26
+last_verified: 2026-09-27
 ---
 
 # GP-78：尚未给值表补上新增量，并把它们接进那条配对要求
+
+> **历史背景·非依据。只读归档件，不得作为现行依据。** 现行事实见同目录 [`prd.md`](./prd.md) 的「归档三问」；待办见[待办台账](../../../spec/issues/README.md)。
 
 ## 目标
 
@@ -13,7 +15,7 @@ last_verified: 2026-09-26
 
 ## 来源
 
-- PRD：[`spec/prd-attribute-payoff-rebalance.md`](../prd-attribute-payoff-rebalance.md) 的 `US-002` 后半
+- PRD：同目录 [`prd.md`](./prd.md) 的 `US-002` 后半
 
 ## 依赖
 
@@ -23,7 +25,7 @@ last_verified: 2026-09-26
 
 ## 验收标准
 
-- [x] [数值模型 · 尚未给值的量，各自写明校准办法](../../design/数值模型.md) 里为新增的每个量各有一行，三格（为什么不给、校准办法、归属）都填了
+- [x] [数值模型 · 尚未给值的量，各自写明校准办法](../../../design/数值模型.md) 里为新增的每个量各有一行，三格（为什么不给、校准办法、归属）都填了
 - [x] 那条「不得出现某一项属性在任何构筑下都严格优于另一项」写明给值那一轮要把新增的量一起算进去 —— 它们都不进战力公式，所以 C1 看不到它们
 - [x] 力量那份精力折扣那一行写了两条配对要求：接进 P1 并写明按哪一级属性当基准；幅度不得大到让「派谁去」有唯一答案
 - [x] 体力条回复速度那一行写了配对要求：要与 `resources.sp_dodge` 和 `resources.sp_guard_per_second` 一起看，否则体力条不再是预算

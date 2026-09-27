@@ -1,11 +1,13 @@
 ---
 type: workdoc
-status: awaiting-verify
+status: archived
 owner: project
-last_verified: 2026-09-26
+last_verified: 2026-09-27
 ---
 
 # GP-81：端到端 —— 搜残留、两个入口都跑过
+
+> **历史背景·非依据。只读归档件，不得作为现行依据。** 现行事实见同目录 [`prd.md`](./prd.md) 的「归档三问」；待办见[待办台账](../../../spec/issues/README.md)。
 
 ## 目标
 
@@ -13,7 +15,7 @@ last_verified: 2026-09-26
 
 ## 来源
 
-- PRD：[`spec/prd-attribute-payoff-rebalance.md`](../prd-attribute-payoff-rebalance.md) 的 `US-005`
+- PRD：同目录 [`prd.md`](./prd.md) 的 `US-005`
 
 ## 依赖
 

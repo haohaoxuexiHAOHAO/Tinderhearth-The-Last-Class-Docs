@@ -74,6 +74,8 @@ last_verified: 2026-09-18
 
 归档件移入 **`archive/spec/<编号>-<slug>/`，一个需求一个目录**，文件按类型命名（`prd.md`、`issue.md` 等）。文件头 `status: archived`，文首 20 行内写明只读边界。正典、设计、制作规范与 ADR 引用 `archive/` 时同行标注「历史背景·非依据」。
 
+**移完跑 `python tools/rebase_archive_links.py archive/spec/<目录>`。** 目录深了一级，里面每条相对链接都少一级 `../`，而这件事每归档一次就要做一次。它**只改深度**：改名与重定向一律不猜、只报出来留给人改（猜错的链接看起来是好的）。剩下的由 `check_docs.py` 的断链判定兜底 —— 所以那个工具自己不需要第二套守卫。
+
 **已接受的 ADR 与归档件不得用今天的理由改写当时的背景。** 取代关系写进双方文件头的 `supersedes`／`superseded_by`。
 
 ## 5. 命令与提交纪律

@@ -1,11 +1,13 @@
 ---
 type: workdoc
-status: awaiting-verify
+status: archived
 owner: project
-last_verified: 2026-09-26
+last_verified: 2026-09-27
 ---
 
 # GP-77：公式、参数键与推演脚本跟着改
+
+> **历史背景·非依据。只读归档件，不得作为现行依据。** 现行事实见同目录 [`prd.md`](./prd.md) 的「归档三问」；待办见[待办台账](../../../spec/issues/README.md)。
 
 ## 目标
 
@@ -13,7 +15,7 @@ last_verified: 2026-09-26
 
 ## 来源
 
-- PRD：[`spec/prd-attribute-payoff-rebalance.md`](../prd-attribute-payoff-rebalance.md) 的 `US-002` 前半
+- PRD：同目录 [`prd.md`](./prd.md) 的 `US-002` 前半
 
 ## 依赖
 
@@ -21,9 +23,9 @@ last_verified: 2026-09-26
 
 ## 验收标准
 
-- [x] [数值模型](../../design/数值模型.md) 四项属性那张表按新分法改过，敏捷那一格不再列攻速
+- [x] [数值模型](../../../design/数值模型.md) 四项属性那张表按新分法改过，敏捷那一格不再列攻速
 - [x] 同一份文档写明战斗动作的时长（攻速、移动速度、施法读条速度）不由任何属性派生，并写明经营侧不受那条判据管；**判据的原句不抄在本页**，指回正典那一节（`GP-80` 收紧过它，抄一份就多一个会过期的副本）
-- [x] [`numeric-model-params.json`](../../design/numeric-model-params.json) 里 `derived.atk_speed_per_agi` 已删除
+- [x] [`numeric-model-params.json`](../../../design/numeric-model-params.json) 里 `derived.atk_speed_per_agi` 已删除
 - [x] 新增的那几个量**刻意没有键**，形式（一次式）写在正文、值登记进尚未给值表（见下面「偏离」）
 - [x] `python tools/simulate_week.py` 的战力公式与 C4 的输出探针都不再读按敏捷缩放的攻速
 - [x] `python tools/simulate_week.py` 全判据成立，其中 C1 战力差落在 4–6 区间内
