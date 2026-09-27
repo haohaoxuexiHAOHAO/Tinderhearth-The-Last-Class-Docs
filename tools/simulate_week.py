@@ -186,8 +186,11 @@ def build_sheet(p: Params, label: str, level: int, attrs: dict[str, int]) -> She
     s.crit = min(p("derived.crit_cap"),
                  p("derived.crit_base") + p("derived.crit_per_agi") * s.agi)
     crit_mult = p("derived.crit_multiplier")
-    s.atk_speed = (p("derived.atk_speed_base") + p("derived.atk_speed_per_agi") * s.agi) \
-        * (1.0 + s.crit * (crit_mult - 1.0))
+    # 攻速不再随敏捷变，所以它是一个常量基准，敏捷现在只经暴击那一项进入输出。判据在
+    # canon/gameplay/角色与成长.md 的「四项属性的作用方向」那一节，这里不抄它。
+    # **字段名仍叫 atk_speed**：power() 与 C4 的探针都按「每秒打几下 × 期望倍数」算，
+    # 换名字会让那两处读不出同一个形状。
+    s.atk_speed = p("derived.atk_speed_base") * (1.0 + s.crit * (crit_mult - 1.0))
     return s
 
 

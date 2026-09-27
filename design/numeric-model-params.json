@@ -53,8 +53,9 @@
     "pdef_base": 8, "pdef_per_vit": 0.8,
     "mdef_base": 8, "mdef_per_vit": 0.8,
     "def_softening_k": 60,
+    "//攻速没有按属性的系数": "正典把攻速从敏捷那里拿走了，判据见 canon/gameplay/角色与成长.md 的「四项属性的作用方向」那一节（这里不抄它，抄了就多一个会过期的副本，而本文件的注释没有任何东西在核）。所以这里只剩一个常量基准，改它的只有天赋与状态；敏捷现在只经暴击那一项进入输出。",
     "crit_base": 0.03, "crit_per_agi": 0.007, "crit_cap": 0.35, "crit_multiplier": 1.5,
-    "atk_speed_base": 1.2, "atk_speed_per_agi": 0.02,
+    "atk_speed_base": 1.2,
     "read_speed_base": 1.0, "read_speed_per_int": 0.04
   },
 
