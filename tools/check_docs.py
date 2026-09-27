@@ -25,6 +25,8 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
+import json
 import re
 import subprocess
 import sys
@@ -174,6 +176,9 @@ LEDGER_ROW_RE = re.compile(
 # 状态词表的家在台账那一页「状态词」那一节（`DOC-98`）。**这里只需要「哪个算关闭」**，
 # 所以只钉这一个词；别的值都表示还开着，多钉一个就是又给那张表开一个家。
 STATUS_CLOSED = "已完成"
+# 上游指纹那一份，以及取「上游约束」一节的正则。
+UPSTREAM_PINS = ROOT / "tools" / "upstream-pins.json"
+UPSTREAM_SECTION_RE = re.compile(r"^## 上游约束\s*?$(.*?)(?=^## )", re.M | re.S)
 # 台账单行备注的字数上限。**这个数只写在这里**，台账与技能文件都不复述它。
 # 定它的依据与它为什么是棘轮写在 `check_ledger_note_length` 的文档字符串里。
 LEDGER_NOTE_LIMIT = 500
@@ -1114,6 +1119,117 @@ def check_ledger_note_length(docs: list[Doc], rep: Report) -> int:
     return counted
 
 
+def heading_body(text: str, section: str) -> str | None:
+    """取「某一节」的正文：从那个标题下一行到下一个同级或更高级标题为止。
+
+    引用可能指的是**行首加粗小标题**而不是真标题（`section_anchors` 两种都认）。
+    那一种解析到**它所在的那个标题节**：加粗小标题没有自己的结束位置，硬猜一个
+    会让指纹随邻居的改动乱动，而按外层标题钉只是粗一点、不会错。
+    """
+    lines = text.splitlines()
+    start = level = None
+    for i, line in enumerate(lines):
+        if line.startswith("#"):
+            name = line.lstrip("#").replace("**", "").replace("`", "").strip()
+            lv = len(line) - len(line.lstrip("#"))
+            if section in name:
+                start, level = i, lv
+                break
+            cur_h, cur_lv = i, lv
+        elif start is None and BOLD_LEAD_RE.match(line):
+            if section in line.replace("**", "").replace("`", "").strip():
+                try:
+                    start, level = cur_h, cur_lv       # 落到它所在的那个标题节
+                except NameError:
+                    return None
+                break
+    if start is None:
+        return None
+    body = []
+    for line in lines[start + 1:]:
+        if line.startswith("#"):
+            if len(line) - len(line.lstrip("#")) <= level:
+                break
+        body.append(line.rstrip())
+    return "\n".join(body).strip()
+
+
+def upstream_pins(docs: list[Doc]) -> dict[str, str]:
+    """现在算出来的指纹：键是 `正典文件#节名`，值是那一节正文的哈希。"""
+    by_rel = {d.rel: d for d in docs}
+    out: dict[str, str] = {}
+    for doc in docs:
+        if doc.meta.get("type") not in LONGLIVED_TYPES or doc.is_template or doc.in_archive:
+            continue
+        m = UPSTREAM_SECTION_RE.search(doc.text)
+        if not m:
+            continue
+        for line in m.group(1).splitlines():
+            if not line.startswith("- "):
+                continue
+            for lm in MD_LINK_RE.finditer(line):
+                label, target = lm.group(1), lm.group(2)
+                if target.startswith(("http://", "https://")) or SECTION_SEP not in label:
+                    continue
+                try:
+                    rel = (doc.path.parent / target).resolve().relative_to(ROOT).as_posix()
+                except ValueError:
+                    continue
+                if not rel.startswith("canon/") or rel not in by_rel:
+                    continue
+                section = label.split(SECTION_SEP)[-1].replace("**", "").replace("`", "").strip()
+                body = heading_body(by_rel[rel].text, section)
+                if body is None:
+                    continue                # 节名失效由 check_section_refs 报
+                digest = hashlib.sha256(body.encode("utf-8")).hexdigest()[:16]
+                out[f"{rel}#{section}"] = digest
+    return out
+
+
+def check_upstream_pins(docs: list[Doc], rep: Report, repin: bool = False) -> int:
+    """正典那一节变过之后，引它的「上游约束」要被拉回来复核一次（`DOC-102`）。
+
+    **它判的不是「那句转述还对不对」** —— 机器判不了两段散文说的是不是一件事。
+    它判的是**那一节变过没有**，然后把「该回头复核」从一件没人记得的事变成一条会
+    报出来的动作。这是本库对语义类漂移唯一可行的形状：**不假装能判语义，只把需要
+    人看的时刻钉出来。**
+
+    **为什么钉到「节」而不是整份文件**：整份文件粒度会让正典任何一处改动惊动全部
+    引用者，噪音压过收益；节粒度下，改一节只报引那一节的那几处。
+
+    **确认之后跑 `--repin` 重录。** 重录是一个显式动作，所以「我看过了」这件事留得
+    下痕迹（指纹文件进 git）。
+    """
+    want = upstream_pins(docs)
+    if repin:
+        UPSTREAM_PINS.write_text(
+            json.dumps(want, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8", newline="\n")
+        print(f"已重录 {len(want)} 个上游指纹 → {UPSTREAM_PINS.relative_to(ROOT).as_posix()}")
+        return len(want)
+    if not UPSTREAM_PINS.exists():
+        rep.fail(UPSTREAM_PINS.name, "指纹文件不存在，这一轮上游复核**没有执行**"
+                                     "（不是通过）—— 跑 `python tools/check_docs.py --repin`")
+        return 0
+    have = json.loads(UPSTREAM_PINS.read_text(encoding="utf-8"))
+    if not have:
+        rep.fail(UPSTREAM_PINS.name, "指纹文件是空的，这一轮**没有执行**（不是通过）")
+        return 0
+    for key, digest in sorted(want.items()):
+        old = have.get(key)
+        if old is None:
+            rep.fail(UPSTREAM_PINS.name, f"`{key}` 是新引的，还没有指纹 —— "
+                                         f"确认那几处转述与它现在的内容一致之后跑 `--repin`")
+        elif old != digest:
+            rep.fail(UPSTREAM_PINS.name, f"`{key}` 的内容变过了 —— "
+                                         f"回头核一遍引它的那几处「上游约束」"
+                                         f"（`grep` 那个节名），核完跑 `--repin`")
+    for key in sorted(set(have) - set(want)):
+        rep.fail(UPSTREAM_PINS.name, f"`{key}` 已经没有任何上游约束引它了 —— "
+                                     f"跑 `--repin` 把它从指纹里去掉")
+    return len(want)
+
+
 def check_reachable(docs: list[Doc], rep: Report) -> None:
     """从 README.md 出发能否走到每份非归档文档（WORKFLOW §6 入口可达）。"""
     by_rel = {d.rel: d for d in docs}
@@ -1238,10 +1354,16 @@ def main() -> int:
     ap.add_argument("--report", action="store_true", help="只打规模趋势表，不判定")
     ap.add_argument("--fix-eol", action="store_true",
                     help="把行尾改回 .gitattributes 声明的样子，不做其他检查")
+    ap.add_argument("--repin", action="store_true",
+                    help="复核完上游约束之后重录正典那几节的指纹，不做其他检查")
     args = ap.parse_args()
 
     if args.fix_eol:
         return fix_line_endings()
+
+    if args.repin:
+        check_upstream_pins(collect(), Report(), repin=True)
+        return 0
 
     scope = all_docs = collect()
     if args.report:
@@ -1275,6 +1397,8 @@ def main() -> int:
     rep.note(f"内容规模基准覆盖量：核了 {baseline_rows} 行的「谁在等它」")
     note_rows = check_ledger_note_length(all_docs, rep)
     rep.note(f"台账备注覆盖量：量 {note_rows} 行域表备注（上限 {LEDGER_NOTE_LIMIT} 字）")
+    pinned = check_upstream_pins(all_docs, rep)
+    rep.note(f"上游指纹覆盖量：钉住 {pinned} 个被上游约束引用的正典节")
     check_reachable(all_docs, rep)
     check_section_refs(all_docs, rep)
     check_system_upstream(all_docs, rep)
