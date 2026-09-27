@@ -28,7 +28,7 @@ last_verified: 2026-08-25
 | 分类 | 权威内容 |
 | --- | --- |
 | 世界与人物 | [世界观](./canon/world/世界观.md) · [人物](./canon/characters/人物.md) |
-| 叙事 | [主线故事](./canon/narrative/主线故事.md)（骨架）· [支线内容](./canon/narrative/支线内容.md)（三条重要支线的内容）· [学生群像](./canon/narrative/学生群像.md) · [反派与要角](./canon/narrative/反派与要角.md) · [常驻NPC](./canon/narrative/常驻NPC.md) |
+| 叙事 | [主线故事](./canon/narrative/主线故事.md)（骨架）· [支线内容](./canon/narrative/支线内容.md)（三条重要支线的内容）· [节点里的学生](./canon/narrative/节点里的学生.md)（每个节点里九人各做什么）· [学生群像](./canon/narrative/学生群像.md) · [反派与要角](./canon/narrative/反派与要角.md) · [常驻NPC](./canon/narrative/常驻NPC.md) |
 | 玩法与系统 | [玩法定位](./canon/gameplay/玩法定位.md)（总纲）· [时间与经营](./canon/gameplay/时间与经营.md) · [角色与成长](./canon/gameplay/角色与成长.md) · [战斗与关卡](./canon/gameplay/战斗与关卡.md)。系统细化见[系统文档](./design/README.md) |
 | 美术与文案 | [像素绘制原则](./production/像素绘制原则.md)（通用像素方法，含角色逐帧交付）· [场景绘制约定](./production/场景绘制约定.md)（俯视投影、瓦片拼接、侧视背景与动态水）· [文案写作规范](./production/文案写作规范.md) |
 | 学习与排错 | [C# 学习](./reference/学习CSharp-Java程序员向.md) · [踩坑记录](./reference/踩坑记录.md) |
