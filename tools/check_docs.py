@@ -185,6 +185,15 @@ LEDGER_LINK_RE = re.compile(
 # 判成过期指针 —— 实测第一次跑就撞到这一处。捕获组 1 是编号本身。
 ISSUE_ID_TICKED_RE = re.compile(r"`((?:GP|NR|UI|ART|ENG|DOC)-\d+)`")
 
+# ── 内容规模基准表的「谁在等它」那一列 ───────────────────────────────
+# 为什么需要这条：全库有两处按类型点名内容 —— 基准表给每一类定起步量，而 `ENG-5`
+# 那份「要外置的内容类型」名单点名另一批。两份的行对不上时，差集里那几类**既没有
+# 清单也没有任何编号在等**，而那件事原先没有任何东西查得出来：断链检查为真（它没
+# 链接可查）、`check_issue_ids` 也为真（它只管引到的编号存不存在，管不了该引却没引）。
+# 实测第一次核对撞到七类：技能书、知识书、宝物副词条候选池、家畜、鱼、料理配方、设备。
+BASELINE_REL = "canon/gameplay/玩法定位.md"
+BASELINE_HEADING = "## 内容规模基准"
+
 # ── 行尾（ENG-9）──────────────────────────────────────────────────────
 # 策略本身不在这里复述：`.gitattributes` 是行尾策略的唯一权威源，在 Python 里再写
 # 一份 glob 表就是第二处会漂移的说法。改了 `.gitattributes`，本检查自动跟着变。
@@ -1008,6 +1017,61 @@ def check_closed_issue_refs(docs: list[Doc], rep: Report) -> None:
              f"在 {'／'.join(CLOSED_REF_SCOPE)} 下检查 {checked} 处编号引用")
 
 
+def check_content_baseline_owners(docs: list[Doc], rep: Report) -> int:
+    """内容规模基准表的每一行都要有一个台账编号在等它，返回核过的行数。
+
+    **覆盖量为零一律判失败。** 这条检查靠节标题与表格形状定位，两者都会被改动
+    悄悄改坏；坏了之后它会静默变成空转，而一个空转的守卫比没有守卫更坏 —— 它让
+    人以为漏账被拦住了。所以「一行都没核到」与「某一行没人接」判成同一类失败。
+    """
+    doc = next((d for d in docs if d.rel == BASELINE_REL), None)
+    if doc is None:
+        rep.fail(BASELINE_REL, "找不到内容规模基准所在的那份正典，"
+                               "这一条**没有执行**（不是通过）")
+        return 0
+
+    body = strip_fenced(doc.text)
+    start = body.find(BASELINE_HEADING)
+    if start < 0:
+        rep.fail(doc.rel, f"找不到「{BASELINE_HEADING.lstrip('# ')}」那一节，"
+                          "这一条**没有执行** —— 改了那个节名就要连着改这条守卫")
+        return 0
+
+    nxt = body.find("\n## ", start + len(BASELINE_HEADING))
+    section = body[start:] if nxt < 0 else body[start:nxt]
+
+    ledger = next((d for d in docs if d.rel == LEDGER_REL), None)
+    defined = set(LEDGER_ROW_ID_RE.findall(ledger.text)) if ledger else set()
+
+    checked = 0
+    for raw in section.splitlines():
+        line = raw.strip()
+        if not line.startswith("|") or set(line) <= set("|-: "):
+            continue                        # 不是表格行，或者是那条分隔线
+        cells = [c.strip() for c in line.strip("|").split("|")]
+        if not cells or cells[0] == "内容":
+            continue                        # 表头
+        checked += 1
+        if len(cells) < 4:
+            rep.fail(doc.rel, f"内容规模基准「{cells[0]}」那一行只有 {len(cells)} 列，"
+                              "「谁在等它」那一列缺了")
+            continue
+        owners = ISSUE_ID_TICKED_RE.findall(cells[-1])
+        if not owners:
+            rep.fail(doc.rel, f"内容规模基准「{cells[0]}」那一行的「谁在等它」里没有"
+                              "反引号包住的台账编号 —— 定了量却没人接的内容会静默掉地")
+            continue
+        for got in owners:
+            if got not in defined:
+                rep.fail(doc.rel, f"内容规模基准「{cells[0]}」那一行指的 `{got}` "
+                                  f"在 {LEDGER_REL} 里不存在")
+
+    if checked == 0:
+        rep.fail(doc.rel, "内容规模基准表一行都没核到，说明节标题或表格形状变了 —— "
+                          "这一条**没有执行**，不是通过")
+    return checked
+
+
 def check_reachable(docs: list[Doc], rep: Report) -> None:
     """从 README.md 出发能否走到每份非归档文档（WORKFLOW §6 入口可达）。"""
     by_rel = {d.rel: d for d in docs}
@@ -1165,6 +1229,8 @@ def main() -> int:
     check_single_ledger(all_docs, rep)
     check_issue_ids(all_docs, rep)
     check_closed_issue_refs(all_docs, rep)
+    baseline_rows = check_content_baseline_owners(all_docs, rep)
+    rep.note(f"内容规模基准覆盖量：核了 {baseline_rows} 行的「谁在等它」")
     check_reachable(all_docs, rep)
     check_section_refs(all_docs, rep)
     check_system_upstream(all_docs, rep)
