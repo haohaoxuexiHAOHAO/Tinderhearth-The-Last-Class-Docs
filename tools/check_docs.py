@@ -111,7 +111,14 @@ MERMAID_KEYWORD_RE = re.compile(
     re.IGNORECASE)
 # 连线的各种写法。切开它就得到两头的节点。**必须先切连线再找括号** ——
 # 否则箭头那个 `>` 会被当成节点形状的开括号，把半行文字吞进标签里（踩过）。
-MERMAID_ARROW_RE = re.compile(r"<?-{2,}[->ox]?|<?={2,}[=>]?|\.{2,}->?|--[ox]")
+#
+# **虚线那几种要单独列，而且排在实线之前**（`DOC-128`）。带文字的虚线写成
+# `A -. 文字 .-> B`，两半分别是 `-.`（一个连字符加一个点）与 `.->`（一个点加箭头）——
+# 两半都不满足「2 个以上连字符」或「2 个以上点」，于是整行一个连线都切不出来，
+# 结果**整行被当成一个节点标签**去正文里找，必报「找不到」。实测撞过一次，而报错
+# 文案会把人引向「改正文」这条错路。排在前面是因为交替取最左最先匹配的那一支。
+MERMAID_ARROW_RE = re.compile(
+    r"-\.-+[->ox]?|-\.|\.-+[->ox]?|<?-{2,}[->ox]?|<?={2,}[=>]?|\.{2,}->?|--[ox]")
 # 节点里的显示文字：`A["文字"]`、`B(文字)`、`C{文字}`、`D[[文字]]` 都算。
 # 开括号里刻意不含 `>`：Mermaid 那个 `id>文字]` 的形状本库不用，而放它进来会与箭头打架。
 MERMAID_BRACKET_RE = re.compile(r"[\[\(\{]{1,2}\s*\"?(.*?)\"?\s*[\]\)\}]{1,2}")
@@ -120,6 +127,13 @@ MERMAID_NODE_RE = re.compile(
     r"([A-Za-z0-9_\u4e00-\u9fff]+)\s*[\[\(\{]{1,2}\s*\"?(.*?)\"?\s*[\]\)\}]{1,2}")
 # 连线上的文字：`-->|文字|`。
 MERMAID_PIPE_RE = re.compile(r"\|([^|]+)\|")
+# 连线上的文字还有第二种写法：**夹在箭头两半中间**（`-. 文字 .->`、`== 文字 ==>`、
+# `-- 文字 -->`）。它与管道那种是同一件事，所以同样**不在守卫的判定面内**（原句在
+# SYSTEM 模板里）—— 不剥掉的话，切完连线它会变成中间那一段，被当成一个节点标签。
+# 中间那一组刻意不含连线用的那几个字符，所以 `-->`、`-.->`、`==>` 这些无文字的写法
+# 匹配不上、不会被误剥。粗线那一种在 `DOC-128` 之前就已经这样坏着，同一条修法一起收。
+MERMAID_MIDTEXT_RE = re.compile(
+    r"(-\.|={2,}|-{2,})([^-=.|\[\]{}()<>]+?)(\.-+>?|={2,}>?|-{2,}>?)")
 
 # ── 句长（FR-20）──────────────────────────────────────────────────────
 # **上限的家就是下面这一行**，模板、PRD 与台账都只说「有上限」、不复述这个数。
@@ -196,6 +210,9 @@ LEDGER_NOTE_LIMIT = 500
 # 只判长期权威文档。台账自己是状态的家；`archive/` 与已接受的 ADR 不许用今天的说法
 # 改写；`spec/` 下是过程文件，会随需求归档走掉。
 CLOSED_REF_SCOPE = ("canon/", "design/")
+# 域表备注里那个「卡在」标签，取它到行尾（也就是那一格的余下部分）。判定面为什么
+# 只收这一格，理由在 `check_ledger_blockers` 的文档字符串里。
+LEDGER_BLOCKER_RE = re.compile(r"\*\*卡在\*\*：(.*)$")
 # 唯一的放过形式：`[`X`](…/spec/issues/README.md)`。捕获组 1 是编号本身的起始位置。
 LEDGER_LINK_RE = re.compile(
     r"\[`((?:GP|NR|UI|ART|ENG|DOC)-\d+)`\]\([^)]*spec/issues/README\.md\)")
@@ -651,6 +668,7 @@ def mermaid_labels(body: list[str]) -> list[str]:
         if MERMAID_KEYWORD_RE.match(line):
             continue
         line = MERMAID_PIPE_RE.sub(" ", line)   # 连线文字不判，见上面的理由
+        line = MERMAID_MIDTEXT_RE.sub(r"\1 \3", line)   # 夹在箭头两半中间那种，同上
         for seg in MERMAID_ARROW_RE.split(line):
             seg = seg.strip()
             if not seg:
@@ -826,8 +844,13 @@ def check_system_upstream(docs: list[Doc], rep: Report) -> None:
 
     没有正典上游的规格是孤岛 —— 它在替正典做决定，而权威层级说它不能。
     目标为空时判失败而不是跳过：一份都没有，说明体裁判定在空转。
+
+    **归档件排除在外**，与 `check_longlived_home` 和 `check_front_matter` 同一个排除法：
+    归档件按定义不该再被正典引着（正典引 archive/ 要标「历史背景·非依据」），所以对它
+    要求正典上游是自相矛盾的 —— 而归档件只读，报出来也改不掉。
     """
-    systems = [d for d in docs if d.meta.get("type") in LONGLIVED_TYPES and not d.is_template]
+    systems = [d for d in docs
+               if d.meta.get("type") in LONGLIVED_TYPES and not d.is_template and not d.in_archive]
     if not systems:
         rep.fail("长期规格上游守卫", f"一份 {sorted(LONGLIVED_TYPES)} 的文档都没检到，"
                                   f"这一轮**没有执行**")
@@ -1054,6 +1077,52 @@ def check_closed_issue_refs(docs: list[Doc], rep: Report) -> None:
              f"在 {'／'.join(CLOSED_REF_SCOPE)} 下检查 {checked} 处编号引用")
 
 
+def check_ledger_blockers(docs: list[Doc], rep: Report) -> int:
+    """还开着的条目，它的「卡在」那一格里不许出现已关闭的编号（`DOC-108`）。
+
+    **为什么判定面只收这一格。** 台账整页都在引已关闭的编号，而绝大多数是合法的
+    历史叙述（「那一轮记账」「关闭时未交的那几项归 X」「同批带走 X」）—— 实测备注
+    其余部分有 83 处这样的引用，而「卡在」那一格只有 1 处，且那 1 处落在一行**已经
+    关闭**的条目上。所以判据是两条一起：**只看还开着的行，只看「卡在」那一格**。
+    按措辞分（「卡在」「依赖」「跟着…走」都算）会把那 83 处一并卷进来，而误报多的
+    门禁会被绕过；按整页判更是如此。
+
+    这一格的语义只有一个：**什么挡着它**。挡着一件还没做的事的，只能是另一件还没
+    做完的事 —— 所以「开着的行 ＋ 卡在 ＋ 已关闭编号」是一个真不变式，而不是措辞偏好。
+    返回核过的格数；**零格一律判失败**，否则表格形状一变它就静默空转。
+    """
+    ledger = next((d for d in docs if d.rel == LEDGER_REL), None)
+    if ledger is None:
+        return 0                    # check_single_ledger 已经报过缺失
+    closed = closed_issue_ids(ledger.text)
+    split = ledger.text.find(ARCHIVED_HEADING)
+    open_part = ledger.text if split < 0 else ledger.text[:split]
+
+    checked = 0
+    for m in LEDGER_ROW_RE.finditer(open_part):
+        note = m.group(2)
+        if note.strip().lstrip("*").strip().startswith(STATUS_CLOSED):
+            continue                # 已关闭的行，它那一格是历史
+        blocker = LEDGER_BLOCKER_RE.search(note)
+        if blocker is None:
+            continue
+        checked += 1
+        cell = blocker.group(1)
+        allowed = {mm.start(1) for mm in LEDGER_LINK_RE.finditer(cell)}
+        for mm in ISSUE_ID_TICKED_RE.finditer(cell):
+            if mm.group(1) not in closed or mm.start(1) in allowed:
+                continue
+            line_no = ledger.text[: m.start()].count("\n") + 1
+            rep.fail(ledger.rel, f"L{line_no} `{m.group(1)}` 还开着，而它的「卡在」"
+                                 f"那一格写着 `{mm.group(1)}` —— 那个编号已经关闭，"
+                                 f"所以它挡不住任何东西（改成现在真正挡着它的那个，"
+                                 f"或者写「不卡任何人」）")
+    if not checked:
+        rep.fail(LEDGER_REL, "一格「卡在」都没检到，这一条**没有执行**（不是通过）"
+                             "—— 域表的行形状或那个标签的写法变了")
+    return checked
+
+
 def check_content_baseline_owners(docs: list[Doc], rep: Report) -> int:
     """内容规模基准表的每一行都要有一个台账编号在等它，返回核过的行数。
 
@@ -1151,29 +1220,39 @@ def check_ledger_note_length(docs: list[Doc], rep: Report) -> int:
 def heading_body(text: str, section: str) -> str | None:
     """取「某一节」的正文：从那个标题下一行到下一个同级或更高级标题为止。
 
-    引用可能指的是**行首加粗小标题**而不是真标题（`section_anchors` 两种都认）。
-    那一种解析到**它所在的那个标题节**：加粗小标题没有自己的结束位置，硬猜一个
-    会让指纹随邻居的改动乱动，而按外层标题钉只是粗一点、不会错。
+    引用可能指的是**行首加粗小标题**而不是真标题（`section_anchors` 两种都认），
+    **但真标题优先**（理由见下面第一遍那段注释）。加粗小标题那一种解析到**它所在的
+    那个标题节**：它没有自己的结束位置，硬猜一个会让指纹随邻居的改动乱动，而按外层
+    标题钉只是粗一点、不会错。
     """
     lines = text.splitlines()
-    start = level = None
+    # 第一遍只看真标题。**真标题优先**，理由是实测：原先两种混在一趟里按行序取最先命中，
+    # 而加粗小标题是拿**整行**去比的 —— 一行「- **别的小标题**：……见[某文档 · 这一节](…)」
+    # 里出现过这个节名就会命中，于是真标题被前面某一行的正文抢走。实测 1636 处引用里有
+    # 341 处锚在错的节上，改成真标题优先修掉其中 318 处，且**没有一处因此解析不到**。
+    for i, line in enumerate(lines):
+        if not line.startswith("#"):
+            continue
+        name = line.lstrip("#").replace("**", "").replace("`", "").strip()
+        if section in name:
+            return _section_body(lines, i, len(line) - len(line.lstrip("#")))
+    # 第二遍才回落到加粗小标题，比法一个字不改（仍按整行、仍取最先命中）。
+    # 没改成「整行相等」是因为那会让 15 处现在解析得到的引用变成解析不到，
+    # 而它们指的都是真实存在的小标题 —— 收紧比法要连着改那 15 处的措辞，是另一件事。
+    cur_h = cur_lv = None
     for i, line in enumerate(lines):
         if line.startswith("#"):
-            name = line.lstrip("#").replace("**", "").replace("`", "").strip()
-            lv = len(line) - len(line.lstrip("#"))
-            if section in name:
-                start, level = i, lv
-                break
-            cur_h, cur_lv = i, lv
-        elif start is None and BOLD_LEAD_RE.match(line):
-            if section in line.replace("**", "").replace("`", "").strip():
-                try:
-                    start, level = cur_h, cur_lv       # 落到它所在的那个标题节
-                except NameError:
-                    return None
-                break
-    if start is None:
-        return None
+            cur_h, cur_lv = i, len(line) - len(line.lstrip("#"))
+            continue
+        if BOLD_LEAD_RE.match(line) and section in line.replace("**", "").replace("`", "").strip():
+            if cur_h is None:
+                return None
+            return _section_body(lines, cur_h, cur_lv)   # 落到它所在的那个标题节
+    return None
+
+
+def _section_body(lines: list[str], start: int, level: int) -> str:
+    """从某个标题那一行起，取到下一个同级或更高级标题为止的正文。"""
     body = []
     for line in lines[start + 1:]:
         if line.startswith("#"):
@@ -1424,6 +1503,8 @@ def main() -> int:
     check_closed_issue_refs(all_docs, rep)
     baseline_rows = check_content_baseline_owners(all_docs, rep)
     rep.note(f"内容规模基准覆盖量：核了 {baseline_rows} 行的「谁在等它」")
+    blocker_cells = check_ledger_blockers(all_docs, rep)
+    rep.note(f"卡点覆盖量：核了 {blocker_cells} 格「卡在」（只判还开着的行）")
     note_rows = check_ledger_note_length(all_docs, rep)
     rep.note(f"台账备注覆盖量：量 {note_rows} 行域表备注（上限 {LEDGER_NOTE_LIMIT} 字）")
     pinned = check_upstream_pins(all_docs, rep)
