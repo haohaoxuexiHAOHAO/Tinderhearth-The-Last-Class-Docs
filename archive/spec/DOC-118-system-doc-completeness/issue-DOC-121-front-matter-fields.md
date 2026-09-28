@@ -1,11 +1,13 @@
 ---
 type: workdoc
-status: draft
+status: archived
 owner: project
 last_verified: 2026-09-28
 ---
 
 # DOC-121：系统文档与跨系统模型删掉文件头那两个字段
+
+> **只读历史归档，不得作为现行依据。** 现行事实在[`状态效果系统` · 谁在等这份载体，各要哪一档](../../../design/状态效果系统.md)、[`角色动作状态系统` · 谁把动作递进来，动作机答什么](../../../design/角色动作状态系统.md)、[SYSTEM 模板](../../../templates/SYSTEM.md)那段文件头示例与 `tools/check_docs.py` 里那条按体裁分的判定；状态在[待办台账](../../../spec/issues/README.md)。
 
 ## 目标
 
@@ -13,11 +15,11 @@ last_verified: 2026-09-28
 
 ## 来源
 
-PRD：[`spec/prd-system-doc-completeness.md`](../prd-system-doc-completeness.md) 的 `US-005`，作者已确认走删字段这条路。
+PRD：[`prd.md`](./prd.md) 的 `US-005`，走删字段这条路。
 
-**立项依据**（实测）：`last_verified` 在多数系统文档里比 git 最后一次改动它的日期早，最旧的一份差了半个多月；`status` 几乎全是 `draft`，而[待办台账](./README.md)逐条写着「设计已交付」。检查器只验 `last_verified` 的格式，不验新鲜度 —— 所以这两个字段现在给的是假信心。
+**立项依据**（实测）：`last_verified` 在多数系统文档里比 git 最后一次改动它的日期早，最旧的一份差了半个多月；`status` 几乎全是 `draft`，而[待办台账](../../../README.md)逐条写着「设计已交付」。检查器只验 `last_verified` 的格式，不验新鲜度 —— 所以这两个字段现在给的是假信心。
 
-**为什么删而不是加守卫**：`last_verified` 要答「这一份还准不准」，而那个答案在上游指纹那套机制里（改正典某一节之后检查器会报要复核，`--repin` 重录，指纹进 git）；`status` 要答「做到哪一步了」，而那是状态、家在台账一处（[WORKFLOW §3](../../WORKFLOW.md)）。加守卫要求每次改文档都顺手改一行日期，而那类纪律靠不住。
+**为什么删而不是加守卫**：`last_verified` 要答「这一份还准不准」，而那个答案在上游指纹那套机制里（改正典某一节之后检查器会报要复核，`--repin` 重录，指纹进 git）；`status` 要答「做到哪一步了」，而那是状态、家在台账一处（[WORKFLOW §3](../../../WORKFLOW.md)）。加守卫要求每次改文档都顺手改一行日期，而那类纪律靠不住。
 
 ## 依赖
 
@@ -29,7 +31,7 @@ PRD：[`spec/prd-system-doc-completeness.md`](../prd-system-doc-completeness.md)
 - [x] `tools/check_docs.py` 按体裁分别要求文件头字段：这两个体裁要求它们**不在**，其余体裁照旧要求它们在。
 - [x] 那两条旧校验（`status` 允许值、`last_verified` 日期格式）对这两个体裁不再适用，**FAIL 文案一起改** —— 留着判一个不存在的字段会让每一份都报错。
 - [x] 构造一份带着这两个字段的系统文档，检查器**报 FAIL**（挡它长回来的那条反证）。
-- [x] [SYSTEM 模板](../../templates/SYSTEM.md)里那段文件头示例跟着改。
+- [x] [SYSTEM 模板](../../../templates/SYSTEM.md)里那段文件头示例跟着改。
 - [x] **归档件那条 `status` 判定与 ADR 那条「`superseded` 必须同时写 `superseded_by`」一个字不改**（两处都是真机制，拿 `git diff` 作证）。
 - [x] 其余体裁（正典、ADR、制作规格、模板、台账、需求文档）**一份没动**。
 - [x] 按字段名搜两个仓加 `.kiro`，没有指着系统文档那两个字段的残留说法。
