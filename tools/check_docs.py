@@ -44,7 +44,18 @@ ROOT = Path(__file__).resolve().parent.parent
 # 留着一个没有规则支撑的判定比没有判定更糟 —— 它某天报错时，没人查得到依据。
 
 # ── 文件头允许值 ──────────────────────────────────────────────────────
-REQUIRED_KEYS = ("type", "status", "owner", "last_verified")
+REQUIRED_KEYS = ("type", "owner")
+# `status` 与 `last_verified` 只对长期规格之外的体裁必填，理由见下面 FORBIDDEN_KEYS。
+CONDITIONAL_KEYS = ("status", "last_verified")
+# 长期规格（system／model）**不许带**这两个字段，而不只是「可以不带」。
+# 为什么删：`status` 答的是「做到哪一步了」，那是状态、家在待办台账一处（WORKFLOW §3）；
+# `last_verified` 答的是「这一份还准不准」，而那个答案在上游指纹那套机制里
+# （改正典某一节之后报「上游约束要复核」，复核完 `--repin` 重录，指纹进 git）。
+# 留着就是给同一件事开第二个家，而实测它们已经漂了：多数系统文档的 last_verified
+# 比 git 最后一次改动它的日期早，status 几乎全是 draft 而台账逐条写着「设计已交付」。
+# 为什么判「不许带」而不是「可以不带」：只把必填改成可选的话，下一份系统文档照着
+# 别处抄一遍文件头就又有了，而那不报错。
+FORBIDDEN_KEYS = ("status", "last_verified")
 # 没有 status 类型：动态状态不再单独成页，进度由 spec/ 下的 issue 勾选框承载。
 VALID_TYPES = {
     "index", "governance", "backlog", "canon", "design", "system", "model",
@@ -391,13 +402,31 @@ def count_eol_violations(want: str, data: bytes) -> tuple[int, int]:
 
 
 def check_front_matter(doc: Doc, rep: Report) -> None:
+    """文件头按体裁分：长期规格（system／model）不带 status 与 last_verified，其余都要带。
+
+    模板是人读的权威源；这里判的两件事在 templates/SYSTEM.md 的文件头示例里也写着。
+    """
     if not doc.meta:
-        rep.fail(doc.rel, "缺少 YAML 文件头（必须以 --- 包住的 type/status/owner/last_verified 开头）")
+        rep.fail(doc.rel, "缺少 YAML 文件头（必须以 --- 包住的 type/owner 开头；"
+                          "长期规格之外的体裁还要 status/last_verified）")
         return
+    t, s = doc.meta.get("type"), doc.meta.get("status")
+    # 排除归档件：`check_archive_boundary` 要求 archive/ 下的 status 是 archived 或
+    # superseded，所以一份被归档的长期规格会同时撞上两条守卫 —— 而归档件只读，改不了。
+    # 与 `check_longlived_home` 同一个排除法。
+    longlived = t in LONGLIVED_TYPES and not doc.is_template and not doc.in_archive
     for key in REQUIRED_KEYS:
         if key not in doc.meta:
             rep.fail(doc.rel, f"文件头缺少必填字段 `{key}`")
-    t, s = doc.meta.get("type"), doc.meta.get("status")
+    if longlived:
+        for key in FORBIDDEN_KEYS:
+            if key in doc.meta:
+                rep.fail(doc.rel, f"`{LONGLIVED_TYPES[t]}`文档的文件头不许带 `{key}` —— "
+                                  f"状态的家是待办台账，「还准不准」的家是上游指纹；删掉这一行")
+    else:
+        for key in CONDITIONAL_KEYS:
+            if key not in doc.meta:
+                rep.fail(doc.rel, f"文件头缺少必填字段 `{key}`")
     if t and t not in VALID_TYPES:
         rep.fail(doc.rel, f"`type: {t}` 不在允许值内：{sorted(VALID_TYPES)}")
     if s and s not in VALID_STATUS:

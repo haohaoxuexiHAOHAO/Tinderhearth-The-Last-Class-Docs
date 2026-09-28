@@ -20,11 +20,11 @@ last_verified: 2026-09-20
 
 ```yaml
 type: system
-status: draft
 owner: project
-last_verified: YYYY-MM-DD
 upstream: canon/gameplay/<哪份正典>.md
 ```
+
+**这两个体裁的文件头不许带 `status` 与 `last_verified`，而不只是「可以不带」。** 理由是它们答的问题各自已经有家：`status` 答「做到哪一步了」，那是状态、家在[待办台账](../spec/issues/README.md)一处（[WORKFLOW §3](../WORKFLOW.md)）；`last_verified` 答「这一份还准不准」，而那个答案在**上游指纹**那套机制里 —— 改动正典某一节之后 `python tools/check_docs.py` 会报「引那一节的上游约束要复核」，复核完 `--repin` 重录，指纹进 git，所以「我看过了」留得下痕迹。**这条有守卫**：带了就报错。其余体裁（正典、ADR、制作规格、模板、台账、需求文档）照旧要带这两个字段 —— `status` 在 ADR 与归档件那边挂着真机制。
 
 # 标题写成一句结论，不是名词短语
 
