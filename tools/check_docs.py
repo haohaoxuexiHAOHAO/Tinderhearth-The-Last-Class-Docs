@@ -18,7 +18,7 @@
     [FAIL] 必须修复；[WARN] 不阻断。
 
 判什么：文件头、断链、归档边界、单一台账、编号引用得出来、入口可达、工作区行尾，
-外加体裁归位与四条引用纪律（ADR-0010 与 WORKFLOW §3.5）—— 后面这些的共同点是
+外加体裁归位、四条引用纪律（ADR-0010 与 WORKFLOW §3.5）与退役名 —— 后面这些的共同点是
 **它们过期时链接仍然有效**，所以非得专门判一次才查得出来。
 """
 
@@ -183,6 +183,18 @@ CITE_ARCHIVE_MARK = "历史背景·非依据"
 # WORKFLOW §4 的原文是「归档不得被正典/设计/制作/ADR 当作现行依据」——
 # README、WORKFLOW、索引指向归档属于导航，不是拿它当依据，不该被拦。
 CITE_ARCHIVE_ENFORCED_TYPES = {"canon", "design", "production", "adr"}
+
+# ── 退役名（角色改名之后的旧名）────────────────────────────────────────
+# 为什么这条守卫非有不可：人名是**标签**，按定义要在几十处散文里出现，收不成
+# 「一个家」。所以它不适用 WORKFLOW §3 那条「事实只许有一个家」的防法 —— 旧名漏
+# 在某一份活文档里，链接照样有效、检查器照样过，只有读到那一页的人会被误导。
+# 改成「旧名出现就报错」之后，漏一处从查不出来的错变成当场报的错。
+#
+# **它对以后每一次改名都有效**，不是这一次的一锤子活：改名的人只要往表里加一行。
+RETIRED_NAMES_REL = "tools/retired-names.json"
+# 归档只反映当时状态，改它等于重写历史，所以豁免。
+# 必须在活文档散文里提到旧名时（例如某次改名的需求文档），同行写上这个标记。
+RETIRED_NAME_MARK = "已退役"
 
 # 唯一待办台账（WORKFLOW §1）。也按相对路径索引。
 LEDGER_REL = "spec/issues/README.md"
@@ -482,6 +494,53 @@ def check_archive_boundary(doc: Doc, rep: Report) -> None:
     for i, line in enumerate(doc.text.splitlines(), 1):
         if re.search(r"\]\([^)]*archive/", line) and CITE_ARCHIVE_MARK not in line:
             rep.fail(doc.rel, f"L{i} 引用 archive/ 必须同行标注「{CITE_ARCHIVE_MARK}」")
+
+
+def retired_names(rep: Report) -> dict[str, str] | None:
+    """读退役名表，返回「旧名 → 现名」。读不出来返回 None 并已记 FAIL。
+
+    刻意不在读不出来时静默返回空表 —— 那会让这条守卫悄悄空转，而空转的守卫比没有
+    守卫更糟：它某天该报错时不报，没人查得出来。
+    """
+    path = ROOT / RETIRED_NAMES_REL
+    if not path.is_file():
+        rep.fail(RETIRED_NAMES_REL, "退役名表缺失，这条守卫无从判定")
+        return None
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError) as exc:
+        rep.fail(RETIRED_NAMES_REL, f"退役名表读不出来：{exc}")
+        return None
+    table = data.get("退役名")
+    if not isinstance(table, dict):
+        rep.fail(RETIRED_NAMES_REL, "退役名表必须有一个「退役名」对象（旧名 → 现名）")
+        return None
+    return {str(old): str(new) for old, new in table.items()}
+
+
+def check_retired_names(docs: list[Doc], rep: Report) -> tuple[int, int]:
+    """活文档里不许出现退役的角色名，返回（扫过的文档数，表里的旧名数）。
+
+    为什么要专门判一次：改名之后旧名留在某一份活文档里，**链接仍然有效、别的检查
+    全过**，只有读到那一页的人会被误导 —— 这正是「过期时查不出来」的那一类。
+    """
+    table = retired_names(rep)
+    if table is None:
+        return 0, 0
+    scanned = 0
+    for doc in docs:
+        if doc.in_archive:      # 归档只反映当时状态，改它等于重写历史
+            continue
+        scanned += 1
+        for i, line in enumerate(doc.text.splitlines(), 1):
+            if RETIRED_NAME_MARK in line:
+                continue
+            for old, new in table.items():
+                if old in line:
+                    rep.fail(doc.rel, f"L{i} 出现退役名「{old}」，现行名是「{new}」"
+                                      f"（旧名清单与名字的家见 `{RETIRED_NAMES_REL}`；"
+                                      f"确实要提旧名就同行标注「{RETIRED_NAME_MARK}」）")
+    return scanned, len(table)
 
 
 def check_genre_home(doc: Doc, rep: Report) -> None:
@@ -1501,6 +1560,9 @@ def main() -> int:
     check_single_ledger(all_docs, rep)
     check_issue_ids(all_docs, rep)
     check_closed_issue_refs(all_docs, rep)
+    retired_scanned, retired_count = check_retired_names(all_docs, rep)
+    rep.note(f"退役名覆盖量：拿 {retired_count} 个旧名扫了 {retired_scanned} 份活文档"
+             f"（archive/ 豁免）")
     baseline_rows = check_content_baseline_owners(all_docs, rep)
     rep.note(f"内容规模基准覆盖量：核了 {baseline_rows} 行的「谁在等它」")
     blocker_cells = check_ledger_blockers(all_docs, rep)
