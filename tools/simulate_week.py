@@ -104,6 +104,7 @@ class Check:
     ok: bool
     detail: str
     blame: str = ""     # 不成立时该改哪个参数
+    pending: bool = False   # 判据立好了、但要等值才判得到（见 check_pending）
 
 
 CHECKS: list[Check] = []
@@ -120,6 +121,23 @@ def derive(key: str, value: float) -> float:
 
 def check(tag: str, name: str, ok: bool, detail: str, blame: str = "") -> None:
     CHECKS.append(Check(tag, name, ok, detail, blame))
+
+
+PENDING_MARK = "等值未判"
+
+
+def check_pending(tag: str, name: str, detail: str, blame: str = "") -> None:
+    """登记一条**判据已经立好、但要等值才判得到数**的判定（`GP-110`）。
+
+    三种处置里取的是第三种，前两种各有具体后果：**判失败**会让这个入口长期红着，而长期
+    红着的门禁训练人忽略红字 —— 那比没有判定更坏；**静默跳过**更坏，它让「跑过了、没报错」
+    看起来像通过，而那正是「退出码 0 不等于成功」要挡的那种错觉。
+
+    所以第三种：**不计入「判得到的那几条都通过」，在摘要里单独点名，退出码仍是 0。**
+    结论在摘要那几行，不在退出码。等值进来之后把这里改成 `check`，那一条就自己开始判。
+    """
+    CHECKS.append(Check(tag, f"{name}（{PENDING_MARK}）", True,
+                        f"{detail}。**这一条没判**：缺值", blame, pending=True))
 
 
 def check_cross_plan(partial: bool, tag: str, name: str, ok: bool,
@@ -690,6 +708,49 @@ def check_premises(p: Params, sims: dict[str, SimResult], sheets: dict) -> None:
         "farm.crops / farm.starting_plot_cells / economy.mission_reward_copper",
         "出征那一侧按收入最高的那份计划算，只跑一份时这个基准是任意的")
 
+    # 附加：渠道之间那两条 —— 每条渠道在它声明的那一维上取到最大值（C13），且不存在一条
+    # 渠道在全部维上都不劣于另一条（C14）。它们换掉的是原先那条一把尺子排序的约束，取舍与
+    # 理由在正典（时间与经营 · 生产）。
+    #
+    # **在册有哪几维、各自量哪个现成的量，家在 design/生产系统.md，本脚本不复述那张表** ——
+    # 复述一份就多一个会过期的家。本脚本只算「每点精力的钱」那一维的尺子：种植那一侧现在
+    # 就算得出来，而其余渠道的产量与耗时一个值都没有（登记在数值模型的尚未给值表）。
+    #
+    # **设备不进这两条。** 添料不占时间与精力，所以「每点精力的钱」对它是零除 —— 原先那条
+    # 约束把设备列进去的那一半从来就判不到东西。它的对手是同一条渠道的人工，压着它的是
+    # 「产量必须低于同渠道人工」，那一条不在本表。
+    #
+    # **结构那一半也不在这里**：在册、不撞维、有主是载入校验判的数据形状（生产系统的验收），
+    # 本脚本判的是数。两侧都要有，缺哪一侧那一半就没人看着。
+    planting_vigor = p("assignments.planting.vigor")
+    planting_plots = p("assignments.planting.plots_tended")
+
+    def planting_money_per_vigor(crop_name: str) -> float:
+        """一次派工照料那几格、走到收获，净收入除以它耗的精力。
+
+        与 C12 那一侧刻意不同：这里按 `sell_copper`（那就是基础价）折钱，不把自产的粮食
+        折成买价 —— 这一维量的是「这条渠道每点精力换得到多少钱」，而不是「自己吃掉的粮
+        值多少」。C12 量的是两条路之间的收入比，口径各自写在各自那一条里。
+        """
+        c = crops[crop_name]
+        net = (c["yield_per_cell"] * c["sell_copper"] - c["seed_copper"]) * planting_plots
+        return net / planting_vigor
+
+    ruler_crop = max(crops, key=planting_money_per_vigor)
+    ruler = planting_money_per_vigor(ruler_crop)
+    check_pending(
+        "C13", "每条渠道在它声明的那一维上取到那一维的最大值（并列算取到）",
+        f"「每点精力的钱」那一维的尺子算得出来：一次 planting 派工耗 {planting_vigor}EN "
+        f"照料 {planting_plots} 格，按最赚的「{ruler_crop}」是 {ruler:.0f} 铜每点精力"
+        f"（产出按 sell_copper 折钱、已扣种子）。种植声明的正是这一维，所以这把尺子就是"
+        f"它要守住的那条线；而开荒、畜牧、钓鱼、加工、烹饪各自声明的那几维一个值都没有",
+        "assignments.planting / farm.crops；缺的那批登记在数值模型的尚未给值表")
+    check_pending(
+        "C14", "不存在一条渠道在全部维上都不劣于另一条（不许严格支配）",
+        "要两两比全部在册的维，所以它比 C13 更晚才判得到：C13 只要各渠道在自己那一维上的"
+        "值，本条要每条渠道在每一维上都有值。现在只有「每点精力的钱」那一维有一侧的值",
+        "各渠道的产量与耗时（数值模型的尚未给值表）")
+
     # 附加：容量必须造成一次取舍，但不频繁被迫丢弃
     kinds = p("capacity.expected_sortie_item_kinds")
     slots = p("capacity.backpack_slots_by_level")[0]
@@ -971,30 +1032,47 @@ def main() -> int:
     premises = [c for c in CHECKS if c.tag.startswith("P")]
     extra = [c for c in CHECKS if c.tag.startswith("C")]
     for c in CHECKS:
-        say(f"{'[OK]  ' if c.ok else '[FAIL]'} {c.tag} {c.name} —— {c.detail}")
-        if not c.ok and c.blame:
+        mark = "[..]  " if c.pending else ("[OK]  " if c.ok else "[FAIL]")
+        say(f"{mark} {c.tag} {c.name} —— {c.detail}")
+        if c.pending and c.blame:
+            say(f"       要判它先给这些值：{c.blame}")
+        elif not c.ok and c.blame:
             say(f"       该改的参数：{c.blame}")
 
     bad = [c.tag for c in CHECKS if not c.ok]
+    pending_tags = [c.tag for c in CHECKS if c.pending]
+    judged = [c for c in CHECKS if not c.pending]
     say("")
     claims_code = check_doc_claims(len(sims) < len(p("week_plan.plans")))
     # 前提数与判定数不是同一个数：正典给的是六条前提（P1–P6），而 P1 在这里拆成两个判定
     # （P1a 按份逐个判、P1b 判「至少两种成立」）。自报两个数，免得读者对着一个数以为有一处过期。
     premise_ids = {c.tag.rstrip("abcdefghijklmnopqrstuvwxyz") for c in premises}
     say(f"\n覆盖量：读了 {len(p.reads)} 个参数路径；判定 {len(premise_ids)} 条数值前提"
-        f"（拆成 {len(premises)} 个判定）+ {len(extra)} 条 PRD 附加约束；"
+        f"（拆成 {len(premises)} 个判定）+ {len(extra)} 条 PRD 附加约束"
+        f"{f'（其中 {len(pending_tags)} 条{PENDING_MARK}）' if pending_tags else ''}；"
         f"推演 {len(sims)} 份计划 × {len(next(iter(sims.values())).rows)} 天")
-    say(f"结果：{len(CHECKS) - len(bad)}/{len(CHECKS)} 条通过"
-        f"／{len(bad)} 条不成立{('：' + '、'.join(bad)) if bad else ''}")
+    say(f"结果：{len(judged) - len(bad)}/{len(judged)} 条判得到的通过"
+        f"／{len(bad)} 条不成立{('：' + '、'.join(bad)) if bad else ''}"
+        f"{f'；另有 {len(pending_tags)} 条{PENDING_MARK}：' + '、'.join(pending_tags)
+           if pending_tags else ''}")
     unjudged = [c.tag for c in CHECKS if "局部范围未判" in c.name]
-    failed = bool(bad) or claims_code != 0
-    if bad:
+    # 全部判定都是「等值未判」时这一趟等于空转，判失败 —— 与 check_doc 里那两处同一条纪律。
+    failed = bool(bad) or claims_code != 0 or not judged
+    if not judged:
+        say(f"[FAIL] 一条判得到的判定都没有（{len(pending_tags)} 条全是{PENDING_MARK}），"
+            f"这一趟等于空转")
+    elif bad:
         say("[FAIL] 有不成立的判定")
     elif claims_code:
         say("[FAIL] 判定全过，但设计文件正文抄的算出来的量已经过期")
     elif unjudged:
         say(f"[WARN] 只跑了 {len(sims)}/{len(p('week_plan.plans'))} 份计划，"
             f"{unjudged} 未判 —— 这不是一次完整判定，验收要不带 --plan 跑")
+    elif pending_tags:
+        say(f"[OK] 判得到的那几条都成立，正文与算出来的量也一致；"
+            f"**另有 {len(pending_tags)} 条{PENDING_MARK}（{'、'.join(pending_tags)}），"
+            f"它们不是通过** —— 要判它们得先给各渠道的产量与耗时"
+            f"（数值模型的尚未给值表）")
     else:
         say("[OK] 全部数值前提与附加约束都成立，正文与算出来的量也一致")
     say(f"日志 {flush_log().relative_to(ROOT)}")
