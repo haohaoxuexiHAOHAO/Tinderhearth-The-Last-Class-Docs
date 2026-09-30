@@ -1280,22 +1280,36 @@ def heading_body(text: str, section: str) -> str | None:
     """取「某一节」的正文：从那个标题下一行到下一个同级或更高级标题为止。
 
     引用可能指的是**行首加粗小标题**而不是真标题（`section_anchors` 两种都认），
-    **但真标题优先**（理由见下面第一遍那段注释）。加粗小标题那一种解析到**它所在的
+    **但真标题优先**（理由见下面那段注释）。加粗小标题那一种解析到**它所在的
     那个标题节**：它没有自己的结束位置，硬猜一个会让指纹随邻居的改动乱动，而按外层
     标题钉只是粗一点、不会错。
+
+    真标题里再分两趟：**先整名相等，再按子串而且跳过一级标题**（`DOC-132`）。只按子串时
+    短节名会被 H1 抢走 —— 实测「时间与经营 · 时间」里那个「时间」命中了 H1「火种 · 时间与
+    经营」，于是**那一节的指纹实际是整份文件的**，改文件任何一处都报它变过。过度触发比
+    漏报温和，但它会训练出「不看就 `--repin`」的习惯，而那正好废掉这条守卫；它还让同一节
+    因短名与全名各得一个键，于是「这一节有几个指纹」本身说不清。
+
+    **两条各挡一半**：整名相等挡不住「节名恰好是某个 H1 的子串、而文件里确实有同名节」
+    之外的情形，跳过 H1 才挡得住「文件里压根没有同名节」那一种 —— 而「文档 · 节名」按定义
+    指的是一节，不是整份文件，所以 H1 永远不该是它的答案。解析不到时返回 `None`，由
+    `check_section_refs` 去报节名失效，本函数不替它兜底。
     """
     lines = text.splitlines()
-    # 第一遍只看真标题。**真标题优先**，理由是实测：原先两种混在一趟里按行序取最先命中，
+    # 真标题优先，理由是实测：原先两种混在一趟里按行序取最先命中，
     # 而加粗小标题是拿**整行**去比的 —— 一行「- **别的小标题**：……见[某文档 · 这一节](…)」
     # 里出现过这个节名就会命中，于是真标题被前面某一行的正文抢走。实测 1636 处引用里有
     # 341 处锚在错的节上，改成真标题优先修掉其中 318 处，且**没有一处因此解析不到**。
-    for i, line in enumerate(lines):
-        if not line.startswith("#"):
-            continue
-        name = line.lstrip("#").replace("**", "").replace("`", "").strip()
-        if section in name:
-            return _section_body(lines, i, len(line) - len(line.lstrip("#")))
-    # 第二遍才回落到加粗小标题，比法一个字不改（仍按整行、仍取最先命中）。
+    reals = [(i, line.lstrip("#").replace("**", "").replace("`", "").strip(),
+              len(line) - len(line.lstrip("#")))
+             for i, line in enumerate(lines) if line.startswith("#")]
+    for i, name, level in reals:
+        if name == section:
+            return _section_body(lines, i, level)
+    for i, name, level in reals:
+        if level > 1 and section in name:
+            return _section_body(lines, i, level)
+    # 最后才回落到加粗小标题，比法一个字不改（仍按整行、仍取最先命中）。
     # 没改成「整行相等」是因为那会让 15 处现在解析得到的引用变成解析不到，
     # 而它们指的都是真实存在的小标题 —— 收紧比法要连着改那 15 处的措辞，是另一件事。
     cur_h = cur_lv = None
