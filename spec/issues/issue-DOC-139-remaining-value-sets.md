@@ -14,7 +14,7 @@ last_verified: 2026-09-30
 ## 来源
 
 - 本轮开头那次全库普查（[ADR-0025](../../decisions/ADR-0025-取值集的家由加一个的代价决定.md) 的判据就是从它归纳出来的）
-- 收口时（`DOC-138`）确认这批没被本轮覆盖 —— [`prd-extensible-lists`](../prd-extensible-lists.md) 只点名了其中几格
+- 收口时（`DOC-138`）确认这批没被那一轮覆盖 —— [`prd-extensible-lists`](../../archive/spec/DOC-135-extensible-lists/prd.md)（**历史背景·非依据**）只点名了其中几格
 
 **来源要写明**：这批**不是收口时另跑的一次核对**，所以逐处按判据定归属仍然是本条的活，不能拿普查结论直接当结论。
 
