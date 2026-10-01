@@ -1,11 +1,13 @@
 ---
 type: workdoc
-status: draft
+status: archived
 owner: project
-last_verified: 2026-09-30
+last_verified: 2026-10-01
 ---
 
 # UI-34：随身栏那条六格
+
+> **历史背景·非依据。只读归档件，不得作为现行依据。** 现行事实见同目录 [`prd.md`](./prd.md) 的「归档三问」；状态与剩余动作在[待办台账](../../../spec/issues/README.md)，不在本页。
 
 ## 目标
 
@@ -13,8 +15,8 @@ last_verified: 2026-09-30
 
 ## 来源
 
-- PRD：[`spec/prd-carry-slots.md`](../prd-carry-slots.md) 的 `US-001`、`US-002`、`US-006`
-- 上游：[那份键位提案](../../design/proposals/键鼠技能位挪到右手.md)里「数字键那一排空出来，刻意不补」
+- PRD：同目录 [`prd.md`](./prd.md) 的 `US-001`、`US-002`、`US-006`
+- 上游：[那份键位提案](../../../design/proposals/键鼠技能位挪到右手.md)里「数字键那一排空出来，刻意不补」
   那一节 —— 它为本条留了键位，原话是留给「将来真要一条快捷道具栏」
 
 ## 依赖

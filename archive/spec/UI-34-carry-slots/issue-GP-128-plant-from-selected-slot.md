@@ -1,11 +1,13 @@
 ---
 type: workdoc
-status: draft
+status: archived
 owner: project
-last_verified: 2026-09-30
+last_verified: 2026-10-01
 ---
 
 # GP-128：播种取随身栏选中那一格的种子
+
+> **历史背景·非依据。只读归档件，不得作为现行依据。** 现行事实见同目录 [`prd.md`](./prd.md) 的「归档三问」；状态与剩余动作在[待办台账](../../../spec/issues/README.md)，不在本页。
 
 ## 目标
 
@@ -13,7 +15,7 @@ last_verified: 2026-09-30
 
 ## 来源
 
-- PRD：[`spec/prd-carry-slots.md`](../prd-carry-slots.md) 的 `US-003` 与端到端那一条 `US-007`
+- PRD：同目录 [`prd.md`](./prd.md) 的 `US-003` 与端到端那一条 `US-007`
 - 现状：`src/World/Farm/FarmField.cs` 上那个写死作物标识的导出属性是脚手架，
   它的存在理由与要换掉的原因都在那个类的注释里
 

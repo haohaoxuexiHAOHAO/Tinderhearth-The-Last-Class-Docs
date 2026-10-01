@@ -1,11 +1,13 @@
 ---
 type: workdoc
-status: draft
+status: archived
 owner: project
-last_verified: 2026-09-30
+last_verified: 2026-10-01
 ---
 
 # GP-129：用道具两侧不同，稀有的先确认
+
+> **历史背景·非依据。只读归档件，不得作为现行依据。** 现行事实见同目录 [`prd.md`](./prd.md) 的「归档三问」；状态与剩余动作在[待办台账](../../../spec/issues/README.md)，不在本页。
 
 ## 目标
 
@@ -14,9 +16,9 @@ last_verified: 2026-09-30
 
 ## 来源
 
-- PRD：[`spec/prd-carry-slots.md`](../prd-carry-slots.md) 的 `US-004`
-- 判据与载体：[ADR-0026](../../decisions/ADR-0026-一道确认由误触与收益的落差决定.md)
-- 那处空白已经填了：[`角色动作状态系统`](../../design/角色动作状态系统.md)经营侧那一节现在写明
+- PRD：同目录 [`prd.md`](./prd.md) 的 `US-004`
+- 判据与载体：[ADR-0026](../../../decisions/ADR-0026-一道确认由误触与收益的落差决定.md)
+- 那处空白已经填了：[`角色动作状态系统`](../../../design/角色动作状态系统.md)经营侧那一节现在写明
   用道具当帧生效、不占姿态，以及它与战斗侧刻意不同的理由
 
 ## 依赖

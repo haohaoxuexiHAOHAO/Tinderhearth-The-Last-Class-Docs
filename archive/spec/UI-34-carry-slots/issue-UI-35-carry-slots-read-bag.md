@@ -1,11 +1,13 @@
 ---
 type: workdoc
-status: draft
+status: archived
 owner: project
-last_verified: 2026-09-30
+last_verified: 2026-10-01
 ---
 
 # UI-35：随身栏改成读背包，不是第二个容器
+
+> **历史背景·非依据。只读归档件，不得作为现行依据。** 现行事实见同目录 [`prd.md`](./prd.md) 的「归档三问」；状态与剩余动作在[待办台账](../../../spec/issues/README.md)，不在本页。
 
 ## 目标
 
@@ -13,7 +15,7 @@ last_verified: 2026-09-30
 
 ## 来源
 
-- PRD：[`spec/prd-carry-slots.md`](../prd-carry-slots.md) 的 `US-005`
+- PRD：同目录 [`prd.md`](./prd.md) 的 `US-005`
 - 那份需求把内容来源刻意切成两步：`UI-34` 先接一份种子清单顶着，本条把它换成背包投影，
   **而 `UI-34` 与 `GP-128` 的行为一个字不改** —— 换来源不重做载体
 
