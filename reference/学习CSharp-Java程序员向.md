@@ -143,7 +143,7 @@ public int getDaysToFirstRipe() { return stageDays.stream().mapToInt(Integer::in
 
 **易混点**：`=>` 有两个含义，靠上下文区分：
 - 成员定义处（`public bool IsFull => ...;`）＝方法体简写。
-- 参数列表后（`t => t.Id == tabId`，见 `rules/Ui/Wristband.cs`）＝lambda 表达式（匿名函数），见第八节。
+- 参数列表后（`t => t.Id == tabId`，见 `rules/UI/Wristband.cs`）＝lambda 表达式（匿名函数），见第八节。
 
 本项目的口径是「单行的取值、转发与简单计算用 `=>`，超过一行或有早返回就写完整方法体」，见代码仓 `CONVENTIONS.md` 的「表达式体成员」那一节。`Plot` 的那些动作方法全是完整方法体，正因为它们都有早返回。
 
@@ -225,7 +225,7 @@ StageDays = stageDays ?? [1, 1, 1, 1],
 `??` 还能接 `throw`，这在本仓比兜底默认值更常见 —— 因为「缺配置当场报错，不悄悄兜底」是硬约束：
 
 ```csharp
-// rules/Ui/Wristband.cs：拼错标签页 id 不该静默变成「不可用」
+// rules/UI/Wristband.cs：拼错标签页 id 不该静默变成「不可用」
 var tab = Tabs.FirstOrDefault(t => t.Id == tabId)
     ?? throw new KeyNotFoundException($"手环没有这个标签页：{tabId}");
 
@@ -327,7 +327,7 @@ public static JsonSerializerOptions Options { get; } = new()
 ```csharp
 private readonly List<string> _actorIds = [];              // rules/Progression/Roster.cs：空集合
 
-// rules/Ui/Wristband.cs：静态表，顺序即显示顺序
+// rules/UI/Wristband.cs：静态表，顺序即显示顺序
 public static readonly IReadOnlyList<WristbandTab> Tabs =
 [
     new("notice", SurfaceKind.View),
@@ -343,7 +343,7 @@ public IReadOnlyList<string> MissingKeys(IEnumerable<string> requiredKeys) =>
 **字典也能用索引器初始化**，键是元组时尤其好读：
 
 ```csharp
-// rules/Ui/InputBindings.cs
+// rules/UI/InputBindings.cs
 new Dictionary<(string, InputDeviceKind), string>
 {
     [(InputActions.Skills[0], InputDeviceKind.Gamepad)] = "手柄上由 LT + 面键组合解算发出",
@@ -373,10 +373,10 @@ LINQ 是 C# 的集合查询，和 Java Stream 思路相近，但**不需要先 `
 
 ```csharp
 // 过滤（Java: .stream().filter(...)）
-Tabs.Where(t => t.AvailableIn(context))                    // rules/Ui/Wristband.cs
+Tabs.Where(t => t.AvailableIn(context))                    // rules/UI/Wristband.cs
 
 // 找第一个匹配的，找不到返回 null/default（Java: findFirst().orElse(null)）
-Tabs.FirstOrDefault(t => t.Id == tabId)                    // rules/Ui/Wristband.cs
+Tabs.FirstOrDefault(t => t.Id == tabId)                    // rules/UI/Wristband.cs
 
 // FirstOrDefault 还能显式给"找不到时返回什么"——这里用 -1 表示"没有不合法的项"
 Enumerable.Range(0, value.Count).FirstOrDefault(i => value[i] < 1, -1)   // rules/Economy/CropDefinition.cs
@@ -393,12 +393,12 @@ StageDays.Sum()                                            // rules/Economy/Crop
 StageDays.Skip(back).Sum()
 
 // 去重计数：两个数不相等就说明有重复项（Java: distinct().count()）
-InputActions.All.Distinct().Count()                        // tests/Ui/InputMappingTests.cs
+InputActions.All.Distinct().Count()                        // tests/UI/InputMappingTests.cs
 ```
 
 **关键差异**：
 
-- Java 常以 `.collect(Collectors.toList())` 收集结果；C# 对应用 `.ToList()`，但**本仓优先用集合表达式** `[.. 查询]`（见 §7），它少一次方法调用、也不用写元素类型。`.ToList()` 只在需要一个可继续改的 `List<T>` 时用（例如 `rules/Ui/SkillModifiers.cs` 里先 `ToList()` 再 `Clear()` 原字典）。
+- Java 常以 `.collect(Collectors.toList())` 收集结果；C# 对应用 `.ToList()`，但**本仓优先用集合表达式** `[.. 查询]`（见 §7），它少一次方法调用、也不用写元素类型。`.ToList()` 只在需要一个可继续改的 `List<T>` 时用（例如 `rules/UI/SkillModifiers.cs` 里先 `ToList()` 再 `Clear()` 原字典）。
 - `FirstOrDefault` / `SingleOrDefault`：找不到时返回该类型的默认值（引用类型是 null，int 是 0），不像 Java 返回 `Optional`。常配 `??` 兜底或 `?? throw`（见 §5）。
 - `t => t.Id == tabId` 就是 **lambda**（匿名函数），跟 Java `s -> s.getId().equals(id)` 一样，只是箭头是 `=>`、比较用 `==`（字符串比较见下）。
 - 本项目的口径是**优先 LINQ、不手写 `for`**，见代码仓 `CONVENTIONS.md` 的「集合与 LINQ」那一节；例外是逐帧路径与要早返回的循环。
@@ -415,7 +415,7 @@ private readonly Dictionary<string, IActorController> _byActorId = new(StringCom
 public bool Contains(string actorId) => _actorIds.Contains(actorId, StringComparer.Ordinal);
 ```
 
-理由：默认比较在某些 API 上是**区域敏感**的，也就是说同一份数据在不同语言环境的机器上可能得出不同结果 —— 而内容标识（`turnip`、`item_turnip` 这种）是纯标识，按序数逐字节比才是它要的语义。这类差异不报错，只在别人的机器上表现为"某个角色加载不出来"。纯内部用的短命字典（例如 `rules/Ui/SkillModifiers.cs` 里"这个面键此刻驱动着哪个技能位"）没这层风险，就直接 `[]`。
+理由：默认比较在某些 API 上是**区域敏感**的，也就是说同一份数据在不同语言环境的机器上可能得出不同结果 —— 而内容标识（`turnip`、`item_turnip` 这种）是纯标识，按序数逐字节比才是它要的语义。这类差异不报错，只在别人的机器上表现为"某个角色加载不出来"。纯内部用的短命字典（例如 `rules/UI/SkillModifiers.cs` 里"这个面键此刻驱动着哪个技能位"）没这层风险，就直接 `[]`。
 
 ---
 
@@ -521,7 +521,7 @@ var spark = new HitSpark { Heavy = reaction.IsHeavy, ZIndex = SparkZ };
 本仓最典型的用法是**拿元组当字典的复合键**：
 
 ```csharp
-// rules/Ui/InputBindings.cs：键是"动作 + 设备族"两个东西合起来
+// rules/UI/InputBindings.cs：键是"动作 + 设备族"两个东西合起来
 public static readonly IReadOnlyDictionary<(string Action, InputDeviceKind Device), string> Exemptions =
     new Dictionary<(string, InputDeviceKind), string>
     {
@@ -529,7 +529,7 @@ public static readonly IReadOnlyDictionary<(string Action, InputDeviceKind Devic
         ...
     };
 
-// tests/Ui/InputMappingTests.cs：查的时候也直接拿元组当键
+// tests/UI/InputMappingTests.cs：查的时候也直接拿元组当键
 var exempt = InputBindings.Exemptions.TryGetValue((action, device), out var why);
 ```
 
@@ -574,7 +574,7 @@ throw new ArgumentException(
 // rules/Economy/CropDefinition.cs：{} 里可以是表达式，不只是变量
 $"要么落在 0 到 {RipeStage - 1} 之间（退回成熟那一阶段等于无限收获），实际 {value}"
 
-// tests/Ui/HudTests.cs：带格式说明符
+// tests/UI/HudTests.cs：带格式说明符
 $"HUD 占屏 {share:P1}，超过一成就开始挤中间那块"     // :P1 = 百分比、1 位小数
 ```
 
@@ -591,8 +591,8 @@ public const int MoveSpeedPixelsPerSecond = 104;
 public const int StageCount = 5;
 public const int RipeStage = StageCount - 1;
 
-// rules/Ui/Wristband.cs：对象与集合用 static readonly（引用类型不能是 const）
-public static readonly UiSurface Surface = new("wristband", UiLayer.Panel, SurfaceKind.View);
+// rules/UI/Wristband.cs：对象与集合用 static readonly（引用类型不能是 const）
+public static readonly UISurface Surface = new("wristband", UILayer.Panel, SurfaceKind.View);
 ```
 
 `const` 只能用于编译期能定死的值（数字/字符串）；对象/数组用 `static readonly`（相当于 Java `static final`）。注意 C# 的常量命名是 PascalCase 而不是 `UPPER_SNAKE`（见 §12），而**量纲写在名字里**是本仓的硬约定 —— `MoveSpeedPixelsPerSecond` 读得出它是"世界像素每秒"。
@@ -805,12 +805,12 @@ public static class CombatFeel
 }
 
 // 三、静态表 + 查询：表是数据，查询是一行 LINQ
-// rules/Ui/Wristband.cs
+// rules/UI/Wristband.cs
 public static class Wristband
 {
     public static readonly IReadOnlyList<WristbandTab> Tabs = [ ... ];
 
-    public static IEnumerable<WristbandTab> AvailableIn(UiContext context) =>
+    public static IEnumerable<WristbandTab> AvailableIn(UIContext context) =>
         Tabs.Where(t => t.AvailableIn(context));
 }
 ```

@@ -24,9 +24,9 @@ last_verified: 2026-09-27
 
 ### 尺寸常量
 
-- [ ] `rules/Ui/UiMetrics.cs`：侧视缩放那个常量与由它派生的两个视野量按新结论处理（取消或改值），注释里写明理由
-- [ ] `rules/Ui/CameraRig.cs`：两种视角的缩放不再分叉；该类注释里「视角只影响缩放」那段跟着重写 —— 两种视角都不缩放之后，视角在相机这一侧不再影响任何东西
-- [ ] `rules/Ui/HudLayout.cs` 里乘缩放的那两处、`rules/Ui/CameraFeel.cs` 死区那段注释，都按新尺度改对
+- [ ] `rules/UI/UIMetrics.cs`：侧视缩放那个常量与由它派生的两个视野量按新结论处理（取消或改值），注释里写明理由
+- [ ] `rules/UI/CameraRig.cs`：两种视角的缩放不再分叉；该类注释里「视角只影响缩放」那段跟着重写 —— 两种视角都不缩放之后，视角在相机这一侧不再影响任何东西
+- [ ] `rules/UI/HudLayout.cs` 里乘缩放的那两处、`rules/UI/CameraFeel.cs` 死区那段注释，都按新尺度改对
 - [ ] 屏幕震动那条「幅度必须被缩放整除」的检查按新缩放重新判过，并在注释里写明它现在是否还有约束力
 - [ ] `rules/Combat/DepthBand.cs` 带宽改成正典重算后的值，带的前后沿与中线跟着变
 - [ ] `rules/Combat/CombatFeel.cs` 的命中纵深容差改成新的半排距；单测仍钉住「同排打得到、隔一排打不到」
@@ -42,7 +42,7 @@ last_verified: 2026-09-27
 
 ### 指向改过名字的那几处注释
 
-- [ ] `rules/Ui/UiMetrics.cs` 图标两档那句注释指着[人物](../../canon/characters/人物.md)里一个**已经改名**的节名（原先叫「32×32 像素可读性规则」）。**代码注释没有守卫查得到**，所以它只能靠这一条记着
+- [ ] `rules/UI/UIMetrics.cs` 图标两档那句注释指着[人物](../../canon/characters/人物.md)里一个**已经改名**的节名（原先叫「32×32 像素可读性规则」）。**代码注释没有守卫查得到**，所以它只能靠这一条记着
 - [ ] [战斗与关卡](../../canon/gameplay/战斗与关卡.md)那笔几何账的节名也改过（原先带旧带宽那个数）。**归档时按旧节名搜过代码仓，落在四处**：`rules/Combat/CombatFeel.cs` 两处、`rules/Combat/DepthBand.cs` 一处、`tests/Combat/DepthBandTests.cs` 一处。四处都改成新节名
 - [ ] `tests/Combat/DepthBandTests.cs` 那段注释里还抄着旧的「一排几人、要几排」，**按新账改或改成写链接不复述**（正典是那笔账的家）
 - [ ] 死代码删干净：`rules/Combat/DepthRendering.cs` 的 `GroundSpan.Mirrored()`、`PlayerActor` 里「朝左时要镜像」那一段，连带 `tests/Combat/DepthRenderingTests.cs` 里测它的那条
