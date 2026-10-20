@@ -2,7 +2,7 @@
 type: workdoc
 status: draft
 owner: project
-last_verified: 2026-10-19
+last_verified: 2026-10-20
 ---
 
 # ART-15：世界侧配色：角色、地形与物件的色板
@@ -15,7 +15,7 @@ last_verified: 2026-10-19
 
 - 色板本体在代码仓 `assets/self-drawn/palette.gpl`，**它是色值的唯一来源**；口径在[像素绘制原则 · 本项目的色带口径](../../production/像素绘制原则.md)，本条不复述。
 - 检查入口是代码仓 `tools/palette_probe.py`，按需跑、**不进 `tools/verify.py`**：既有色板本来就有刻意接受的近邻，做成守卫会一直报。
-- 界面那一侧的色板归 `DOC-2`，不在本条。
+- 界面用色也出自这一份色板，不另开一套；界面用哪几档、在暖炭背景上读不读得清归 `DOC-2`。两边的并排看是同一件事，`DOC-2` 落地时并进来。
 
 ## 依赖
 

@@ -2,7 +2,7 @@
 type: workdoc
 status: draft
 owner: project
-last_verified: 2026-09-27
+last_verified: 2026-10-20
 ---
 
 # ENG-24：那几个尺寸常量与朝向取表按新口径落地
@@ -26,9 +26,11 @@ last_verified: 2026-09-27
 
 - [ ] `rules/UI/UIMetrics.cs`：侧视缩放那个常量与由它派生的两个视野量按新结论处理（取消或改值），注释里写明理由
 - [ ] `rules/UI/CameraRig.cs`：两种视角的缩放不再分叉；该类注释里「视角只影响缩放」那段跟着重写 —— 两种视角都不缩放之后，视角在相机这一侧不再影响任何东西
-- [ ] `rules/UI/HudLayout.cs` 里乘缩放的那两处、`rules/UI/CameraFeel.cs` 死区那段注释，都按新尺度改对
+- [ ] `rules/UI/HudLayout.cs` 里乘缩放的那两处按新尺度改对 —— **由 `UI-42` 改**（它把关卡那一套换成「不进纵深带」的判据），落地时在这里勾掉
+- [ ] `rules/UI/CameraFeel.cs` 死区那段注释按新尺度改对
 - [ ] 屏幕震动那条「幅度必须被缩放整除」的检查按新缩放重新判过，并在注释里写明它现在是否还有约束力
 - [ ] `rules/Combat/DepthBand.cs` 带宽改成正典重算后的值，带的前后沿与中线跟着变
+- [ ] 带宽一改，`UI-42` 写进 `rules/UI/HudLayout.cs` 的那个「纵向账留给 HUD 的那一段」常量与它的测试跟着复核 —— 那一段是同一笔纵向账的另一头，带变宽它就变窄
 - [ ] `rules/Combat/CombatFeel.cs` 的命中纵深容差改成新的半排距；单测仍钉住「同排打得到、隔一排打不到」
 - [ ] `rules/Combat/DepthBlocking.cs` 的阻挡阈值按同一套关系复核过，改或不改都写明理由
 
@@ -51,7 +53,7 @@ last_verified: 2026-09-27
 
 ### 指向改过名字的那几处注释
 
-- [ ] `rules/UI/UIMetrics.cs` 图标两档那句注释指着[人物](../../canon/characters/人物.md)里一个**已经改名**的节名（原先叫「32×32 像素可读性规则」）。**代码注释没有守卫查得到**，所以它只能靠这一条记着
+- [ ] `rules/UI/UIMetrics.cs` 图标两档那句注释指着[人物](../../canon/characters/人物.md)里一个**已经改名**的节名（原先叫「32×32 像素可读性规则」）。**代码注释没有守卫查得到**，所以它只能靠这一条记着。**由 `UI-41` 改**（它连带改写那段注释的理由），落地时在这里勾掉
 - [ ] [战斗与关卡](../../canon/gameplay/战斗与关卡.md)那笔几何账的节名也改过（原先带旧带宽那个数）。**归档时按旧节名搜过代码仓，落在四处**：`rules/Combat/CombatFeel.cs` 两处、`rules/Combat/DepthBand.cs` 一处、`tests/Combat/DepthBandTests.cs` 一处。四处都改成新节名
 - [ ] `tests/Combat/DepthBandTests.cs` 那段注释里还抄着旧的「一排几人、要几排」，**按新账改或改成写链接不复述**（正典是那笔账的家）
 - [ ] 死代码删干净：`rules/Combat/DepthRendering.cs` 的 `GroundSpan.Mirrored()`、`PlayerActor` 里「朝左时要镜像」那一段，连带 `tests/Combat/DepthRenderingTests.cs` 里测它的那条
@@ -59,7 +61,7 @@ last_verified: 2026-09-27
 ### 收口
 
 - [ ] 既有测试里钉着旧数字的那些一起改 —— 它们钉的是**两个数之间的关系**（侧视有效视野与逻辑分辨率、命中容差与排距），关系不变、输入变，所以改期望值不算绕过测试。**改完要能说出每条测试现在钉的是哪条关系**，说不出的那条要么删要么重写
-- [ ] `python tools/verify.py` 五步全绿
+- [ ] `python tools/verify.py` 全绿，看它自己打的摘要
 - [ ] 作者实机确认：打开训练房看角色大小与纵深带宽窄，并看朝左朝右各一遍
 
 ## 实现笔记
