@@ -11,13 +11,13 @@
 
 1. **授权**：从官方仓库拉许可证原文，比对 SHA256 与「我们当初据以下结论的那几句话」
    是否仍在。对不上就判失败并要求重新读原文 —— 不猜、不沿用。
-2. **覆盖**：自己解 `cmap`（不依赖 fontTools，本机没有），量各候选对四份语料的覆盖率。
-   语料包含**设计仓自己的全部中文**，这是最贴近成品文案的样本。
+2. **覆盖**：自己解 `cmap`（不依赖 fontTools，本机没有），量各候选对各份语料的覆盖率。
+   语料包含代码仓游戏文本用到的每一个字符，以及代码印数字时可能印出的符号。
 3. **度量**：读 `head`／`hhea` 给出设计 em、建议字号与行高 —— 像素完美渲染要的就是
    「字号必须等于设计尺寸」，这个数不能靠目测。
 
-**选定款有硬要求，落选款只报告。** 选定款对「设计仓语料」与「GB2312 汉字」必须全覆盖，
-差一个字就判失败：那正是将来会变成豆腐块的字。
+**选定款有硬要求，落选款只报告。** 选定款对 `REQUIRE_FULL` 登记的那几份语料必须全覆盖，
+差一个字就判失败：那正是将来会变成豆腐块的字。为什么是那几份，写在 `REQUIRE_FULL` 上面。
 
 用法（从设计仓根目录运行）：
     python tools/audit_fonts.py                 # 授权 + 下载 + 覆盖 + 度量
@@ -37,10 +37,13 @@ from __future__ import annotations
 import argparse
 import bisect
 import hashlib
+import json
+import re
 import shutil
 import struct
 import sys
 import time
+import unicodedata
 import urllib.error
 import urllib.request
 import zipfile
@@ -302,7 +305,11 @@ CANDIDATES: list[Candidate] = [
 # 说明字体缺哪些字，就得把「劐唣嗍垡墚墼」写进正文 —— 于是语料里出现了字体必然不覆盖的
 # 字，硬要求瞬间变成永远失败。设计文档**本来就该**引用字体没有的字。所以它降为报告项：
 # 数字与缺字清单照打，供人判断文案用字是否越界，但不判失败。
-REQUIRE_FULL = ["代码仓游戏文本"]
+#
+# **游戏文本按字符算，不只算汉字**：豆腐块不挑字种，一个字体没有的符号写进文案，与生僻字
+# 一样是方块。**数字符号另算一份**：数字是代码拼出来的，不在任何文本文件里 —— 字体缺减号
+# U+2212 那一次就是这么漏过去的。
+REQUIRE_FULL = ["代码仓游戏文本", "代码仓数字符号"]
 
 
 # ── 语料 ──────────────────────────────────────────────────────────────
@@ -337,7 +344,7 @@ PUNCT = ("，。、；：？！“”‘’「」『』（）《》〈〉【】�
 
 
 def build_corpora() -> dict[str, tuple[set[int], str]]:
-    """四份语料。每份都给出「它是怎么来的」，好让数字能被复算。"""
+    """各份语料。每份都给出「它是怎么来的」，好让数字能被复算。"""
     gb2312 = _legacy_hanzi("gb2312", range(0xA1, 0xF8), range(0xA1, 0xFF))
     gbk = _legacy_hanzi("gbk", range(0x81, 0xFF), range(0x40, 0xFF))
 
@@ -359,22 +366,37 @@ def build_corpora() -> dict[str, tuple[set[int], str]]:
         "中文标点与符号": ({ord(c) for c in PUNCT}, f"显式列出的 {len(set(PUNCT))} 个"),
     }
 
-    # 真正会被玩家看到的那批字：代码仓 data/text 下的外置文本。
+    # 真正会被玩家看到的那批字：代码仓 data/text 下的外置文本，取每条文本的值、每一个字符
+    # （空白与控制字符除外，那些不画字形）。键名是给代码看的，不算。
     # 拿不到就明说跳过 —— 只 clone 了设计仓的人也该跑得动本脚本。
-    text_dir = ROOT.parent / "Tinderhearth-The-Last-Class" / "data" / "text"
+    code_repo = ROOT.parent / "Tinderhearth-The-Last-Class"
+    text_dir = code_repo / "data" / "text"
     if text_dir.is_dir():
         game: set[int] = set()
         n = 0
         for path in sorted(text_dir.rglob("*.json")):
             n += 1
-            for ch in path.read_text(encoding="utf-8"):
-                cp = ord(ch)
-                if is_cjk(cp):
-                    game.add(cp)
-        out["代码仓游戏文本"] = (game, f"代码仓 data/text 下 {n} 份 .json 里的全部汉字")
+            for value in json.loads(path.read_text(encoding="utf-8")).values():
+                game.update(ord(ch) for ch in value
+                            if not unicodedata.category(ch).startswith(("C", "Z")))
+        out["代码仓游戏文本"] = (game, f"代码仓 data/text 下 {n} 份 .json 里文本用到的全部字符")
     else:
         note(f"代码仓文本目录不在（{text_dir}）→ 语料「代码仓游戏文本」本轮跳过，"
              f"它的硬要求没有执行")
+
+    # 代码印数字时可能印出的符号。家在代码仓那个常量，这里只读它；它与钉上的区域对不对得上，
+    # 由代码仓的单元测试判。
+    language = code_repo / "rules" / "Foundation" / "Text" / "GameLanguage.cs"
+    found = None
+    if language.is_file():
+        found = re.search(r'public const string NumberSymbols = "([^"\\]*)";',
+                          language.read_text(encoding="utf-8"))
+    if found:
+        out["代码仓数字符号"] = ({ord(ch) for ch in found.group(1)},
+                              "代码仓 rules/Foundation/Text/GameLanguage.cs 的 NumberSymbols")
+    else:
+        note(f"读不到 {language} 里的 NumberSymbols（文件不在，或写成了转义）"
+             f"→ 语料「代码仓数字符号」本轮跳过，它的硬要求没有执行")
     return out
 
 
