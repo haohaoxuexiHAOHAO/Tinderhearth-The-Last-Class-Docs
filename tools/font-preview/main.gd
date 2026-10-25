@@ -31,7 +31,8 @@ const FONTS := [
 
 const RESOLUTIONS := [Vector2i(320, 180), Vector2i(480, 270), Vector2i(640, 360)]
 
-# 占位配色。**正式界面色板归 DOC-2，本工程不产出色板结论。**
+# 占位配色：当初判 12px 中文可读性时用的那一组。界面色出自代码仓 assets/self-drawn/palette.gpl
+#（取哪几档记在那份色板的「借给界面」里），本工程不产出色板结论。
 const BG := Color8(0x21, 0x1A, 0x17)        # 暖炭底
 const PANEL := Color8(0x33, 0x28, 0x22)     # 对话框底
 const EDGE := Color8(0x6B, 0x52, 0x3C)      # 对话框边
