@@ -56,7 +56,8 @@ last_verified: 2026-10-20
 - [ ] `rules/UI/UIMetrics.cs` 图标两档那句注释指着[人物](../../canon/characters/人物.md)里一个**已经改名**的节名（原先叫「32×32 像素可读性规则」）。**代码注释没有守卫查得到**，所以它只能靠这一条记着。**由 `UI-41` 改**（它连带改写那段注释的理由），落地时在这里勾掉
 - [ ] [战斗与关卡](../../canon/gameplay/战斗与关卡.md)那笔几何账的节名也改过（原先带旧带宽那个数）。**归档时按旧节名搜过代码仓，落在四处**：`rules/Combat/CombatFeel.cs` 两处、`rules/Combat/DepthBand.cs` 一处、`tests/Combat/DepthBandTests.cs` 一处。四处都改成新节名
 - [ ] `tests/Combat/DepthBandTests.cs` 那段注释里还抄着旧的「一排几人、要几排」，**按新账改或改成写链接不复述**（正典是那笔账的家）
-- [ ] 死代码删干净：`rules/Combat/DepthRendering.cs` 的 `GroundSpan.Mirrored()`、`PlayerActor` 里「朝左时要镜像」那一段，连带 `tests/Combat/DepthRenderingTests.cs` 里测它的那条
+- [x] 死代码删干净：`rules/Combat/DepthRendering.cs` 的 `GroundSpan.Mirrored()`、`PlayerActor` 里「朝左时要镜像」那一段，连带 `tests/Combat/DepthRenderingTests.cs` 里测它的那条
+      （随 `ENG-26` 删的：侧视影子改成作者画之后不再按本体范围取宽，`GroundSpan` 整个没了）
 
 ### 收口
 
