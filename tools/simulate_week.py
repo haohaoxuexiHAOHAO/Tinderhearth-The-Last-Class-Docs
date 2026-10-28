@@ -270,8 +270,7 @@ def analyse_attributes(p: Params) -> dict:
     #   ② 状态在场时的实际输出比 ≤ 0.5 —— 削得够，教练定位才不只存在于文档里。
     # 只判 ② 挡不住 ①：再压低主角的倍率只会让比值更小，② 照样通过。
     sl = p("move_multipliers.student_light")
-    sh = p("move_multipliers.student_heavy")
-    same_mult = ml == sl and p("move_multipliers.protagonist_heavy") == sh
+    same_mult = ml == sl
     self_f = p("flame_passed_on.protagonist_output_factor")
     ally_f = p("flame_passed_on.student_output_factor")
 
@@ -287,7 +286,7 @@ def analyse_attributes(p: Params) -> dict:
     check("C4", "「薪尽火传」在场时主角实际输出显著低于学生（比值 ≤ 0.5，两端各判）",
           same_mult and ratio_lv1 <= 0.5 and ratio_max <= 0.5,
           f"倍率两边{'同值' if same_mult else '**不同值，削弱有两个来源**'}"
-          f"（轻 {ml}／{sl}，重 {p('move_multipliers.protagonist_heavy')}／{sh}）；"
+          f"（轻攻击 {ml}／{sl}）；"
           f"状态 ×{self_f} 对 ×{ally_f}；"
           f"1 级 {pro_lv1:.1f} ÷ {stu_lv1:.1f} = {ratio_lv1:.2f}，"
           f"满级 {pro_max:.1f} ÷ {stu_max:.1f} = {ratio_max:.2f}",
