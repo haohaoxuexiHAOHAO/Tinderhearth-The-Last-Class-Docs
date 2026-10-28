@@ -2,7 +2,7 @@
 type: workdoc
 status: draft
 owner: project
-last_verified: 2026-10-20
+last_verified: 2026-10-28
 ---
 
 # UI-44：素材资源：界面件一律从作者改得动的那份资源取
@@ -19,7 +19,7 @@ last_verified: 2026-10-20
 ## 依赖
 
 - `ART-27`：界面件已交付，主场景那一批要的图都在；它剩下的主菜单标题、底图与建筑图标不在那一批里，不挡本条。
-- `UI-41`：格子与迷你两档要先在排版单位里，载入时才核得了尺寸。
+- 载入时核尺寸用的格子与迷你两档是 `rules/UI/UIMetrics.cs` 的 `Cell` 与 `Mini`（`UI-41` 加的）。
 
 ## 验收标准
 

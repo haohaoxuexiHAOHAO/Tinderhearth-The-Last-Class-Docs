@@ -2,7 +2,7 @@
 type: workdoc
 status: draft
 owner: project
-last_verified: 2026-10-20
+last_verified: 2026-10-28
 ---
 
 # UI-42：HUD 按场合放：关卡收进顶上那一段，基地照旧贴四角
@@ -19,7 +19,7 @@ last_verified: 2026-10-20
 
 ## 依赖
 
-- `UI-41`：技能栏与随身栏按格子那一档排。
+- 技能栏与随身栏按格子那一档排，那一档是 `rules/UI/UIMetrics.cs` 的 `Cell`（`UI-41` 加的）。
 - 与 `ENG-24` 有交界：`rules/UI/HudLayout.cs` 里乘侧视缩放的那两处由本条改，相机与纵深带不动。
 
 ## 验收标准
