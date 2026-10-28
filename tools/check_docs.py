@@ -191,6 +191,12 @@ CITE_ARCHIVE_ENFORCED_TYPES = {"canon", "design", "production", "adr"}
 # 改成「旧名出现就报错」之后，漏一处从查不出来的错变成当场报的错。
 #
 # **它对以后每一次改名都有效**，不是这一次的一锤子活：改名的人只要往表里加一行。
+#
+# 同一份文件里还有第二张表「退役术语」：撤掉的概念的名字。一个概念被撤掉之后，它的
+# 名字留在某份活文档里，读的人会以为那种东西还在，写的人会照着它再开一次 —— 与人名
+# 同一类「过期时查不出来」。它比人名多豁免一层冻结的体裁（FROZEN_PREFIXES）：已接受
+# 的 ADR 写的是当时的事实，按规则不许用今天的说法改写；人名不豁免，新写的 ADR 也要
+# 用现行名字。
 RETIRED_NAMES_REL = "tools/retired-names.json"
 # 归档只反映当时状态，改它等于重写历史，所以豁免。
 # 必须在活文档散文里提到旧名时（例如某次改名的需求文档），同行写上这个标记。
@@ -496,11 +502,11 @@ def check_archive_boundary(doc: Doc, rep: Report) -> None:
             rep.fail(doc.rel, f"L{i} 引用 archive/ 必须同行标注「{CITE_ARCHIVE_MARK}」")
 
 
-def retired_names(rep: Report) -> dict[str, str] | None:
-    """读退役名表，返回「旧名 → 现名」。读不出来返回 None 并已记 FAIL。
+def retired_names(rep: Report) -> tuple[dict[str, str], dict[str, str]] | None:
+    """读退役名表，返回（「旧名 → 现名」，「退役术语 → 现行说法」）。读不出来返回 None 并已记 FAIL。
 
     刻意不在读不出来时静默返回空表 —— 那会让这条守卫悄悄空转，而空转的守卫比没有
-    守卫更糟：它某天该报错时不报，没人查得出来。
+    守卫更糟：它某天该报错时不报，没人查得出来。两张表因此都必须在（可以为空）。
     """
     path = ROOT / RETIRED_NAMES_REL
     if not path.is_file():
@@ -511,36 +517,49 @@ def retired_names(rep: Report) -> dict[str, str] | None:
     except (json.JSONDecodeError, OSError) as exc:
         rep.fail(RETIRED_NAMES_REL, f"退役名表读不出来：{exc}")
         return None
-    table = data.get("退役名")
-    if not isinstance(table, dict):
-        rep.fail(RETIRED_NAMES_REL, "退役名表必须有一个「退役名」对象（旧名 → 现名）")
-        return None
-    return {str(old): str(new) for old, new in table.items()}
+    tables: list[dict[str, str]] = []
+    for key, shape in (("退役名", "旧名 → 现名"), ("退役术语", "旧说法 → 现行说法")):
+        table = data.get(key)
+        if not isinstance(table, dict):
+            rep.fail(RETIRED_NAMES_REL, f"退役名表必须有一个「{key}」对象（{shape}）")
+            return None
+        tables.append({str(old): str(new) for old, new in table.items()})
+    return tables[0], tables[1]
 
 
-def check_retired_names(docs: list[Doc], rep: Report) -> tuple[int, int]:
-    """活文档里不许出现退役的角色名，返回（扫过的文档数，表里的旧名数）。
+def check_retired_names(docs: list[Doc], rep: Report) -> tuple[int, int, int]:
+    """活文档里不许出现退役的角色名与退役术语，返回（扫过的文档数，旧名数，退役术语数）。
 
     为什么要专门判一次：改名之后旧名留在某一份活文档里，**链接仍然有效、别的检查
     全过**，只有读到那一页的人会被误导 —— 这正是「过期时查不出来」的那一类。
+    退役术语另外豁免冻结的体裁，理由在 RETIRED_NAMES_REL 上面那段注释。
     """
-    table = retired_names(rep)
-    if table is None:
-        return 0, 0
+    tables = retired_names(rep)
+    if tables is None:
+        return 0, 0, 0
+    names, terms = tables
     scanned = 0
     for doc in docs:
         if doc.in_archive:      # 归档只反映当时状态，改它等于重写历史
             continue
         scanned += 1
+        frozen = doc.rel.startswith(FROZEN_PREFIXES)
         for i, line in enumerate(doc.text.splitlines(), 1):
             if RETIRED_NAME_MARK in line:
                 continue
-            for old, new in table.items():
+            for old, new in names.items():
                 if old in line:
                     rep.fail(doc.rel, f"L{i} 出现退役名「{old}」，现行名是「{new}」"
                                       f"（旧名清单与名字的家见 `{RETIRED_NAMES_REL}`；"
                                       f"确实要提旧名就同行标注「{RETIRED_NAME_MARK}」）")
-    return scanned, len(table)
+            if frozen:          # 冻结的体裁写的是当时的事实，术语不追改
+                continue
+            for old, new in terms.items():
+                if old in line:
+                    rep.fail(doc.rel, f"L{i} 出现退役术语「{old}」，现行说法是「{new}」"
+                                      f"（清单见 `{RETIRED_NAMES_REL}`；"
+                                      f"确实要提旧说法就同行标注「{RETIRED_NAME_MARK}」）")
+    return scanned, len(names), len(terms)
 
 
 def check_genre_home(doc: Doc, rep: Report) -> None:
@@ -1574,9 +1593,9 @@ def main() -> int:
     check_single_ledger(all_docs, rep)
     check_issue_ids(all_docs, rep)
     check_closed_issue_refs(all_docs, rep)
-    retired_scanned, retired_count = check_retired_names(all_docs, rep)
-    rep.note(f"退役名覆盖量：拿 {retired_count} 个旧名扫了 {retired_scanned} 份活文档"
-             f"（archive/ 豁免）")
+    retired_scanned, retired_count, retired_terms = check_retired_names(all_docs, rep)
+    rep.note(f"退役名覆盖量：拿 {retired_count} 个旧名、{retired_terms} 个退役术语扫了 "
+             f"{retired_scanned} 份活文档（archive/ 豁免；术语另豁免冻结的体裁）")
     baseline_rows = check_content_baseline_owners(all_docs, rep)
     rep.note(f"内容规模基准覆盖量：核了 {baseline_rows} 行的「谁在等它」")
     blocker_cells = check_ledger_blockers(all_docs, rep)
