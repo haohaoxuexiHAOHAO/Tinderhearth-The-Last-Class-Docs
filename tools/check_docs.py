@@ -18,8 +18,8 @@
     [FAIL] 必须修复；[WARN] 不阻断。
 
 判什么：文件头、断链、归档边界、单一台账、编号引用得出来、入口可达、工作区行尾，
-外加体裁归位、四条引用纪律（ADR-0010 与 WORKFLOW §3.5）与退役名 —— 后面这些的共同点是
-**它们过期时链接仍然有效**，所以非得专门判一次才查得出来。
+外加体裁归位、四条引用纪律（ADR-0010 与 WORKFLOW §3.5）、退役名与代码仓 C# 里编号的写法 ——
+后面这些的共同点是**它们过期时链接仍然有效**，所以非得专门判一次才查得出来。
 """
 
 from __future__ import annotations
@@ -1201,6 +1201,104 @@ def check_ledger_blockers(docs: list[Doc], rep: Report) -> int:
     return checked
 
 
+# ── 代码仓 C# 里的编号（ENG-33）──────────────────────────────────
+# 规矩的家在代码仓 `CONVENTIONS.md` 的「注释与文档」：编号只许写成「设计仓台账」加编号、
+# 说「这一样还没做、归哪一条」；ADR 只许写成 `decisions/` 下那份的文件名。
+# 编号前后不用 \b：注释是中文，「由UI-42改」里汉字与字母之间没有词边界，用 \b 就漏掉了。
+CODE_COMMENT_DIRS = ("rules", "src", "tests")
+CODE_POINTER = "设计仓台账"
+CODE_ISSUE_ID_RE = re.compile(r"(?<![A-Za-z0-9])(?:GP|NR|UI|ART|ENG|DOC)-\d+(?!\d)")
+CODE_ADR_RE = re.compile(r"(?<![A-Za-z0-9])ADR-\d{4}(?!\d)")
+CODE_ADR_PATH_RE = re.compile(r"decisions/ADR-\d{4}-\S+?\.md")
+CODE_SENTENCE_RE = re.compile(r"[^。；;]+[。；;]?")
+
+
+def _check_comment_block(rel: str, block: list[tuple[int, str]], closed: set[str],
+                         rep: Report) -> int:
+    """一段连着的注释：去掉注释记号拼成一段、按句切开，逐个编号核写法与关闭状态，返回核过几个。
+
+    拼的时候行与行之间不加字：中文折行不带空格，「设计仓」在行尾、「台账」在下一行开头时，
+    拼回来才是那四个字。
+    """
+    text = ""
+    starts: list[tuple[int, int]] = []      # （这一行从拼好的那段里第几个字起，它的行号）
+    for no, piece in block:
+        starts.append((len(text), no))
+        text += piece
+
+    def line_of(pos: int) -> int:
+        return next(no for start, no in reversed(starts) if start <= pos)
+
+    checked = 0
+    paths = [m.span() for m in CODE_ADR_PATH_RE.finditer(text)]
+    for m in CODE_ADR_RE.finditer(text):
+        checked += 1
+        if not any(a <= m.start() < b for a, b in paths):
+            rep.fail(f"代码仓 {rel}", f"L{line_of(m.start())} `{m.group(0)}` 是裸编号 —— "
+                                      f"写成设计仓 decisions/ 下那份的文件名")
+    for sentence in CODE_SENTENCE_RE.finditer(text):
+        said = sentence.group(0)
+        for m in CODE_ISSUE_ID_RE.finditer(said):
+            checked += 1
+            got = m.group(0)
+            where = f"L{line_of(sentence.start() + m.start())}"
+            if CODE_POINTER not in said[: m.start()]:
+                rep.fail(f"代码仓 {rel}", f"{where} `{got}` 不是「{CODE_POINTER}」加编号的写法 —— "
+                                          f"编号只许用来说「这一样还没做、归哪一条」；说理由就指设计仓的"
+                                          f"文件名和节名")
+            elif got in closed:
+                rep.fail(f"代码仓 {rel}", f"{where} `{got}` 已经关闭，这一处说的「还没做、归它」"
+                                          f"已经过期 —— 按那一条的现行落点改写，或者删掉")
+    return checked
+
+
+def check_code_comment_ids(docs: list[Doc], rep: Report) -> tuple[int, int]:
+    """代码仓 C# 里的编号只许写成「设计仓台账」加编号，而且指的那一条还开着（`ENG-33`）。
+
+    **为什么要它**：规矩只留这一种写法，是因为关一个编号时要按编号搜两个仓，把说它还没做的那几处
+    一起改掉。写成别的样子（「由某条改的」「理由见某条」）的编号，读的人读到那儿就断了；指着已关闭
+    编号的那一处，说的「还没做」已经过期。两样都不报错。
+
+    **判法**：连着的几行注释拼成一段、按句切开，每个编号前面同一句里要有「设计仓台账」；ADR 只许
+    出现在 `decisions/ADR-…md` 那样的文件名里；注释以外的行（代码、字符串）一个编号都不许有。
+    **判不了的那一半**：那一句是不是真在说「还没做」，只能写的人守。
+
+    返回（扫过的文件数，核过的编号数）；**一个文件都没扫到判失败**，否则目录一挪它就静默空转。
+    """
+    ledger = next((d for d in docs if d.rel == LEDGER_REL), None)
+    if ledger is None or not CODE_REPO.is_dir():
+        return 0, 0                 # 台账缺失与代码仓不在，各有那一条报过
+    closed = closed_issue_ids(ledger.text)
+
+    files = sorted(
+        p for top in CODE_COMMENT_DIRS
+        for p in (CODE_REPO / top).rglob("*.cs")
+        if not {"bin", "obj"} & set(p.relative_to(CODE_REPO).parts)
+    )
+    checked = 0
+    for path in files:
+        rel = path.relative_to(CODE_REPO).as_posix()
+        block: list[tuple[int, str]] = []
+        # 末尾补一个空行，好让最后一段注释也被收尾。
+        for no, line in enumerate(path.read_text(encoding="utf-8").splitlines() + [""], start=1):
+            stripped = line.strip()
+            if stripped.startswith("//"):
+                block.append((no, stripped.lstrip("/").strip()))
+                continue
+            if block:
+                checked += _check_comment_block(rel, block, closed, rep)
+                block = []
+            for pattern in (CODE_ISSUE_ID_RE, CODE_ADR_RE):
+                for m in pattern.finditer(line):
+                    checked += 1
+                    rep.fail(f"代码仓 {rel}", f"L{no} `{m.group(0)}` 写在了注释以外的行里 —— "
+                                              f"编号只许写在单独成行的注释里，写成「{CODE_POINTER}」加编号")
+    if not files:
+        rep.fail("代码注释编号守卫", f"代码仓 {'／'.join(CODE_COMMENT_DIRS)} 下一个 C# 文件都没扫到，"
+                                     f"这一条**没有执行**（不是通过）")
+    return len(files), checked
+
+
 def check_content_baseline_owners(docs: list[Doc], rep: Report) -> int:
     """内容规模基准表的每一行都要有一个台账编号在等它，返回核过的行数。
 
@@ -1600,6 +1698,8 @@ def main() -> int:
     rep.note(f"内容规模基准覆盖量：核了 {baseline_rows} 行的「谁在等它」")
     blocker_cells = check_ledger_blockers(all_docs, rep)
     rep.note(f"卡点覆盖量：核了 {blocker_cells} 格「卡在」（只判还开着的行）")
+    code_files, code_ids = check_code_comment_ids(all_docs, rep)
+    rep.note(f"代码注释编号覆盖量：扫了代码仓 {code_files} 个 C# 文件，核了 {code_ids} 处编号")
     note_rows = check_ledger_note_length(all_docs, rep)
     rep.note(f"台账备注覆盖量：量 {note_rows} 行域表备注（上限 {LEDGER_NOTE_LIMIT} 字）")
     pinned = check_upstream_pins(all_docs, rep)
