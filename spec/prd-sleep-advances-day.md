@@ -250,7 +250,7 @@ last_verified: 2026-10-30
   - Godot 自己那套安全保存（写临时文件、关闭时 `ReplaceFileW`）只在 `backup_save` 打开时生效，它默认关（[file_access.h](https://github.com/godotengine/godot/blob/4.7.2-stable/core/io/file_access.h)）。只有编辑器进程会打开它是推断，这里也不依赖它。
   - 所以改用 .NET：`FileStream` 写临时文件、`Flush(true)` 落盘（[微软文档](https://learn.microsoft.com/dotnet/api/system.io.filestream.flush)：要保证中间缓冲写到盘上就用这个重载），再用 `File.Move` 带覆盖换上去，它在 Windows 上是一次带 `MOVEFILE_REPLACE_EXISTING` 的 `MoveFileExW`（[dotnet/runtime 源码](https://github.com/dotnet/runtime/blob/main/src/libraries/Common/src/Interop/Windows/Kernel32/Interop.MoveFileEx.cs)）。读档也走 .NET，存档只有一条路。以上几处内容为合规做过改写。
   - 这一下照代码仓 ARCHITECTURE 留在引擎层，所以它没有单测：事务的成败在规则层用注入的写入口测，真文件那一下靠 US-003 与 US-005 的实机。
-- **只读那一条怎么做**（实测，本机 Windows，用 Python 的 `os.replace`，它与 `File.Move` 底下是同一个 `MoveFileExW`）：给存档目录打只读属性挡不住，替换照样成功；给存档文件打只读属性，替换被拒（拒绝访问），目标一字不动；用目录权限拒绝写入也挡得住，临时文件建不出来。所以实机写「把存档文件设成只读」，里程碑那条判据跟着改。**待验证**：.NET 那一下遇到只读目标同样被拒。验证办法：实现时在本机写一份、设只读、再写一次，看它抛 `UnauthorizedAccessException` 而目标不变。
+- **只读那一条怎么做**（实测，本机 Windows，用 Python 的 `os.replace`，它与 `File.Move` 底下是同一个 `MoveFileExW`）：给存档目录打只读属性挡不住，替换照样成功；给存档文件打只读属性，替换被拒（拒绝访问），目标一字不动；用目录权限拒绝写入也挡得住，临时文件建不出来。所以实机写「把存档文件设成只读」，里程碑那条判据跟着改。.NET 那一下遇到只读目标同样被拒（实测，本机 .NET 10）：`File.Move` 抛 `UnauthorizedAccessException`，目标一字不动；去掉只读再写一次就成了。
 - **杀毒软件锁文件**：Godot 自己的安全保存为此把替换重试上千次（同上那份源码里的注释）。这里不重试，失败就走「这一天没有推进」，那是安全的一侧；真撞到再加。
 - **步名表与正典的对账放在设计仓** `tools/check_docs.py`：它已经读代码仓（点名已关闭编号的代码注释那条守卫就在读）。放进代码仓的测试，测试就离不开设计仓。
 - **步名取正典那一条的开头**：正典那张表的条目长短不一、加粗的位置也不统一，没有一条规则能直接把条目变成名字；取开头不改正典一个字，增删、调序与开头改字都判得出来。
