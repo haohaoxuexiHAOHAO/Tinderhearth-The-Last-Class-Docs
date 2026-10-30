@@ -1325,6 +1325,93 @@ def check_code_comment_ids(docs: list[Doc], rep: Report) -> tuple[int, int]:
     return len(files), checked
 
 
+# ── 每日结算的步名（DOC-145）─────────────────────────────────────────
+# 步序的家是正典那张编号表；代码仓那张步名表是驱动按名调用要的副本。两份不一致时
+# 没有任何东西判得出来哪一份是真的，所以这里逐项比，任何一边改了而另一边没跟上就判失败。
+SETTLEMENT_CANON_REL = "canon/gameplay/时间与经营.md"
+SETTLEMENT_HEADING = "结算顺序（固定，不得改动）"
+SETTLEMENT_CODE_REL = "rules/Economy/SettlementSteps.cs"
+SETTLEMENT_ITEM_RE = re.compile(r"^\d+\.\s+(.+?)\s*$", re.MULTILINE)
+SETTLEMENT_LEAD_BOLD_RE = re.compile(r"\*\*(.+?)\*\*")
+# 步名止于第一个中文标点。刻意不收半角冒号与空格：「次日 6:30 醒来」那一步的名字里就有。
+SETTLEMENT_NAME_END_RE = re.compile(r"[，、：；（。—]")
+SETTLEMENT_CONST_RE = re.compile(r'\bconst\s+string\s+(\w+)\s*=\s*"([^"]*)"\s*;')
+SETTLEMENT_ORDER_RE = re.compile(r"\bOrder\s*=\s*\[(.*?)\]\s*;", re.DOTALL)
+
+
+def settlement_step_name(item: str) -> str:
+    """正典那一条的步名：以加粗开头的取那一段加粗，否则取到第一个中文标点为止。"""
+    bold = SETTLEMENT_LEAD_BOLD_RE.match(item)
+    if bold:
+        return bold.group(1).strip()
+    return SETTLEMENT_NAME_END_RE.split(item.replace("**", ""), maxsplit=1)[0].strip()
+
+
+def check_settlement_steps(docs: list[Doc], rep: Report) -> int:
+    """代码仓那张每日结算步名表与正典那串逐项相等（`DOC-145`），返回核过的步数。
+
+    **比的是步名，不是开头的几个字。** 只判「代码那一项是正典那一条的开头」的话，截短的
+    名字（「日期推」）能过，正典那一条的开头改长了（「日期推进与天气」）也能过，两种都让
+    代码里那个名字悄悄不再是那一步的名字。所以先从正典那一条取出步名再比相等：以加粗开头的
+    取那一段加粗（「**委托板补满**至固定条数」那一条只有这样取得对），否则取到第一个中文标点。
+    正典一个字不用为它改。
+
+    **放在设计仓、不放进代码仓的测试**：本文件本来就读代码仓（上面那条注释编号守卫），
+    放进代码仓的测试，测试就离不开设计仓。
+
+    读不到那张编号表、读不到代码那一份、或者那张表里有认不出的名字，一律判失败：这条守卫
+    靠节名与代码的形状定位，两者都会被改动悄悄改坏，坏了之后它会静默空转。
+    """
+    if not CODE_REPO.is_dir():
+        return 0                        # 代码仓不在，check_code_repo_present 报过
+    where_canon = f"{SETTLEMENT_CANON_REL} · {SETTLEMENT_HEADING}"
+    canon = next((d for d in docs if d.rel == SETTLEMENT_CANON_REL), None)
+    if canon is None:
+        rep.fail(where_canon, "找不到这份正典，结算步名这一条**没有执行**（不是通过）")
+        return 0
+
+    body = strip_fenced(canon.text)
+    head = re.search(rf"^#{{1,6}}\s*{re.escape(SETTLEMENT_HEADING)}\s*$", body, re.MULTILINE)
+    if head is None:
+        rep.fail(where_canon, "找不到这一节，结算步名这一条**没有执行** —— 改了那个节名就要连着改这条守卫")
+        return 0
+    rest = body[head.end():]
+    nxt = ANY_HEADING_RE.search(rest)
+    want = [settlement_step_name(item)
+            for item in SETTLEMENT_ITEM_RE.findall(rest if nxt is None else rest[:nxt.start()])]
+    if not want:
+        rep.fail(where_canon, "这一节里没有编号表，结算步名这一条**没有执行**（不是通过）")
+        return 0
+
+    where_code = f"代码仓 {SETTLEMENT_CODE_REL}"
+    path = CODE_REPO / SETTLEMENT_CODE_REL
+    if not path.is_file():
+        rep.fail(where_code, "找不到这个文件，结算步名这一条**没有执行** —— 挪了它就要连着改这条守卫")
+        return 0
+    text = path.read_text(encoding="utf-8")
+    order = SETTLEMENT_ORDER_RE.search(text)
+    if order is None:
+        rep.fail(where_code, "找不到 `Order = [ … ];` 那张表，结算步名这一条**没有执行**")
+        return 0
+    consts = dict(SETTLEMENT_CONST_RE.findall(text))
+    idents = re.findall(r"[A-Za-z_]\w*", re.sub(r"//[^\n]*", "", order.group(1)))
+    for ident in idents:
+        if ident not in consts:
+            rep.fail(where_code, f"`Order` 里的 `{ident}` 不是本文件里的一个字符串常量，认不出它是哪一步")
+    have = [consts[i] for i in idents if i in consts]
+
+    if len(have) != len(want):
+        missing = "、".join(f"「{w}」" for w in want if w not in have) or "无"
+        extra = "、".join(f"「{h}」" for h in have if h not in want) or "无"
+        rep.fail(where_code, f"正典那串 {len(want)} 步、这张表 {len(have)} 步 —— "
+                             f"正典有而这里没有：{missing}；这里有而正典没有：{extra}")
+    else:
+        for n, (w, h) in enumerate(zip(want, have), start=1):
+            if w != h:
+                rep.fail(where_code, f"第 {n} 项对不上：正典是「{w}」，这里是「{h}」")
+    return len(want)
+
+
 def check_content_baseline_owners(docs: list[Doc], rep: Report) -> int:
     """内容规模基准表的每一行都要有一个台账编号在等它，返回核过的行数。
 
@@ -1728,6 +1815,8 @@ def main() -> int:
     rep.note(f"卡点覆盖量：核了 {blocker_cells} 格「卡在」（只判还开着的行）")
     code_files, code_ids = check_code_comment_ids(all_docs, rep)
     rep.note(f"代码注释编号覆盖量：扫了代码仓 {code_files} 个 C# 文件，核了 {code_ids} 处编号")
+    settlement_steps = check_settlement_steps(all_docs, rep)
+    rep.note(f"结算步名覆盖量：拿正典那串核了代码仓 {SETTLEMENT_CODE_REL} 里 {settlement_steps} 步")
     note_rows = check_ledger_note_length(all_docs, rep)
     rep.note(f"台账备注覆盖量：量 {note_rows} 行域表备注（上限 {LEDGER_NOTE_LIMIT} 字）")
     pinned = check_upstream_pins(all_docs, rep)
