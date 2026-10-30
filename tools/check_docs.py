@@ -1085,6 +1085,32 @@ def check_issue_ids(docs: list[Doc], rep: Report) -> None:
                               f"（补进 {LEDGER_REL}，或改掉这处引用）")
 
 
+def check_ledger_unique_ids(docs: list[Doc], rep: Report) -> int:
+    """一个编号在台账里只许登一行，域表与「已归档编号」那张表合起来算（`DOC-143`）。
+
+    **为什么要它**：`check_issue_ids` 只问「引到的编号有没有定义」，同一个号登了两行它照样放过 ——
+    而那正是 `GP-131` 撞过的样子：一行在域表、一行在已归档那张表，两件不相干的事共用一个号，引它的人
+    分不出指的是哪一件，关闭判定也会把两件一起算成关了或开着。「不重编号、不复用」靠的就是这一条。
+
+    返回核过的编号个数；**一个都没解析出来判失败**，否则行的形状一变它就静默空转。
+    """
+    ledger = next((d for d in docs if d.rel == LEDGER_REL), None)
+    if ledger is None:
+        return 0                    # check_single_ledger 已经报过缺失
+    lines_of: dict[str, list[int]] = {}
+    for m in LEDGER_ROW_ID_RE.finditer(ledger.text):
+        lines_of.setdefault(m.group(1), []).append(ledger.text[: m.start()].count("\n") + 1)
+    for item_id, lines in lines_of.items():
+        if len(lines) > 1:
+            where = "、".join(f"L{n}" for n in lines)
+            rep.fail(LEDGER_REL, f"`{item_id}` 在台账里登了 {len(lines)} 行（{where}）—— 一个编号只许对应"
+                                 f"一件事，后来的那一件换一个没用过的号")
+    if not lines_of:
+        rep.fail(LEDGER_REL, "台账里一行编号都没解析出来，重号这一条**没有执行**（不是通过）"
+                             "—— 行的形状变了")
+    return len(lines_of)
+
+
 def closed_issue_ids(ledger_text: str) -> set[str]:
     """哪些编号已经关闭。两处都要读，少读一处守卫就只覆盖一半。
 
@@ -1690,6 +1716,8 @@ def main() -> int:
     # 转成 CRLF 的往往正是你以为自己没碰过的文件，而且它覆盖 md 之外的 py。
     check_single_ledger(all_docs, rep)
     check_issue_ids(all_docs, rep)
+    unique_ids = check_ledger_unique_ids(all_docs, rep)
+    rep.note(f"台账重号覆盖量：核了 {unique_ids} 个编号（域表与已归档那张表合起来）")
     check_closed_issue_refs(all_docs, rep)
     retired_scanned, retired_count, retired_terms = check_retired_names(all_docs, rep)
     rep.note(f"退役名覆盖量：拿 {retired_count} 个旧名、{retired_terms} 个退役术语扫了 "
