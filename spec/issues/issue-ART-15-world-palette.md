@@ -134,4 +134,4 @@ last_verified: 2026-10-25
 | `python tools/palette_probe.py check mauve` | 四档最近的都是灰（`ash`、`winter`），26.2 到 28.1 | 符合预期 |
 | `python tools/palette_probe.py check ash` | 第 2、3 档离 `shadow 2`、`shadow 3` 只有 9.0 与 15.7，写进了 `ash` 那条注释 | 符合预期 |
 | 设计仓 `python tools/check_docs.py` | 0 项必须修复、0 条提示 | 通过 |
-| 代码仓 `python tools/verify.py` | 7/7 步通过，测试 458/458、失败 0 | 通过 |
+| 代码仓 `python tools/verify.py` | 全部步骤通过、测试失败 0 | 通过 |
