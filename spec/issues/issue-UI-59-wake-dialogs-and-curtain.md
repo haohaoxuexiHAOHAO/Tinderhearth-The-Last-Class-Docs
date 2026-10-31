@@ -91,5 +91,6 @@ last_verified: 2026-10-31
 | --- | --- | --- |
 | `dotnet run --project tests --no-build`，分别跑窗里写什么、睡下那一段、门面那道闸三组（代码仓） | 9 条、5 条、4 条全部通过 | 通过 |
 | 故意让「睡下去」永远成功，再跑睡下那一组（代码仓） | 「睡下之后到弹窗弹出之前_第二次推进被拒」失败；已改回 | 通过（判得到） |
+| `python tools/audit_fonts.py --only fusion-12px`（设计仓，新增的字进了文本表之后） | 选定款对代码仓游戏文本全覆盖，硬要求成立；下载物用 `--clean` 删了 | 通过 |
 | `python tools/verify.py`（代码仓） | 7/7 步通过 | 通过 |
 | `python tools/check_docs.py`（设计仓） | 0 项必须修复 | 通过 |
