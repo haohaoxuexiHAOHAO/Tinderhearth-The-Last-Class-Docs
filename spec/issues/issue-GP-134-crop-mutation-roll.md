@@ -1,8 +1,8 @@
 ---
 type: workdoc
-status: in-progress
+status: archived
 owner: project
-last_verified: 2026-10-29
+last_verified: 2026-10-31
 ---
 
 # GP-134：长成那一晚掷一次变异，收上来带着变异
@@ -19,7 +19,7 @@ last_verified: 2026-10-29
 ## 依赖
 
 - `GP-143`：引擎那一侧掷的时候用它算出的几率。规则层只收「这一次中没中」，不等它。
-- 品质等 `GP-22`：它不在本条的验收里，做完下面这几格之后本条照旧开着，等它。变异那一位跟着地块分片进存档（代码仓 `rules/Economy/WorldShards.cs`），睡后简报里有「作物变异几格」那一项（代码仓 `rules/Economy/WakeReport.cs`）。
+- 收成品质：不在本条的验收里，随 `GP-161` 落地 —— 变异那一株收上来落成变异那一档（代码仓 `rules/Economy/Harvesting.cs`）。变异那一位跟着地块分片进存档（代码仓 `rules/Economy/WorldShards.cs`），睡后简报里有「作物变异几格」那一项（代码仓 `rules/Economy/WakeReport.cs`）。
 
 ## 验收标准
 
