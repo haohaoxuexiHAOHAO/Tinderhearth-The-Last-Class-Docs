@@ -177,7 +177,8 @@
   },
 
   "capacity": {
-    "backpack_slots_by_level": [16, 20, 24, 28],
+    "backpack_grid_by_level": [[6, 2], [6, 3], [6, 4], [6, 5]],
+    "carry_row_cells": 6,
     "warehouse_slots_by_level": [40, 70, 110],
     "stack_limit_default": 20,
     "expected_sortie_item_kinds": 14

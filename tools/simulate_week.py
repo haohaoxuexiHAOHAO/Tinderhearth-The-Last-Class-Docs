@@ -750,14 +750,16 @@ def check_premises(p: Params, sims: dict[str, SimResult], sheets: dict) -> None:
         "值，本条要每条渠道在每一维上都有值。现在只有「每点精力的钱」那一维有一侧的值",
         "各渠道的产量与耗时（数值模型的尚未给值表）")
 
-    # 附加：容量必须造成一次取舍，但不频繁被迫丢弃
+    # 附加：容量必须造成一次取舍，但不频繁被迫丢弃。背包是一张网格加随身栏那一排，两样都算进容量
+    # （design/背包系统.md「容量判据怎么量」）；现在的物品全占 1 格，所以预期种类数就是预期占的格数。
     kinds = p("capacity.expected_sortie_item_kinds")
-    slots = p("capacity.backpack_slots_by_level")[0]
+    width, height = p("capacity.backpack_grid_by_level")[0]
+    slots = width * height + p("capacity.carry_row_cells")
     derive("背包占用百分比", kinds / slots * 100)
     check("C7", "一次出征的产出种类接近但不超过初级背包格数（造成取舍而非频繁丢弃）",
           slots * 0.7 <= kinds <= slots,
-          f"一次出征约 {kinds} 种物品，初级背包 {slots} 格，占用 {kinds / slots:.0%}",
-          "capacity.backpack_slots_by_level / capacity.expected_sortie_item_kinds")
+          f"一次出征约 {kinds} 种物品，初级背包 {width}×{height} 的网格加随身栏共 {slots} 格，占用 {kinds / slots:.0%}",
+          "capacity.backpack_grid_by_level / capacity.carry_row_cells / capacity.expected_sortie_item_kinds")
 
 
 # ── 正文抄的「算出来的量」 ────────────────────────────────────────────
@@ -877,8 +879,8 @@ def check_doc_values(p: Params, text: str) -> int:
 
     - **标量**：值必须出现在该行 —— 这是主力，覆盖等级上限、本金、利率、倍率这一批。
     - **扁平字典**：每个值都必须出现（`采集 25 / 清理 35 / 护卫 45` 是逐项抄的）。
-    - **列表与嵌套结构**：不判。文档按档位或按名只引其中一项（「初级背包 16 格」只提第一
-      档），逐个要求会误报。**它们被列出来，不是静默跳过** —— 要把它们纳入判定，得先让
+    - **列表与嵌套结构**：不判。文档按档位或按名只引其中一项（背包那一串只提第一级），
+      逐个要求会误报。**它们被列出来，不是静默跳过** —— 要把它们纳入判定，得先让
       文档改引具体叶子路径，而那要 PATH_RE 支持中文键。
     """
     checked: list[str] = []
