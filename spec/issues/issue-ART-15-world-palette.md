@@ -189,7 +189,7 @@ last_verified: 2026-11-07
 | `python tools/ui_art.py` | 写入 19 张、未变 175 张、跳过 0 张，194 张全部过了三项校验 | 通过 |
 | 一次性脚本：作者画的那 43 张，用到旧值的不透明像素换成同名项的新值 | 共换 3234 个像素，换完再扫一遍旧值剩 0 | 通过 |
 | 一次性脚本：改过的 62 张与提交里那一版逐像素比 | 变了的像素共 4276 个，全是旧值换成同名项的新值；透明度与别的像素一个没变，尺寸一张没变 | 通过 |
-| 代码仓 `python tools/check_art.py --all` | 核了 243 张，242 张通过；没过的那张是 `ui/hud/vigor_tube_fill.png`（九宫格竖着拉的那几行不同色），这次没动它 | 与这次的改动无关 |
+| 代码仓 `python tools/check_art.py --all` | 核了 243 张，全部通过 | 通过 |
 | `python tools/palette_probe.py` | 半档逐个等于两边整数档的中点、排在两档中间，读色板时没有报错；补了半档的那几条，相邻两档（含半档）的明度差在 13 到 28 之间，`ash` 暗的那一半没补，是 23 到 31 | 符合预期 |
 | `python tools/palette_probe.py split gemred --coarse` | 只切出 `gemred` 的整数档 | 符合预期 |
 | 设计仓 `python tools/check_docs.py` | 0 项必须修复、0 条提示 | 通过 |
