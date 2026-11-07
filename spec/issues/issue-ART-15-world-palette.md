@@ -2,7 +2,7 @@
 type: workdoc
 status: draft
 owner: project
-last_verified: 2026-10-31
+last_verified: 2026-11-07
 ---
 
 # ART-15：世界侧配色：角色、地形与物件的色板
@@ -54,11 +54,17 @@ last_verified: 2026-10-31
 - [ ] 一团火照 `flame` 那条注释从外沿画到芯（`flame` 接 `ember` 的亮端）：读作同一团火，看不出两条色带的接缝
 - [ ] 一块冰只用 `ice` 与 `highlight` 画：不发光、也没有另开的晶冰，照样读得出是冰
 
+**金属**
+
+- [ ] 一枚银币（`ash` 亮的一半）、一把钢刀（`night`）、一块冰（`ice`）并排：读作三样东西
+- [ ] 一块画大了的银（`ash` 5–8 档连同半档）：读作一块银，不读作一块水泥或一根骨头
+- [ ] 一把钢刀（`night`）挨着学院制服那种褪色的蓝布（也是 `night`）：读作金属与布两样东西
+
 **人物**
 
 - [ ] 褪紫（`mauve`）对 `ash` 与 `winter`：读作一块洗旧的紫布，不读作一块灰
 - [ ] 褪紫（`mauve`）对 `night` 与 `fruitpurple`：与褪色的蓝布、与茄子那种艳紫都分得开
-- [ ] 主角黑发里的银白发束（`winter` 或 `ice` 的亮档）紧挨面具（`ash` 亮的一半）：读作头发与金属两样东西
+- [ ] 主角黑发里的银白发束（`winter` 3–5）紧挨面具（`ash` 亮的一半，紧挨发束那一圈只用整数档）：读作头发与金属两样东西
 - [ ] 黑裤、黑靴贴地那一截照 `ash` 那条注释取色，踩在接地影（`shadow`）上：脚与影子分得开
 
 **半档**（口径在[像素绘制原则 · 本项目的色带口径](../../production/像素绘制原则.md)）
@@ -89,6 +95,10 @@ last_verified: 2026-10-31
 - **模糊点**：黑发、黑衣、灰发、银发缺不缺色。
 - **选择**：都不另开，只在 `ash` 那条注释里写明两处要避开的档（贴地的黑、主角的银白发束）。
 - **理由**：明度与冷暖都排得开 —— 冷黑、暖黑、蓝黑各有出处，灰与银也都有冷暖可挑。缺的是「哪几档会和别的东西粘在一起」，那是借用说明、不是颜色。
+
+- **模糊点**：银与钢铁从哪取；`ash` 亮的那一半（5–8 档）画大件够不够。
+- **选择**：银走 `ash` 亮的那一半，5–8 档之间补了半档，暗面接 `ash` 4、3 档或借 `stone` 3；钢铁走 `night`，补了第 6 档。铁就是钢，不另分白铁、黑铁，反派身上那层黑铁壳也照钢画。`ice` 只管冰与玻璃。稀有度中级那一档的框随银换成 `ash 7`：低、中、高是 `copper 3`、`ash 7`、`gold 5`，读作铜、银、金。
+- **理由**：银几乎不带颜色、略偏暖（[Adobe Substance 的金属参考表](https://experienceleague.adobe.com/en/docs/substance-3d/general-knowledge/asm/metal-material-references)），而偏青的 `ice` 是冰与玻璃那一组色，拿它画银就和冰、玻璃分不开；钢要冷的理由在[像素绘制原则 · 本项目的色带口径](../../production/像素绘制原则.md)，走更蓝的 `night` 是把那一片青留给冰与玻璃。补灰只能补中点：灰那一段被 `ash`、`winter`、`stone` 三条交错占满，另做的暖暗灰候选全落在 `stone` 上（差 4.6 到 12.8），而中点不动整数档，已画的素材与按名字取的色照旧有效。`ash` 暗的那一半不补：中点贴着接地影与雪（`ash 1.5` 离 `shadow 1` 只有 5.7，`ash 4.5` 离 `winter 2` 只有 5.1）。`ash 7` 的明度 194，稀有度框逐档变亮。
 
 - **模糊点**：洗旧的紫布（三喜那身旧衣就是）从哪取。
 - **选择**：另开 `mauve`（灰紫、低彩度），当布料用。它不是三喜签名色的锁定值，签名色照旧在实机背景下校准（[像素绘制原则 · 本项目的色带口径](../../production/像素绘制原则.md)）。
@@ -131,6 +141,7 @@ last_verified: 2026-10-31
 - 已知的缺口，第一次真要画到时再加，加之前照[像素绘制原则 · 本项目的色带口径](../../production/像素绘制原则.md)先问借不借得到：
   - **不透明的正蓝**（蓝漆、染得正的蓝布、蓝色塑料）：正蓝那一片只有 `gemblue`（透明晶体的画法）与 `spirit`（自发光），`night` 太压闷，`fruitblue` 往紫偏。
   - **中深的暖棕肤色**：`skin` 整条偏素。单个色凑得到（`copper`、`soil`、`fruitorange` 各有近邻），但拼成一条肤色要跨几条走向不同的色带。
+  - **`ash` 暗的那一半画大了够不够**（黑发、黑衣）：只有 1–4 档，补半档的话中点贴着接地影与雪。第一次画到立绘那么大时再定。
   - **军绿与常绿**（制服那种橄榄绿、松柏那种四季不变的绿）：军绿的近邻在 `moss` 与 `spring` 上，那两条正是换季要换的；常绿的候选贴着 `greenskin`（兽人的肤色）。借了会不会跟着换季、常绿要不要单开一条，都看换季怎么换（`ART-22`），先等它定。
 
 ## 验证结果
@@ -146,8 +157,9 @@ last_verified: 2026-10-31
 | `python tools/palette_probe.py check cropgreen` | 第 5 档最近是 `stone 6`，35.3 | 符合预期 |
 | `python tools/palette_probe.py check flame` | 最近一对是第 2 档对 `ember 3`，44.4；第 1 档最近是 `gemred 1`，55.4 | 符合预期 |
 | `python tools/palette_probe.py check mauve` | 四档最近的都是灰（`ash`、`winter`），26.2 到 28.1 | 符合预期 |
-| `python tools/palette_probe.py check ash` | 第 2、3 档离 `shadow 2`、`shadow 3` 只有 9.0 与 15.7，写进了 `ash` 那条注释 | 符合预期 |
-| `python tools/palette_probe.py` | 半档逐个等于两边整数档的中点、排在两档中间，读色板时没有报错；补了半档的那几条，相邻两档（含半档）的明度差在 13 到 28 之间 | 符合预期 |
+| `python tools/palette_probe.py check ash` | 第 2、3 档离 `shadow 2`、`shadow 3` 只有 9.0 与 15.7，写进了 `ash` 那条注释；银那几个半档最近是 `stone 4.5`、`winter 4`、`winter 5`，9.4 到 12.1 | 符合预期 |
+| `python tools/palette_probe.py check night` | 钢那一档（第 6 档）最近是 `ice 3.5`，15.6；第 1 档离 `skynight 1` 7.7，两条本来就一起画夜景 | 符合预期 |
+| `python tools/palette_probe.py` | 半档逐个等于两边整数档的中点、排在两档中间，读色板时没有报错；补了半档的那几条，相邻两档（含半档）的明度差在 13 到 28 之间，`ash` 暗的那一半没补，是 23 到 31 | 符合预期 |
 | `python tools/palette_probe.py split gemred --coarse` | 只切出 `gemred` 的整数档 | 符合预期 |
 | 设计仓 `python tools/check_docs.py` | 0 项必须修复、0 条提示 | 通过 |
 | 代码仓 `python tools/verify.py` | 全部步骤通过、测试失败 0 | 通过 |
