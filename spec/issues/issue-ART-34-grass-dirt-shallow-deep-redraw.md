@@ -2,7 +2,7 @@
 type: workdoc
 status: in-progress
 owner: project
-last_verified: 2026-11-05
+last_verified: 2026-11-08
 ---
 
 # ART-34：草与裸土、浅水与深水两套照同一个画法重画
@@ -53,4 +53,4 @@ last_verified: 2026-11-05
 
 ## 验证结果
 
-暂无，等作者交图。
+暂无，等 `ENG-42` 接进游戏。
