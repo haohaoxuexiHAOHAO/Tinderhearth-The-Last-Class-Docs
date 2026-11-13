@@ -199,13 +199,13 @@
         { "day": 7, "protagonist": ["water_plot", "sortie_clear", "craft_batch"], "assignments": { "s1": "planting", "s2": "crafting" } }
       ],
       "重出征": [
-        { "day": 1, "protagonist": ["tend_plot_self", "sortie_gather", "sortie_gather"], "sow": { "速生叶菜": 12 }, "assignments": { "s1": "planting", "s2": "planting" } },
-        { "day": 2, "protagonist": ["water_plot", "sortie_clear", "sortie_gather"], "assignments": { "s1": "planting", "s2": "crafting" } },
+        { "day": 1, "protagonist": ["tend_plot_self", "sortie_gather"], "sow": { "速生叶菜": 12 }, "assignments": { "s1": "planting", "s2": "planting" } },
+        { "day": 2, "protagonist": ["water_plot", "sortie_clear"], "assignments": { "s1": "planting", "s2": "crafting" } },
         { "day": 3, "protagonist": ["water_plot", "sortie_clear"], "assignments": { "s1": "planting", "s2": "training" } },
         { "day": 4, "protagonist": ["water_plot", "sortie_escort"], "assignments": { "s1": "planting", "s2": "crafting" } },
-        { "day": 5, "protagonist": ["water_plot", "sortie_clear", "sortie_gather"], "sow": { "速生叶菜": 12 }, "assignments": { "s1": "planting", "s2": "reading" } },
+        { "day": 5, "protagonist": ["water_plot", "sortie_clear"], "sow": { "速生叶菜": 12 }, "assignments": { "s1": "planting", "s2": "reading" } },
         { "day": 6, "protagonist": ["water_plot", "sortie_escort"], "assignments": { "s1": "planting", "s2": "training" } },
-        { "day": 7, "protagonist": ["water_plot", "sortie_clear", "sortie_gather"], "assignments": { "s1": "planting", "s2": "crafting" } }
+        { "day": 7, "protagonist": ["water_plot", "sortie_clear"], "assignments": { "s1": "planting", "s2": "crafting" } }
       ]
     }
   }

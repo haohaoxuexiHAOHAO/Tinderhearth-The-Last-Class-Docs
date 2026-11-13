@@ -609,7 +609,8 @@ def check_premises(p: Params, sims: dict[str, SimResult], sheets: dict) -> None:
     days_to_repay = derive("还债天数",
                            principal / net_per_day if net_per_day > 0 else float("inf"))
     sorties = sheets["sorties_to_cap"]
-    sorties_per_day = 1.5
+    # 每天只出征一次：正典 战斗与关卡 · 接委托：去锈月酒馆，一天一趟
+    sorties_per_day = 1.0
     days_to_cap = derive("练满天数", sorties / sorties_per_day)
     ratio_goals = derive("两条目标天数比",
                          days_to_cap / days_to_repay if days_to_repay else float("inf"))
