@@ -180,7 +180,7 @@ class Sheet:
     effective_hp: float = 0.0
 
     def power(self, multiplier: float) -> float:
-        """战力＝有效 HP × 输出。**走物理那一路**：普攻是物理的，C4 与 C6 也拿普攻当探针，
+        """战力＝有效 HP × 输出。**走物理那一路**：普通攻击是物理的，C4 与 C6 也拿普通攻击当探针，
         三条判据用同一个基准才比得出意义。取大或加权会让战力差变成一个说不清由谁贡献的数。"""
         dps = self.patk * multiplier * self.atk_speed
         return self.effective_hp * dps
@@ -275,7 +275,7 @@ def analyse_attributes(p: Params) -> dict:
     ally_f = p("flame_passed_on.student_output_factor")
 
     def output(sheet: Sheet, mult: float, factor: float) -> float:
-        """「薪尽火传」在场时的实际输出。普攻当探针，与 C1、C6 同一个基准。"""
+        """「薪尽火传」在场时的实际输出。普通攻击当探针，与 C1、C6 同一个基准。"""
         return sheet.patk * mult * sheet.atk_speed * factor
 
     # 两端各判一次：主角起步四项都比学生高一点，所以两端的比值不一样，只量一端会漏掉另一端。

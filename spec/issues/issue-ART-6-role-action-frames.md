@@ -26,7 +26,7 @@ last_verified: 2026-10-27
 `PlayerActor` 只载入 `idle`／`walk`／`run`／`jump`／`dodge`／`light`／`light2`／`light3`／`light_hit`／`heavy_hit`（列表在代码仓 `src/World/PlayerActor.cs`）。
 `general_defense`／`precise_defense`／`imbalance`／`death` 入仓备用**不载入**，`jump_attack`／`knocked_away` 未接 —— 防御、失衡、死亡与空中攻击的玩法都还不存在，载进来只会是「有图没规则」。
 
-**重击那一张（`heavy`）已从代码仓删掉**：普攻只剩轻攻击一种（侧视那版[战斗与关卡](../../canon/gameplay/战斗与关卡.md)的「按键与连击」），正式美术也不用画它；原画还在工作区的 art-source 里。受击那张 `heavy_hit` 照旧要，挨了重的那一下放它。
+**重击那一张（`heavy`）已从代码仓删掉**：普通攻击只剩轻攻击一种（侧视那版[战斗与关卡](../../canon/gameplay/战斗与关卡.md)的「按键与连击」），正式美术也不用画它；原画还在工作区的 art-source 里。受击那张 `heavy_hit` 照旧要，挨了重的那一下放它。
 
 ## 剩下要做的
 
