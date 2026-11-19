@@ -262,7 +262,7 @@ def analyse_attributes(p: Params) -> dict:
     # 主角伤害必须显著低于学生（人物正典：主角低伤辅助，伤害来自学生）。
     #
     # **量测点在状态上，不在倍率上。** 倍率表里主角与学生同名招式同值，削弱全部由
-    # 「薪尽火传」那条永久状态承担。量倍率之比会漏掉状态那一层 —— 而漏掉的那一层正是
+    # 「薪火相传」那条永久状态承担。量倍率之比会漏掉状态那一层 —— 而漏掉的那一层正是
     # 全部削弱，于是判据会一直报通过、实际比值却是另一个数。
     #
     # 这条判两件事，因为「削弱只有一个来源」要这两件同时成立：
@@ -275,15 +275,15 @@ def analyse_attributes(p: Params) -> dict:
     ally_f = p("flame_passed_on.student_output_factor")
 
     def output(sheet: Sheet, mult: float, factor: float) -> float:
-        """「薪尽火传」在场时的实际输出。普通攻击当探针，与 C1、C6 同一个基准。"""
+        """「薪火相传」在场时的实际输出。普通攻击当探针，与 C1、C6 同一个基准。"""
         return sheet.patk * mult * sheet.atk_speed * factor
 
     # 两端各判一次：主角起步四项都比学生高一点，所以两端的比值不一样，只量一端会漏掉另一端。
     pro_lv1, stu_lv1 = output(lv1, ml, self_f), output(st1, sl, ally_f)
     pro_max, stu_max = output(lvmax, ml, self_f), output(stmax, sl, ally_f)
-    ratio_lv1 = derive("薪尽火传下输出比1级", pro_lv1 / stu_lv1)
-    ratio_max = derive("薪尽火传下输出比满级", pro_max / stu_max)
-    check("C4", "「薪尽火传」在场时主角实际输出显著低于学生（比值 ≤ 0.5，两端各判）",
+    ratio_lv1 = derive("薪火相传下输出比1级", pro_lv1 / stu_lv1)
+    ratio_max = derive("薪火相传下输出比满级", pro_max / stu_max)
+    check("C4", "「薪火相传」在场时主角实际输出显著低于学生（比值 ≤ 0.5，两端各判）",
           same_mult and ratio_lv1 <= 0.5 and ratio_max <= 0.5,
           f"倍率两边{'同值' if same_mult else '**不同值，削弱有两个来源**'}"
           f"（轻攻击 {ml}／{sl}）；"
@@ -778,9 +778,9 @@ DOC_CLAIMS: tuple[tuple[str, str, str, int], ...] = (
     ("C9 的两条目标天数比",   r"还债约 \d+ 天，比 ([\d.]+)",            "两条目标天数比",    2),
     ("经济一节的还债天数",    r"约 (\d+) 天净收入",                     "还债天数",          0),
     ("经济一节的每天利息",    r"利率只做到每天 (\d+) 铜",               "每天利息铜",        0),
-    ("C4 的 1 级实测比",      r"当前实测：1 级 ([\d.]+) 倍",            "薪尽火传下输出比1级",   2),
+    ("C4 的 1 级实测比",      r"当前实测：1 级 ([\d.]+) 倍",            "薪火相传下输出比1级",   2),
     ("C4 的满级实测比",       r"当前实测：1 级 [\d.]+ 倍，满级 ([\d.]+) 倍",
-                                                                        "薪尽火传下输出比满级",  2),
+                                                                        "薪火相传下输出比满级",  2),
     ("进攻回蓝效率",          r"当前是进攻 ([\d.]+) MP/s",              "进攻回蓝MP每秒",    2),
     ("精准防御回蓝效率",      r"精准防御 ([\d.]+) MP/s",                "精准防御回蓝MP每秒", 2),
     ("精准闪避回蓝效率",      r"精准闪避 ([\d.]+) MP/s",                "精准闪避回蓝MP每秒", 2),

@@ -23,6 +23,8 @@ last_verified: 2026-08-25
 
 低层文档只能补充实现细节，不能静默改写高层意图；代码说明已经实现的现状。确需改变跨领域取舍时，新增架构决策记录（Architecture Decision Record，简称 ADR）。
 
+**作者维护的几份在它们那一块里是最高权威**：工作区根 `desc/` 下每一份管一块，有哪几份见下面文档地图「作者维护」那一行。正典与系统文档写到这几块时只链过去、写理由与结构，不另抄一份；对不上时以 `desc/` 为准，`desc/` 里还没写到的照正典。这几份不在仓库里。
+
 ## 文档地图
 
 | 分类 | 权威内容 |
@@ -31,10 +33,11 @@ last_verified: 2026-08-25
 | 叙事 | [主线故事](./canon/narrative/主线故事.md)（骨架）· [支线内容](./canon/narrative/支线内容.md)（三条重要支线的内容）· [节点里的学生](./canon/narrative/节点里的学生.md)（每个节点里九人各做什么）· [学生群像](./canon/narrative/学生群像.md) · [反派与要角](./canon/narrative/反派与要角.md) · [常驻NPC](./canon/narrative/常驻NPC.md) |
 | 玩法与系统 | [玩法定位](./canon/gameplay/玩法定位.md)（总纲）· [时间与经营](./canon/gameplay/时间与经营.md) · [角色与成长](./canon/gameplay/角色与成长.md) · [战斗与关卡](./canon/gameplay/战斗与关卡.md)。系统细化见[系统文档](./design/README.md) |
 | 美术与文案 | [像素绘制原则](./production/像素绘制原则.md)（通用像素方法，含角色逐帧交付）· [场景绘制约定](./production/场景绘制约定.md)（俯视投影、瓦片拼接、侧视背景与动态水）· [界面绘制约定](./production/界面绘制约定.md)（界面件画多大、几种状态、九宫格怎么切、哪几层被染、放哪）· [文案写作规范](./production/文案写作规范.md) |
-| 学习与排错 | [C# 学习](./reference/学习CSharp-Java程序员向.md) · [Godot 实现教学](./reference/godot/README.md)（引擎怎么用、作者在编辑器里做哪一半）· [踩坑记录](./reference/踩坑记录.md) · [同类游戏怎么做地图](./reference/同类游戏怎么做地图.md)（同类型的像素游戏，各个场景的地图怎么做，只记事实与出处）· [同类游戏怎么做战棋](./reference/同类游戏怎么做战棋.md)（几款战棋与回合制游戏怎么轮回合、什么时候开打、视野与小人怎么动，只记事实与出处） |
+| 学习与排错 | [C# 学习](./reference/学习CSharp-Java程序员向.md) · [Godot 实现教学](./reference/godot/README.md)（引擎怎么用、作者在编辑器里做哪一半）· [踩坑记录](./reference/踩坑记录.md) · [同类游戏怎么做地图](./reference/同类游戏怎么做地图.md)（同类型的像素游戏，各个场景的地图怎么做，只记事实与出处）· [同类游戏怎么做战棋](./reference/同类游戏怎么做战棋.md)（几款战棋与回合制游戏怎么轮回合、什么时候开打、视野与小人怎么动，只记事实与出处）· [同类游戏怎么叠同一种加成](./reference/同类游戏怎么叠同一种加成.md)（同一种加成从几处来时各款怎么算合计、玩家怎么评价，只记事实与出处） |
 | 词汇 | [术语表](./reference/术语表.md)（文档里那批自造词，跨多份共用的那些；只在一份里用的词在那一份自己的「术语」节） |
 | 需求与待办 | [spec/](./spec/README.md)（进行中需求）· [待办台账](./spec/issues/README.md)（唯一待办索引） |
-| 数值 | [数值模型](./design/数值模型.md)（公式与判据）· 值在 `design/numeric-model-params.json`，推演入口 `python tools/simulate_week.py` |
+| 作者维护 | [状态](../desc/状态.md) · [天赋](../desc/天赋.md) · [技能](../desc/技能.md) · [角色面板](../desc/角色面板.md) · [各类公式计算](../desc/各类公式计算.md) · [人物](../desc/人物.md)（所有角色，连同黄金时代的人物）· [剧情](../desc/剧情.md) · [特殊建筑](../desc/特殊建筑.md) · [物品](../desc/物品.md)（工作区根 `desc/`，见上面「权威层级」） |
+| 数值 | [数值模型](./design/数值模型.md)（判据与推演；公式的样子见[各类公式计算](../desc/各类公式计算.md)）· 值在 `design/numeric-model-params.json`，推演入口 `python tools/simulate_week.py` |
 | 流程与设计 | [WORKFLOW](./WORKFLOW.md)（工作流规则）· [系统文档与提案](./design/README.md)（`design/` 根下是系统文档，`proposals/` 下是一次性提案，体裁规则见 [ADR-0010](./decisions/ADR-0010-文档体裁与系统文档归位.md)） |
 | 决策与历史 | [ADR 索引](./decisions/README.md)（含工程性取舍，代码仓库不另设决策目录）· [历史归档](./archive/README.md)（只读，含变更日志） |
 
@@ -44,7 +47,7 @@ last_verified: 2026-08-25
 
 世界与主角设定已经确定，见上表。**玩法结构与战斗形式已裁定**并落进 [canon/gameplay/](./canon/gameplay/玩法定位.md)：2D 像素废土题材的**经营建造 + 关卡制即时动作游戏**，战斗与出征一律侧视、基地与城区一律俯视，玩家直接操作主角。上架目标是 Steam 的 Windows PC 端，买断制。
 
-数值模型（属性公式、成长曲线、判定公式与参数表）在 [design/数值模型.md](./design/数值模型.md)。**代码里刻意没有玩法数值**；战斗手感帧数不属数值模型，归实机收敛（见[待办台账](./spec/issues/README.md) `GP-6`）。
+公式的样子见 [desc/各类公式计算.md](../desc/各类公式计算.md)，值与判据归[数值模型](./design/数值模型.md)。**代码里刻意没有玩法数值**；战斗手感帧数不属数值模型，归实机收敛（见[待办台账](./spec/issues/README.md) `GP-6`）。
 
 前作《火种》的回合制玩法明确**不予继承**。世界观、主角设定与美术／文案方法论继承自前作，其余（剧情、九人学生名单、战斗与经营系统、任务与界面接口）一律重新设计。
 
