@@ -27,7 +27,7 @@ last_verified: 2026-08-25
 
 | 分类 | 权威内容 |
 | --- | --- |
-| 作者维护（游戏是什么） | [状态](../desc/状态.md) · [天赋](../desc/天赋.md) · [技能](../desc/技能.md) · [角色面板](../desc/角色面板.md) · [各类公式计算](../desc/各类公式计算.md) · [人物](../desc/人物.md)（所有角色，连同黄金时代的人物）· [剧情](../desc/剧情.md) · [特殊建筑](../desc/特殊建筑.md) · [物品](../desc/物品.md)（工作区根 `desc/`，见上面「权威层级」） |
+| 作者维护（游戏是什么） | [世界观](../desc/世界观.md) · [战斗规则](../desc/战斗规则.md)（连同关卡与委托）· [经营规则](../desc/经营规则.md)（连同一局怎么玩、成长、装备、关系与界面）· [状态](../desc/状态.md) · [天赋](../desc/天赋.md) · [技能](../desc/技能.md) · [角色面板](../desc/角色面板.md) · [各类公式计算](../desc/各类公式计算.md) · [人物](../desc/人物.md)（所有角色，连同黄金时代的人物）· [剧情](../desc/剧情.md) · [特殊建筑](../desc/特殊建筑.md) · [物品](../desc/物品.md)（工作区根 `desc/`，见上面「权威层级」） |
 | 系统文档 | [系统文档与提案](./design/README.md)：只为代码开工的系统写，写代码怎么搭 |
 | 正典（待删，[`DOC-166`](./spec/issues/README.md)） | [世界观](./canon/world/世界观.md) · [人物](./canon/characters/人物.md) · [主线故事](./canon/narrative/主线故事.md) · [支线内容](./canon/narrative/支线内容.md) · [节点里的学生](./canon/narrative/节点里的学生.md) · [学生群像](./canon/narrative/学生群像.md) · [反派与要角](./canon/narrative/反派与要角.md) · [常驻NPC](./canon/narrative/常驻NPC.md) · [玩法定位](./canon/gameplay/玩法定位.md) · [时间与经营](./canon/gameplay/时间与经营.md) · [角色与成长](./canon/gameplay/角色与成长.md) · [战斗与关卡](./canon/gameplay/战斗与关卡.md) |
 | 美术与文案 | [像素绘制原则](./production/像素绘制原则.md)（通用像素方法，含角色逐帧交付）· [场景绘制约定](./production/场景绘制约定.md)（俯视投影、瓦片拼接、侧视背景与动态水）· [界面绘制约定](./production/界面绘制约定.md)（界面件画多大、几种状态、九宫格怎么切、哪几层被染、放哪）· [文案写作规范](./production/文案写作规范.md) |
