@@ -21,7 +21,9 @@
 路径都相对设计仓根目录；`../desc/…` 指工作区根的 desc。`names` 给新目标起链接里显示的
 名字（默认是文件名去掉扩展名，`README` 这种不好读的才需要写）；`by_section` 的节名写
 `null` 表示只指到那份文件；`relabel` 列出按旧文档身份起的链接文字（例如「正典」），
-改指时整个换成新目标的名字。
+改指时整个换成新目标的名字；`drop_leads` 列出「只是指过去」的句首（例如「理由在」）：
+没有改指的链接前面紧挨着这几个字、后面紧跟句号或格末时，连这几个字整句删掉，
+而不是留下一句「理由在条目文件」这样指向空处的话。
 
 每一处 `[文字](路径)`，路径落在 `delete` 里时：
 
@@ -108,6 +110,18 @@ def plan_for(doc_path: Path, text: str, plan: dict, cache: dict) -> tuple[str, l
             continue
         old_stem = Path(rel).stem
         rule = retarget.get(rel)
+        lead = next((w for w in plan.get("drop_leads", [])
+                     if text.endswith(w, 0, m.start())), None)
+        after = text[m.end():m.end() + 2].lstrip(" ")
+        if rule is None and lead is not None and (after[:1] in ("。", "；", "|", "") or after.startswith("\n")):
+            # 「理由在[条目文件](…)」这种只是指过去的一句：去处删了，整句一起删，不留一句空话
+            start = m.start() - len(lead)
+            end = m.end() + (1 if text[m.end():m.end() + 1] in ("。", "；") else 0)
+            out.append(text[last:start])
+            last = end
+            line_no = text.count("\n", 0, m.start()) + 1
+            changes.append(f"L{line_no}: {lead}{m.group(0)}  →  （整句删掉）")
+            continue
         if rule is None:
             new = label
         else:
