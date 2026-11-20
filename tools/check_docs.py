@@ -83,12 +83,8 @@ APPENDIX_PREFIX = "附录"
 # ── 术语（ADR-0019）───────────────────────────────────────────────────
 # 分家的判据是「这个词有几个家」：跨页共用的归共用表，只有一页在用的归那一页的
 # 「术语」节，两处都有就是两个家。三条判定各挡一种会静默发生的错，见 `DOC-93`。
-GLOSSARY_REL = "reference/术语表.md"
 TERMS_SECTION = "术语"
-# 共用表末尾那张「会撞」的表是交叉索引、不是定义 —— 同一个词在那里再出现一次是
-# 应该的，所以取词条时切到它为止。判据那一份自己写着（「收词判据」一节）。
-GLOSSARY_CROSS_INDEX = "## 这几个词会撞"
-# 词条 = 表格行首那个加粗词：`| **X** | …`。两张表同一个形状。
+# 词条 = 表格行首那个加粗词：`| **X** | …`。
 TERM_ROW_RE = re.compile(r"^\|\s*\*\*(.+?)\*\*\s*\|", re.MULTILINE)
 ANY_HEADING_RE = re.compile(r"^#{1,6}\s", re.MULTILINE)
 
@@ -227,7 +223,7 @@ UPSTREAM_SECTION_RE = re.compile(r"^## 上游约束\s*?$(.*?)(?=^## )", re.M | r
 LEDGER_NOTE_LIMIT = 500
 # 只判长期权威文档。台账自己是状态的家；`archive/` 与已接受的 ADR 不许用今天的说法
 # 改写；`spec/` 下是过程文件，会随需求归档走掉。
-CLOSED_REF_SCOPE = ("canon/", "design/")
+CLOSED_REF_SCOPE = ("design/",)
 # 域表备注里那个「卡在」标签，取它到行尾（也就是那一格的余下部分）。判定面为什么
 # 只收这一格，理由在 `check_ledger_blockers` 的文档字符串里。
 LEDGER_BLOCKER_RE = re.compile(r"\*\*卡在\*\*：(.*)$")
@@ -245,8 +241,8 @@ ISSUE_ID_TICKED_RE = re.compile(r"`((?:GP|NR|UI|ART|ENG|DOC)-\d+)`")
 # 清单也没有任何编号在等**，而那件事原先没有任何东西查得出来：断链检查为真（它没
 # 链接可查）、`check_issue_ids` 也为真（它只管引到的编号存不存在，管不了该引却没引）。
 # 实测第一次核对撞到七类：技能书、知识书、宝物副词条候选池、家畜、鱼、料理配方、设备。
-BASELINE_REL = "canon/gameplay/玩法定位.md"
-BASELINE_HEADING = "## 内容规模基准"
+BASELINE_REL = "design/数值模型.md"
+BASELINE_HEADING = "## 附录：内容规模基准"
 
 # ── 行尾（ENG-9）──────────────────────────────────────────────────────
 # 策略本身不在这里复述：`.gitattributes` 是行尾策略的唯一权威源，在 Python 里再写
@@ -474,6 +470,9 @@ def check_front_matter(doc: Doc, rep: Report) -> None:
 
 
 def check_links(doc: Doc, rep: Report) -> None:
+    # 归档件与已接受的 ADR 冻结在当时，它们指向的文档删了就断了，不再修（ADR-0036）。
+    if doc.rel.startswith(("archive/", "decisions/")):
+        return
     for m in MD_LINK_RE.finditer(doc.text):
         target = m.group(2)
         if target.startswith(("http://", "https://", "mailto:")):
@@ -611,12 +610,6 @@ def check_skeleton(doc: Doc, rep: Report) -> None:
                               f"末尾只允许以「{APPENDIX_PREFIX}」开头的小节")
 
 
-def glossary_terms(text: str) -> list[str]:
-    """共用表的词条。切到「会撞」那张表为止 —— 它是交叉索引，不是定义。"""
-    cut = text.find(GLOSSARY_CROSS_INDEX)
-    return TERM_ROW_RE.findall(text if cut < 0 else text[:cut])
-
-
 def terms_section(text: str) -> tuple[str, list[str]]:
     """返回（「术语」那一节的正文, 它列的词条）。没有这一节就返回空。
 
@@ -632,31 +625,18 @@ def terms_section(text: str) -> tuple[str, list[str]]:
 
 
 def check_terms(docs: list[Doc], rep: Report) -> None:
-    """术语三条（ADR-0019 的验证方法表）。
+    """术语节列的词，本页正文里要真的用到（ADR-0019 的验证方法表里留下的那一条）。
 
-    各挡一种**过期时没有任何东西会报错**的错：抄一张与本页无关的表（词在表里、
-    正文里没有）、一个词有两个家（共用表与某页术语节都写了它）、那张共用表只增
-    不减地膨胀（词条没有任何系统文档在用）。
-
-    共用表缺失或一个词条都解析不出来时判失败，不是跳过 —— 否则这三条会假装工作。
+    挡的是**过期时没有任何东西会报错**的错：抄一张与本页无关的表（词在表里、正文里没有）。
+    共用术语表随 ADR-0036 删了，词的意思以 desc 为准，所以「一个词两个家」「共用表膨胀」
+    那两条跟着撤掉。一份长期规格都没检到时判失败，不是跳过 —— 否则这条会假装工作。
     """
-    glossary = next((d for d in docs if d.rel == GLOSSARY_REL), None)
-    if glossary is None:
-        rep.fail(GLOSSARY_REL, "共用术语表缺失，术语三条判定这一轮**没有执行**（不是通过）")
-        return
-    shared = glossary_terms(glossary.text)
-    if not shared:
-        rep.fail(GLOSSARY_REL, "一个词条都没解析出来（词条 = 表格行首的加粗词），"
-                               "说明词条解析坏了，这一轮**没有执行**")
-        return
-
     systems = [d for d in docs if d.meta.get("type") in LONGLIVED_TYPES and not d.is_template]
     if not systems:
         rep.fail("术语守卫", f"一份 {sorted(LONGLIVED_TYPES)} 的文档都没检到，"
                             f"这一轮**没有执行**")
         return
 
-    shared_set = set(shared)
     listed = 0
     for doc in systems:
         body, own = terms_section(doc.text)
@@ -665,19 +645,10 @@ def check_terms(docs: list[Doc], rep: Report) -> None:
         elsewhere = doc.text.replace(body, "", 1)
         for t in own:
             listed += 1
-            if t in shared_set:
-                rep.fail(doc.rel, f"术语节里的「{t}」在[共用术语表]({GLOSSARY_REL})里也有 —— "
-                                  f"一个词两个家。删掉本页这一行，或把它从共用表里删掉")
             if t not in elsewhere:
                 rep.fail(doc.rel, f"术语节列了「{t}」，但本页正文里一次都没用到它 —— "
                                   f"抄一张与本页无关的表比没有表更误导")
-
-    for t in shared:
-        if not any(t in d.text for d in systems):
-            rep.fail(GLOSSARY_REL, f"词条「{t}」没有任何系统文档在用 —— "
-                                   f"删掉它，否则这张表只增不减地膨胀")
-    rep.note(f"术语覆盖量：共用表 {len(shared)} 条词条／"
-             f"{len(systems)} 份长期规格的术语节合计 {listed} 条")
+    rep.note(f"术语覆盖量：{len(systems)} 份长期规格的术语节合计 {listed} 条")
 
 
 def mermaid_blocks(text: str) -> list[tuple[int, list[str], str]]:
@@ -915,41 +886,6 @@ def check_section_refs(docs: list[Doc], rep: Report) -> None:
             rep.fail(doc.rel, f"L{line_no} 节名引用失效：`{rel}` 里找不到「{section}」"
                               f"（改成目标文件真有的标题或加粗小标题）")
     rep.note(f"节名引用覆盖量：检查 {checked} 处「文档 {SECTION_SEP} 节名」")
-
-
-def check_system_upstream(docs: list[Doc], rep: Report) -> None:
-    """每份长期规格必须被至少一份正典链接到（ADR-0010）。
-
-    没有正典上游的规格是孤岛 —— 它在替正典做决定，而权威层级说它不能。
-    目标为空时判失败而不是跳过：一份都没有，说明体裁判定在空转。
-
-    **归档件排除在外**，与 `check_longlived_home` 和 `check_front_matter` 同一个排除法：
-    归档件按定义不该再被正典引着（正典引 archive/ 要标「历史背景·非依据」），所以对它
-    要求正典上游是自相矛盾的 —— 而归档件只读，报出来也改不掉。
-    """
-    systems = [d for d in docs
-               if d.meta.get("type") in LONGLIVED_TYPES and not d.is_template and not d.in_archive]
-    if not systems:
-        rep.fail("长期规格上游守卫", f"一份 {sorted(LONGLIVED_TYPES)} 的文档都没检到，"
-                                  f"这一轮**没有执行**")
-        return
-    cited: set[str] = set()
-    for doc in docs:
-        if not doc.rel.startswith("canon/"):
-            continue
-        for m in MD_LINK_RE.finditer(doc.text):
-            target = m.group(2)
-            if target.startswith(("http://", "https://", "mailto:")):
-                continue
-            try:
-                cited.add((doc.path.parent / target).resolve().relative_to(ROOT).as_posix())
-            except ValueError:
-                continue
-    for d in systems:
-        if d.rel not in cited:
-            rep.fail(d.rel, "没有任何正典链接到这份长期规格 —— 它缺上游，"
-                            "要么正典该引用它，要么它写的东西不该放在这里")
-    rep.note(f"长期规格上游覆盖量：{len(systems)} 份，全部要求有正典引用")
 
 
 def check_ordinal_refs(doc: Doc, rep: Report) -> None:
@@ -1326,61 +1262,52 @@ def check_code_comment_ids(docs: list[Doc], rep: Report) -> tuple[int, int]:
 
 
 # ── 每日结算的步名（DOC-145）─────────────────────────────────────────
-# 步序的家是正典那张编号表；代码仓那张步名表是驱动按名调用要的副本。两份不一致时
-# 没有任何东西判得出来哪一份是真的，所以这里逐项比，任何一边改了而另一边没跟上就判失败。
-SETTLEMENT_CANON_REL = "canon/gameplay/时间与经营.md"
-SETTLEMENT_HEADING = "结算顺序（固定，不得改动）"
+# 步序的家是工作区根 desc/经营规则.md 那张结算顺序表（ADR-0036）；代码仓那张步名表是驱动
+# 按名调用要的副本。两份不一致时没有任何东西判得出来哪一份是真的，所以这里逐项比，任何
+# 一边改了而另一边没跟上就判失败。desc 不在仓里、检查器不查它怎么写；这里只把那张表当
+# 数据读，判的是代码有没有跟上。
+SETTLEMENT_DESC_PATH = ROOT.parent / "desc" / "经营规则.md"
+SETTLEMENT_HEADING = "结算顺序"
 SETTLEMENT_CODE_REL = "rules/Economy/SettlementSteps.cs"
-SETTLEMENT_ITEM_RE = re.compile(r"^\d+\.\s+(.+?)\s*$", re.MULTILINE)
-SETTLEMENT_LEAD_BOLD_RE = re.compile(r"\*\*(.+?)\*\*")
-# 步名止于第一个中文标点。刻意不收半角冒号与空格：「次日 6:30 醒来」那一步的名字里就有。
+SETTLEMENT_ROW_RE = re.compile(r"^\|\s*(\d+)\s*\|\s*([^|]+?)\s*\|", re.MULTILINE)
+# 步名那一格止于第一个中文标点（「学生康复、全部按天状态推进…」那一步叫「学生康复」）。
+# 刻意不收半角冒号与空格：「次日 6:30 醒来」那一步的名字里就有。
 SETTLEMENT_NAME_END_RE = re.compile(r"[，、：；（。—]")
 SETTLEMENT_CONST_RE = re.compile(r'\bconst\s+string\s+(\w+)\s*=\s*"([^"]*)"\s*;')
 SETTLEMENT_ORDER_RE = re.compile(r"\bOrder\s*=\s*\[(.*?)\]\s*;", re.DOTALL)
 
 
-def settlement_step_name(item: str) -> str:
-    """正典那一条的步名：以加粗开头的取那一段加粗，否则取到第一个中文标点为止。"""
-    bold = SETTLEMENT_LEAD_BOLD_RE.match(item)
-    if bold:
-        return bold.group(1).strip()
-    return SETTLEMENT_NAME_END_RE.split(item.replace("**", ""), maxsplit=1)[0].strip()
-
-
 def check_settlement_steps(docs: list[Doc], rep: Report) -> int:
-    """代码仓那张每日结算步名表与正典那串逐项相等（`DOC-145`），返回核过的步数。
+    """代码仓那张每日结算步名表与 desc 那张结算顺序表逐项相等（`DOC-145`），返回核过的步数。
 
-    **比的是步名，不是开头的几个字。** 只判「代码那一项是正典那一条的开头」的话，截短的
-    名字（「日期推」）能过，正典那一条的开头改长了（「日期推进与天气」）也能过，两种都让
-    代码里那个名字悄悄不再是那一步的名字。所以先从正典那一条取出步名再比相等：以加粗开头的
-    取那一段加粗（「**委托板补满**至固定条数」那一条只有这样取得对），否则取到第一个中文标点。
-    正典一个字不用为它改。
+    **比的是步名，不是开头的几个字。** 只判「代码那一项是表里那一格的开头」的话，截短的
+    名字（「日期推」）能过，表里那一格改长了（「日期推进与天气」）也能过，两种都让代码里
+    那个名字悄悄不再是那一步的名字。表的第二列取到第一个中文标点为止就是步名，再比相等。
 
     **放在设计仓、不放进代码仓的测试**：本文件本来就读代码仓（上面那条注释编号守卫），
-    放进代码仓的测试，测试就离不开设计仓。
+    放进代码仓的测试，测试就离不开工作区根的 desc。
 
-    读不到那张编号表、读不到代码那一份、或者那张表里有认不出的名字，一律判失败：这条守卫
-    靠节名与代码的形状定位，两者都会被改动悄悄改坏，坏了之后它会静默空转。
+    读不到那张表、读不到代码那一份、或者那张表里有认不出的名字，一律判失败：这条守卫
+    靠节名、表格与代码的形状定位，三者都会被改动悄悄改坏，坏了之后它会静默空转。
     """
     if not CODE_REPO.is_dir():
         return 0                        # 代码仓不在，check_code_repo_present 报过
-    where_canon = f"{SETTLEMENT_CANON_REL} · {SETTLEMENT_HEADING}"
-    canon = next((d for d in docs if d.rel == SETTLEMENT_CANON_REL), None)
-    if canon is None:
-        rep.fail(where_canon, "找不到这份正典，结算步名这一条**没有执行**（不是通过）")
+    where_desc = f"desc/经营规则.md · {SETTLEMENT_HEADING}"
+    if not SETTLEMENT_DESC_PATH.is_file():
+        rep.fail(where_desc, "找不到工作区根这份 desc，结算步名这一条**没有执行**（不是通过）")
         return 0
 
-    body = strip_fenced(canon.text)
+    body = strip_fenced(SETTLEMENT_DESC_PATH.read_text(encoding="utf-8"))
     head = re.search(rf"^#{{1,6}}\s*{re.escape(SETTLEMENT_HEADING)}\s*$", body, re.MULTILINE)
     if head is None:
-        rep.fail(where_canon, "找不到这一节，结算步名这一条**没有执行** —— 改了那个节名就要连着改这条守卫")
+        rep.fail(where_desc, "找不到这一节，结算步名这一条**没有执行** —— 改了那个节名就要连着改这条守卫")
         return 0
     rest = body[head.end():]
     nxt = ANY_HEADING_RE.search(rest)
-    want = [settlement_step_name(item)
-            for item in SETTLEMENT_ITEM_RE.findall(rest if nxt is None else rest[:nxt.start()])]
+    want = [SETTLEMENT_NAME_END_RE.split(name.replace("**", ""), maxsplit=1)[0].strip()
+            for _, name in SETTLEMENT_ROW_RE.findall(rest if nxt is None else rest[:nxt.start()])]
     if not want:
-        rep.fail(where_canon, "这一节里没有编号表，结算步名这一条**没有执行**（不是通过）")
+        rep.fail(where_desc, "这一节里没有「| 步 | 步名 | 说明 |」那张表，结算步名这一条**没有执行**（不是通过）")
         return 0
 
     where_code = f"代码仓 {SETTLEMENT_CODE_REL}"
@@ -1403,12 +1330,12 @@ def check_settlement_steps(docs: list[Doc], rep: Report) -> int:
     if len(have) != len(want):
         missing = "、".join(f"「{w}」" for w in want if w not in have) or "无"
         extra = "、".join(f"「{h}」" for h in have if h not in want) or "无"
-        rep.fail(where_code, f"正典那串 {len(want)} 步、这张表 {len(have)} 步 —— "
-                             f"正典有而这里没有：{missing}；这里有而正典没有：{extra}")
+        rep.fail(where_code, f"desc 那张表 {len(want)} 步、这张表 {len(have)} 步 —— "
+                             f"desc 有而这里没有：{missing}；这里有而 desc 没有：{extra}")
     else:
         for n, (w, h) in enumerate(zip(want, have), start=1):
             if w != h:
-                rep.fail(where_code, f"第 {n} 项对不上：正典是「{w}」，这里是「{h}」")
+                rep.fail(where_code, f"第 {n} 项对不上：desc 是「{w}」，这里是「{h}」")
     return len(want)
 
 
@@ -1421,7 +1348,7 @@ def check_content_baseline_owners(docs: list[Doc], rep: Report) -> int:
     """
     doc = next((d for d in docs if d.rel == BASELINE_REL), None)
     if doc is None:
-        rep.fail(BASELINE_REL, "找不到内容规模基准所在的那份正典，"
+        rep.fail(BASELINE_REL, "找不到内容规模基准所在的那份文档，"
                                "这一条**没有执行**（不是通过）")
         return 0
 
@@ -1566,7 +1493,11 @@ def _section_body(lines: list[str], start: int, level: int) -> str:
 
 
 def upstream_pins(docs: list[Doc]) -> dict[str, str]:
-    """现在算出来的指纹：键是 `正典文件#节名`，值是那一节正文的哈希。"""
+    """现在算出来的指纹：键是 `上游文件#节名`，值是那一节正文的哈希。
+
+    只钉仓里的文档（ADR-0036）：工作区根 desc 不在仓里、检查器不查它，引 desc 的上游约束
+    不钉，所以一个都没钉住也是正常的。
+    """
     by_rel = {d.rel: d for d in docs}
     out: dict[str, str] = {}
     for doc in docs:
@@ -1586,7 +1517,7 @@ def upstream_pins(docs: list[Doc]) -> dict[str, str]:
                     rel = (doc.path.parent / target).resolve().relative_to(ROOT).as_posix()
                 except ValueError:
                     continue
-                if not rel.startswith("canon/") or rel not in by_rel:
+                if rel not in by_rel or by_rel[rel].in_archive or rel == doc.rel:
                     continue
                 section = label.split(SECTION_SEP)[-1].replace("**", "").replace("`", "").strip()
                 body = heading_body(by_rel[rel].text, section)
@@ -1598,7 +1529,7 @@ def upstream_pins(docs: list[Doc]) -> dict[str, str]:
 
 
 def check_upstream_pins(docs: list[Doc], rep: Report, repin: bool = False) -> int:
-    """正典那一节变过之后，引它的「上游约束」要被拉回来复核一次（`DOC-102`）。
+    """上游那一节变过之后，引它的「上游约束」要被拉回来复核一次（`DOC-102`）。
 
     **它判的不是「那句转述还对不对」** —— 机器判不了两段散文说的是不是一件事。
     它判的是**那一节变过没有**，然后把「该回头复核」从一件没人记得的事变成一条会
@@ -1623,8 +1554,8 @@ def check_upstream_pins(docs: list[Doc], rep: Report, repin: bool = False) -> in
                                      "（不是通过）—— 跑 `python tools/check_docs.py --repin`")
         return 0
     have = json.loads(UPSTREAM_PINS.read_text(encoding="utf-8"))
-    if not have:
-        rep.fail(UPSTREAM_PINS.name, "指纹文件是空的，这一轮**没有执行**（不是通过）")
+    if not have and want:
+        rep.fail(UPSTREAM_PINS.name, "指纹文件是空的，而有上游约束要钉 —— 跑 `--repin`")
         return 0
     for key, digest in sorted(want.items()):
         old = have.get(key)
@@ -1766,7 +1697,7 @@ def main() -> int:
     ap.add_argument("--fix-eol", action="store_true",
                     help="把行尾改回 .gitattributes 声明的样子，不做其他检查")
     ap.add_argument("--repin", action="store_true",
-                    help="复核完上游约束之后重录正典那几节的指纹，不做其他检查")
+                    help="复核完上游约束之后重录上游那几节的指纹，不做其他检查")
     args = ap.parse_args()
 
     if args.fix_eol:
@@ -1816,14 +1747,13 @@ def main() -> int:
     code_files, code_ids = check_code_comment_ids(all_docs, rep)
     rep.note(f"代码注释编号覆盖量：扫了代码仓 {code_files} 个 C# 文件，核了 {code_ids} 处编号")
     settlement_steps = check_settlement_steps(all_docs, rep)
-    rep.note(f"结算步名覆盖量：拿正典那串核了代码仓 {SETTLEMENT_CODE_REL} 里 {settlement_steps} 步")
+    rep.note(f"结算步名覆盖量：拿 desc 那张表核了代码仓 {SETTLEMENT_CODE_REL} 里 {settlement_steps} 步")
     note_rows = check_ledger_note_length(all_docs, rep)
     rep.note(f"台账备注覆盖量：量 {note_rows} 行域表备注（上限 {LEDGER_NOTE_LIMIT} 字）")
     pinned = check_upstream_pins(all_docs, rep)
-    rep.note(f"上游指纹覆盖量：钉住 {pinned} 个被上游约束引用的正典节")
+    rep.note(f"上游指纹覆盖量：钉住 {pinned} 个被上游约束引用的仓内文档节（desc 里的不钉）")
     check_reachable(all_docs, rep)
     check_section_refs(all_docs, rep)
-    check_system_upstream(all_docs, rep)
     check_terms(all_docs, rep)
     check_code_repo_present(rep)
     check_line_endings(rep)

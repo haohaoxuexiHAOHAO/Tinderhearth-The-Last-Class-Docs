@@ -14,7 +14,7 @@ last_verified: 2026-10-30
 ## 来源
 
 - PRD：[`spec/prd-sleep-advances-day.md`](../prd-sleep-advances-day.md) 的 `US-002`、`US-001`（换季与作物那两格），`FR-2` 到 `FR-6`、`FR-8`、`FR-9`。
-- 结构在[`每日结算系统`](../../design/每日结算系统.md)，步序在[时间与经营 · 结算顺序（固定，不得改动）](../../canon/gameplay/时间与经营.md)，本条都不复述。
+- 结构在[`每日结算系统`](../../design/每日结算系统.md)，步序在[经营规则 · 结算顺序](../../../desc/经营规则.md)，本条都不复述。
 
 ## 依赖
 

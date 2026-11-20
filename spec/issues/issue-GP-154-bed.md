@@ -14,7 +14,7 @@ last_verified: 2026-10-31
 ## 来源
 
 - PRD：[`spec/prd-sleep-advances-day.md`](../prd-sleep-advances-day.md) 的 `US-006`，`FR-4`、`FR-37`、`FR-38`，`FR-43` 里床那一样。
-- 床按交互键：[ADR-0027 · 明确不包含](../../decisions/ADR-0027-进出室内改成点一下门.md)；交互点的摆法与消歧在[交互点与站位点](../../reference/godot/交互点与站位点.md)。
+- 床按交互键：[ADR-0027 · 明确不包含](../../decisions/ADR-0027-进出室内改成点一下门.md)；交互点的摆法与消歧在交互点与站位点。
 
 ## 依赖
 

@@ -8,14 +8,14 @@
 列出来，判断留给人。
 
 **它绿了不等于没问题。** 真正会报错的那几条在 `tools/check_docs.py` 里（`DOC-93`）：
-术语节里的词必须在本页正文出现过、同一个词不许两处都有、共用表里的词条至少被一份
-系统文档用到、每张图旁有重画条件、图里的标签在正文找得到。**句长那一条的上限要按
+术语节里的词必须在本页正文出现过、每张图旁有重画条件、图里的标签在正文找得到
+（共用术语表随 ADR-0036 删了，游戏里的词以工作区根 desc 为准）。**句长那一条的上限要按
 本入口报的分布来定**，定之前不许开成失败 —— 误报多的门禁会被绕过，而被绕过的门禁
 比没有门禁更坏。
 
 用法（从设计仓根目录运行）：
     python tools/audit_readability.py                  # 全部系统文档
-    python tools/audit_readability.py 角色动作状态系统   # 只看一份（文件名可省「.md」）
+    python tools/audit_readability.py 地块系统           # 只看一份（文件名可省「.md」）
     python tools/audit_readability.py --top 20         # 列最长的若干句
 """
 
@@ -32,17 +32,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 # 本入口自己再写一份的话，这里列出来的分布就不是守卫判的那个量 ——
 # 而定上限正是照这里的分布定的，两处分叉会让那个数失去依据。
 from check_docs import (  # noqa: E402
-    GLOSSARY_REL, SENTENCE_LIMIT, glossary_terms, prose_sentences, terms_section,
+    SENTENCE_LIMIT, prose_sentences, terms_section,
 )
 
 ROOT = Path(__file__).resolve().parent.parent
 DESIGN = ROOT / "design"
-GLOSSARY = ROOT / GLOSSARY_REL
-
-# 跨页阈值：一个词出现在这么多份以上系统文档里，就该归共用表。
-# **这个数的家不在这里** —— 它在 `reference/术语表.md` 的「收词判据」一节，
-# 本行只是那条规则的执行体，改规则要先改那一节。
-CROSS_PAGE = 3
 
 
 def report_sentences(docs: dict[str, str], targets: list[str], top: int) -> None:
@@ -83,7 +77,6 @@ def report_sentences(docs: dict[str, str], targets: list[str], top: int) -> None
 def main() -> int:
     docs = {p.stem: p.read_text(encoding="utf-8")
             for p in sorted(DESIGN.glob("*.md")) if p.name != "README.md"}
-    shared = glossary_terms(GLOSSARY.read_text(encoding="utf-8"))
 
     argv = sys.argv[1:]
     top = 10
@@ -98,25 +91,17 @@ def main() -> int:
         print("EXIT=0（只列不判）")
         return 0
 
-    print(f"共用表词条 {len(shared)} 条／系统文档 {len(docs)} 份／本次看 {len(targets)} 份")
+    print(f"系统文档 {len(docs)} 份／本次看 {len(targets)} 份")
 
-    no_section, dup, should_share = [], [], []
+    no_section = []
     for name in targets:
         text = docs[name]
         body, own = terms_section(text)
         if not body:
             no_section.append(name)
             continue
-        # 本页词条的两个问题：跨页份数够不够高（该进共用表）、是不是两处都有
         notes = []
         for t in own:
-            n = sum(1 for txt in docs.values() if t in txt)
-            if t in shared:
-                dup.append((name, t))
-                notes.append(f"    {t:<10}两处都有 —— 共用表里已经有它")
-            elif n >= CROSS_PAGE:
-                should_share.append((name, t, n))
-                notes.append(f"    {t:<10}出现在 {n} 份里 —— 够跨页了，该进共用表")
             if t not in text.replace(body, "", 1):
                 notes.append(f"    {t:<10}只在术语节里出现，正文没用到")
         print(f"\n{name}：术语节 {len(own)} 条" + ("（无提示）" if not notes else ""))
@@ -125,10 +110,6 @@ def main() -> int:
 
     print("\n── 摘要 ──")
     print(f"没有「术语」节的：{len(no_section)} 份" + (f" → {'、'.join(no_section)}" if no_section else ""))
-    print(f"两处都有的词：{len(dup)} 处" + (f" → {dup}" if dup else ""))
-    print(f"够跨页却留在本页的词：{len(should_share)} 处" + (f" → {should_share}" if should_share else ""))
-    orphan = [t for t in shared if not any(t in txt for txt in docs.values())]
-    print(f"共用表里没人用的词条：{len(orphan)} 条" + (f" → {orphan}" if orphan else ""))
 
     report_sentences(docs, targets, top)
 
