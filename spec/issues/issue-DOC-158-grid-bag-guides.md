@@ -13,7 +13,7 @@ last_verified: 2026-11-06
 
 ## 来源
 
-- PRD：[`spec/prd-grid-bag.md`](../prd-grid-bag.md) 的 `US-009` 里还没做的那几格。正典、设计文档与字段表那几格随 [ADR-0034](../../decisions/ADR-0034-背包与仓库改成网格.md) 接受时已经改完。
+- PRD：[`spec/prd-grid-bag.md`](../prd-grid-bag.md) 的 `US-009` 里还没做的那几格。desc、设计文档与字段表那几格随 [ADR-0034](../../decisions/ADR-0034-背包与仓库改成网格.md) 接受时已经改完。
 
 ## 依赖
 

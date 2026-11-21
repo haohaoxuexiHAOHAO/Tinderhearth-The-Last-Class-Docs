@@ -20,7 +20,7 @@
 
 路径都相对设计仓根目录；`../desc/…` 指工作区根的 desc。`names` 给新目标起链接里显示的
 名字（默认是文件名去掉扩展名，`README` 这种不好读的才需要写）；`by_section` 的节名写
-`null` 表示只指到那份文件；`relabel` 列出按旧文档身份起的链接文字（例如「正典」），
+`null` 表示只指到那份文件；`relabel` 列出按旧文档身份起的链接文字（例如「权威来源」），
 改指时整个换成新目标的名字；`drop_leads` 列出「只是指过去」的句首（例如「理由在」）：
 没有改指的链接前面紧挨着这几个字、后面紧跟句号或格末时，连这几个字整句删掉，
 而不是留下一句「理由在条目文件」这样指向空处的话；`drop_trails` 列出紧跟在链接后面、
@@ -147,7 +147,7 @@ def plan_for(doc_path: Path, text: str, plan: dict, cache: dict) -> tuple[str, l
             new_name = plan.get("names", {}).get(dest, Path(dest).stem)
             href = Path(os.path.relpath(new_abs, doc_path.parent.resolve())).as_posix()
             if bare(label) in plan.get("relabel", []):
-                text_ = new_name           # 「[玩法正典](…)」这种按旧文档身份起的文字，换成新名字
+                text_ = new_name           # 「[权威来源](…)」这种按旧文档身份起的文字，换成新名字
             else:
                 text_ = rewrite_label(label, old_stem, new_abs, new_name, new_section, cache)
             new = f"[{text_}]({href})"

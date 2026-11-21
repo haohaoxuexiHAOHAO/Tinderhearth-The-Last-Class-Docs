@@ -38,6 +38,8 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
 ROOT = Path(__file__).resolve().parent.parent
+# 工作区根 desc：游戏规则的家，不在任何仓里（ADR-0036）。检查器只把它当数据读。
+DESC_DIR = (ROOT.parent / "desc").resolve()
 
 # 配额表（四档行数／字符数上限、台账逐格上限、豁免额度）随 ADR-0009 取消，
 # 判定与常量一并删除。体量改为人工把握：`--report` 仍打规模趋势表供参考，但不再判定。
@@ -50,7 +52,7 @@ CONDITIONAL_KEYS = ("status", "last_verified")
 # 长期规格（system／model）**不许带**这两个字段，而不只是「可以不带」。
 # 为什么删：`status` 答的是「做到哪一步了」，那是状态、家在待办台账一处（WORKFLOW §3）；
 # `last_verified` 答的是「这一份还准不准」，而那个答案在上游指纹那套机制里
-# （改正典某一节之后报「上游约束要复核」，复核完 `--repin` 重录，指纹进 git）。
+# （被引的上游那一节改过之后报「上游约束要复核」，复核完 `--repin` 重录，指纹进 git）。
 # 留着就是给同一件事开第二个家，而实测它们已经漂了：多数系统文档的 last_verified
 # 比 git 最后一次改动它的日期早，status 几乎全是 draft 而台账逐条写着「设计已交付」。
 # 为什么判「不许带」而不是「可以不带」：只把必填改成可选的话，下一份系统文档照着
@@ -69,8 +71,8 @@ VALID_TYPES = {
 LONGLIVED_TYPES = {"system": "系统", "model": "模型"}
 
 # ── 体裁归位（ADR-0010）────────────────────────────────────────────────
-# 分家分的是寿命：系统文档是活的契约、提案是一次性论证。两者混在一个目录里时，
-# 「设计稳定后上升进正典、本目录只留活跃部分」这条规则会对其中一种不成立。
+# 分家分的是寿命：系统文档是活文档、跟着代码改；提案是一次性论证，结论迁出后删掉。
+# 两者混在一个目录里时，「结论迁出后删掉」这条规矩只对其中一种成立，看目录分不出哪份该删。
 SYSTEM_HOME = "design/"            # type: system 必须直接落在这里
 PROPOSAL_HOME = "design/proposals/"  # type: design 必须落在这里
 
@@ -530,9 +532,9 @@ def check_retired_names(docs: list[Doc], rep: Report) -> tuple[int, int, int]:
 def check_genre_home(doc: Doc, rep: Report) -> None:
     """体裁必须归位（ADR-0010）：系统文档在 `design/` 根，提案在 `design/proposals/`。
 
-    不做这条判定的后果不是断链，而是**一个目录里混着两种寿命的文档** —— 于是
-    「稳定后上升进正典、本目录只留活跃部分」这条规则对其中一种永远不成立，而没有
-    任何机制能发现。
+    不做这条判定的后果不是断链，而是**一个目录里混着两种寿命的文档** —— 系统文档是活文档、
+    跟着代码改，提案是一次性论证、结论迁出后删掉，于是「结论迁出后删掉」这条规矩对其中一种
+    永远不成立，而没有任何机制能发现。
     """
     if doc.is_template:
         return
@@ -816,6 +818,29 @@ def section_anchors(text: str) -> list[str]:
     return out
 
 
+def _section_target(resolved: Path, by_rel: dict[str, Doc],
+                    desc_texts: dict[Path, str]) -> tuple[str, str] | None:
+    """「文档 · 节名」指着的那一份：返回（报错时写的路径, 全文）；指不到读得出来的文件返回 None。
+
+    工作区根 desc 不在仓里（ADR-0036），可设计仓写到规则时都指它的某一节 —— 那几处节名作者一改就
+    静默指空，所以照样核。只读它的标题与加粗小标题，不查它怎么写。
+    """
+    try:
+        rel = resolved.relative_to(ROOT).as_posix()
+    except ValueError:
+        try:
+            inner = resolved.relative_to(DESC_DIR).as_posix()
+        except ValueError:
+            return None
+        if not resolved.is_file():
+            return None
+        if resolved not in desc_texts:
+            desc_texts[resolved] = resolved.read_text(encoding="utf-8-sig")
+        return f"desc/{inner}", desc_texts[resolved]
+    tgt = by_rel.get(rel)
+    return (rel, tgt.text) if tgt is not None else None
+
+
 def check_section_refs(docs: list[Doc], rep: Report) -> None:
     """「文档 · 节名」里的节名必须在目标文件里找得到（WORKFLOW §3.5 第 ① 条）。
 
@@ -823,6 +848,7 @@ def check_section_refs(docs: list[Doc], rep: Report) -> None:
     读者点进去只会找不到那一节，而没有任何东西报错。
     """
     by_rel = {d.rel: d for d in docs}
+    desc_texts: dict[Path, str] = {}
     checked = 0
     for doc in docs:
         if doc.rel.startswith(FROZEN_PREFIXES):
@@ -836,17 +862,14 @@ def check_section_refs(docs: list[Doc], rep: Report) -> None:
             if not section:
                 continue
             resolved = (doc.path.parent / target).resolve()
-            try:
-                rel = resolved.relative_to(ROOT).as_posix()
-            except ValueError:
-                continue
-            tgt = by_rel.get(rel)
-            if tgt is None:
+            found = _section_target(resolved, by_rel, desc_texts)
+            if found is None:
                 continue                      # 断链由 check_links 报
+            rel, text = found
             checked += 1
             if section == Path(rel).stem:      # 「分类 · 文档名」这种写法，不是节名
                 continue
-            if any(section in a for a in section_anchors(tgt.text)):
+            if any(section in a for a in section_anchors(text)):
                 continue
             line_no = doc.text[: m.start()].count("\n") + 1
             rep.fail(doc.rel, f"L{line_no} 节名引用失效：`{rel}` 里找不到「{section}」"
@@ -907,7 +930,7 @@ def check_code_paths(doc: Doc, rep: Report) -> None:
 
     两个仓都找，因为文档会同时引设计仓的 `tools/` 与代码仓的 `rules/`。实测起因：
     随 `ADR-0009` 删掉的 `tools/check_scaling.py`、`tools/import_role_sheets.py` 与
-    `tools/selfcheck_docs_guard.py` 在正典、踩坑记录与 README 里仍被写成现行执行体。
+    `tools/selfcheck_docs_guard.py` 在踩坑记录、README 等文档里仍被写成现行执行体。
     """
     if doc.rel.startswith(FROZEN_PREFIXES):
         return
@@ -1505,7 +1528,7 @@ def check_upstream_pins(docs: list[Doc], rep: Report, repin: bool = False) -> in
     报出来的动作。这是本库对语义类漂移唯一可行的形状：**不假装能判语义，只把需要
     人看的时刻钉出来。**
 
-    **为什么钉到「节」而不是整份文件**：整份文件粒度会让正典任何一处改动惊动全部
+    **为什么钉到「节」而不是整份文件**：整份文件粒度会让上游文件任何一处改动惊动全部
     引用者，噪音压过收益；节粒度下，改一节只报引那一节的那几处。
 
     **确认之后跑 `--repin` 重录。** 重录是一个显式动作，所以「我看过了」这件事留得

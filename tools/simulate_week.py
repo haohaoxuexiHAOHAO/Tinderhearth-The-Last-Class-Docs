@@ -3,8 +3,9 @@
 """数值模型的七天纸面推演（`GP-2`）。
 
 为什么是脚本而不是手算表格：这六条数值前提彼此耦合 —— 改一个作物周期会动粮食曲线，
-改一次委托报酬会动现金流，而正典写的是「必须先算出来才能判断第一周可玩性」。手算表格
-改一个数就得全部重算，三周后也没人能验，那正是「结论必须有依据」要防的形状。
+改一次委托报酬会动现金流，而它们必须先算出来，才判断得了第一周好不好玩（design/数值模型.md
+的「附录：留给数值模型的前提」）。手算表格改一个数就得全部重算，三周后也没人能验，那正是
+「结论必须有依据」要防的形状。
 按 [WORKFLOW §5] 做成 `tools/` 下的入口。
 
 **它不是游戏实现。** 参数在 design/numeric-model-params.json，公式在这里；游戏侧的落地
@@ -259,7 +260,7 @@ def analyse_attributes(p: Params) -> dict:
           f"魔法 {mdmg_lv1:.1f}→{mdmg_max:.1f}",
           "derived.hp_base / derived.patk_per_str / derived.matk_per_int / move_multipliers")
 
-    # 主角伤害必须显著低于学生（人物正典：主角低伤辅助，伤害来自学生）。
+    # 主角伤害必须显著低于学生（工作区根 desc/人物.md 的「烬」：他造成的伤害低，队伍的伤害来自学生）。
     #
     # **量测点在状态上，不在倍率上。** 倍率表里主角与学生同名招式同值，削弱全部由
     # 「薪火相传」那条永久状态承担。量倍率之比会漏掉状态那一层 —— 而漏掉的那一层正是
@@ -306,11 +307,11 @@ def analyse_attributes(p: Params) -> dict:
 
     # 两份精准回报的回蓝都不得高于进攻回蓝，而闪避那份还要低于防御那份。
     #
-    # 这条判两件，因为正典给的是一条约束加一个顺序：
+    # 这条判两件，因为它管的是一条约束加一个顺序：
     #   ① 两份精准回报都不高于进攻回蓝 —— 原先只量了防御那一份，扩到闪避**不是新约束**，
     #      是把同一条量到对的地方（与 C4 换量测点同一形状）；
     #   ② 闪避那份不高于防御那份 —— 闪避天生多了位移与穿多段的无敌，回报等同就让精准
-    #      防御那套设计冗余。这是正典写的顺序，不判的话它只是一句散文。
+    #      防御那套设计冗余。不判的话这个顺序只是一句散文。
     atk_mp = derive("进攻回蓝MP每秒",
                     p("resources.mp_per_light_hit") * p("resources.light_hits_per_second"))
     guard_mp = derive("精准防御回蓝MP每秒",
@@ -609,7 +610,7 @@ def check_premises(p: Params, sims: dict[str, SimResult], sheets: dict) -> None:
     days_to_repay = derive("还债天数",
                            principal / net_per_day if net_per_day > 0 else float("inf"))
     sorties = sheets["sorties_to_cap"]
-    # 每天只出征一次：正典 战斗与关卡 · 接委托：去锈月酒馆，一天一趟
+    # 每天只出征一次：工作区根 desc/战斗规则.md 的「一天一趟」
     sorties_per_day = 1.0
     days_to_cap = derive("练满天数", sorties / sorties_per_day)
     ratio_goals = derive("两条目标天数比",
@@ -623,10 +624,10 @@ def check_premises(p: Params, sims: dict[str, SimResult], sheets: dict) -> None:
         "growth.exp_curve_base / growth.exp_curve_exponent / economy.debt_principal_copper",
         "还债天数按收入最高的那份计划算，只跑一份时这个基准是任意的")
 
-    # 附加：冬季那一季 —— 没有粮食作物，口粮靠入冬储备与采购（时间与经营正典）。
+    # 附加：冬季那一季 —— 没有粮食作物，口粮靠入冬储备与采购（工作区根 desc/经营规则.md 的「开荒与种植」）。
     #
     # 判三件，因为「撑过去」这句话有三个各自会静默失效的地方：**前提**（真的没有冬季粮食
-    # 作物 —— 有一种就说明参数表加了作物而正典没跟着改）、**撑得住**（逐日走一遍不断粮）、
+    # 作物 —— 有一种就说明参数表加了作物而 desc 没跟着改）、**撑得住**（逐日走一遍不断粮）、
     # **有代价**（那笔开销占得住一季净收入的一个区间；没有下界就是一句设定，没有上界就是
     # 一段无事可做的停滞）。少判哪一件，那一件就变回一句没人验的散文。
     winter_food = sorted(n for n, c in crops.items()
@@ -643,7 +644,7 @@ def check_premises(p: Params, sims: dict[str, SimResult], sheets: dict) -> None:
     affordable = season_net / food_price if food_price > 0 else 0.0
     reserve_floor = derive("入冬储备下限份", max(0.0, winter_need - affordable))
     # 逐日走一遍，**从零储备起算**：口粮只能买（冬季没有粮食作物），而买的钱只能来自冬季
-    # 自己的收入 —— 不带入上一季攒下的粮与钱。这个口径比正典那句更严，取它是因为「上一季
+    # 自己的收入 —— 不带入上一季攒下的粮与钱。这个口径比 desc 那句更严，取它是因为「上一季
     # 攒了多少」是玩家行为、不是参数；而零储备撑得住，储备就只是缓冲。
     #
     # **起始储备刻意不取 reserve_floor。** 取它的话这一段按定义就撑得住（那个下限正是
@@ -678,7 +679,7 @@ def check_premises(p: Params, sims: dict[str, SimResult], sheets: dict) -> None:
         "冬季净收入按收入最高的那份计划算，只跑一份时这个基准是任意的")
 
     # 附加：经营与出征两条收入的比 —— 一边彻底盖过另一边，「这一季多种地还是多出门」就
-    # 不是选择了（正典把经营建造与关卡制动作放在同一条循环的两半）。
+    # 不是选择了（工作区根 desc/经营规则.md 的「核心循环」把经营与出征放在同一条循环里）。
     #
     # **口径与 P6 刻意不同，两者是两件事**：本条按基础价算、含种子支出、把自产的粮食按买价
     # 折成钱（不折就等于说「自己种的粮不值钱」），量的是**两条路之间**；P6 叠着需求与供给
@@ -709,8 +710,7 @@ def check_premises(p: Params, sims: dict[str, SimResult], sheets: dict) -> None:
         "出征那一侧按收入最高的那份计划算，只跑一份时这个基准是任意的")
 
     # 附加：渠道之间那两条 —— 每条渠道在它声明的那一维上取到最大值（C13），且不存在一条
-    # 渠道在全部维上都不劣于另一条（C14）。它们换掉的是原先那条一把尺子排序的约束，取舍与
-    # 理由在正典（时间与经营 · 生产）。
+    # 渠道在全部维上都不劣于另一条（C14）。规则在工作区根 desc/经营规则.md 的「渠道之间」。
     #
     # **在册有哪几维、各自量哪个现成的量，家在 design/生产系统.md，本脚本不复述那张表** ——
     # 复述一份就多一个会过期的家。本脚本只算「每点精力的钱」那一维的尺子：种植那一侧现在
@@ -1046,7 +1046,8 @@ def main() -> int:
     judged = [c for c in CHECKS if not c.pending]
     say("")
     claims_code = check_doc_claims(len(sims) < len(p("week_plan.plans")))
-    # 前提数与判定数不是同一个数：正典给的是六条前提（P1–P6），而 P1 在这里拆成两个判定
+    # 前提数与判定数不是同一个数：design/数值模型.md 的「附录：留给数值模型的前提」给的是
+    # 六条前提（P1–P6），而 P1 在这里拆成两个判定
     # （P1a 按份逐个判、P1b 判「至少两种成立」）。自报两个数，免得读者对着一个数以为有一处过期。
     premise_ids = {c.tag.rstrip("abcdefghijklmnopqrstuvwxyz") for c in premises}
     say(f"\n覆盖量：读了 {len(p.reads)} 个参数路径；判定 {len(premise_ids)} 条数值前提"
