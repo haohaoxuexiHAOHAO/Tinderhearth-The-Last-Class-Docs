@@ -18,7 +18,7 @@ last_verified: 2026-11-19
 ## 依赖
 
 - 第三批等作者看完 desc 新加的那几份。
-- [`DOC-164`](./issue-DOC-164-canon-narrative-to-desc.md)、[`DOC-165`](./issue-DOC-165-renames-and-wristband-removal.md)：两条里要改正典与系统文档的部分，随这几份被删而作废；还要做的（desc 里收平矛盾、代码仓里改「手环」的名字）照旧做。
+- [`DOC-165`](./issue-DOC-165-renames-and-wristband-removal.md)：要改那几份被删文档的部分随它们作废，还要做的（代码仓里改「手环」的名字）照旧做。`DOC-164` 已作废：desc 里前后对不上的那几处，作者改剧情时自己看。
 
 ## 留下来的
 
