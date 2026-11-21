@@ -143,7 +143,7 @@ public int getDaysToFirstRipe() { return stageDays.stream().mapToInt(Integer::in
 
 **易混点**：`=>` 有两个含义，靠上下文区分：
 - 成员定义处（`public bool IsFull => ...;`）＝方法体简写。
-- 参数列表后（`p => p.Id == pageId`，见 `rules/UI/Wristband.cs`）＝lambda 表达式（匿名函数），见第八节。
+- 参数列表后（`p => p.Id == pageId`，见 `rules/UI/GameMenu.cs`）＝lambda 表达式（匿名函数），见第八节。
 
 本项目的口径是「单行的取值、转发与简单计算用 `=>`，超过一行或有早返回就写完整方法体」，见代码仓 `CONVENTIONS.md` 的「表达式体成员」那一节。`Plot` 的那些动作方法全是完整方法体，正因为它们都有早返回。
 
@@ -225,10 +225,10 @@ StageDays = stageDays ?? [1, 1, 1, 1],
 `??` 还能接 `throw`，这在本仓比兜底默认值更常见 —— 因为「缺配置当场报错，不悄悄兜底」是硬约束：
 
 ```csharp
-// rules/UI/Wristband.cs：拼错子页 id 不该静默变成「不可用」
-public static WristbandPage PageById(string pageId) =>
+// rules/UI/GameMenu.cs：拼错子页 id 不该静默变成「不可用」
+public static GameMenuPage PageById(string pageId) =>
     Pages.FirstOrDefault(p => p.Id == pageId)
-        ?? throw new KeyNotFoundException($"手环没有这一页：{pageId}");
+        ?? throw new KeyNotFoundException($"游戏菜单没有这一页：{pageId}");
 
 // rules/Foundation/Content/ContentJson.cs：一个内容文件解析成空是缺陷，不是空数据
 return parsed ?? throw new InvalidDataException($"{whatForDiagnostics} 解析结果为空");
@@ -243,7 +243,7 @@ return parsed ?? throw new InvalidDataException($"{whatForDiagnostics} 解析结
 _cache ??= CreateCache();
 ```
 
-等价于 `if (_cache == null) _cache = ...;`。**本仓暂无**：会被反复查的表（`ContentJson.Options`、`TextCatalog.Empty`、`Wristband.Tabs`）都是静态只读成员、一次建好，没有"第一次用到才建"的场景。读到这个符号时知道它是懒初始化就够了。
+等价于 `if (_cache == null) _cache = ...;`。**本仓暂无**：会被反复查的表（`ContentJson.Options`、`TextCatalog.Empty`、`GameMenu.Tabs`）都是静态只读成员、一次建好，没有"第一次用到才建"的场景。读到这个符号时知道它是懒初始化就够了。
 
 ---
 
@@ -328,8 +328,8 @@ public static JsonSerializerOptions Options { get; } = new()
 ```csharp
 private readonly List<string> _actorIds = [];              // rules/Progression/Roster.cs：空集合
 
-// rules/UI/Wristband.cs：静态表，顺序即显示顺序；集合表达式可以套着写
-public static readonly IReadOnlyList<WristbandTab> Tabs =
+// rules/UI/GameMenu.cs：静态表，顺序即显示顺序；集合表达式可以套着写
+public static readonly IReadOnlyList<GameMenuTab> Tabs =
 [
     new("students",
     [
@@ -381,10 +381,10 @@ LINQ 是 C# 的集合查询，和 Java Stream 思路相近，但**不需要先 `
 requiredKeys.Where(k => !_entries.ContainsKey(k))          // rules/Foundation/Text/TextCatalog.cs
 
 // 找第一个匹配的，找不到返回 null/default（Java: findFirst().orElse(null)）
-Pages.FirstOrDefault(p => p.Id == pageId)                  // rules/UI/Wristband.cs
+Pages.FirstOrDefault(p => p.Id == pageId)                  // rules/UI/GameMenu.cs
 
 // 一对多再摊平（Java: .flatMap(...)）
-Tabs.SelectMany(t => t.Pages)                              // rules/UI/Wristband.cs
+Tabs.SelectMany(t => t.Pages)                              // rules/UI/GameMenu.cs
 
 // FirstOrDefault 还能显式给"找不到时返回什么"——这里用 -1 表示"没有不合法的项"
 Enumerable.Range(0, value.Count).FirstOrDefault(i => value[i] < 1, -1)   // rules/Economy/CropDefinition.cs
@@ -599,7 +599,7 @@ public const int MoveSpeedPixelsPerSecond = 104;
 public const int StageCount = 5;
 public const int RipeStage = StageCount - 1;
 
-// rules/UI/Wristband.cs：对象与集合用 static readonly（引用类型不能是 const）
+// rules/UI/GameMenu.cs：对象与集合用 static readonly（引用类型不能是 const）
 public static readonly UISurface Surface = new("wristband", UILayer.Panel, SurfaceKind.View);
 ```
 
@@ -813,12 +813,12 @@ public static class CombatFeel
 }
 
 // 三、静态表 + 查询：表是数据，查询是一行 LINQ
-// rules/UI/Wristband.cs
-public static class Wristband
+// rules/UI/GameMenu.cs
+public static class GameMenu
 {
-    public static readonly IReadOnlyList<WristbandTab> Tabs = [ ... ];
+    public static readonly IReadOnlyList<GameMenuTab> Tabs = [ ... ];
 
-    public static IEnumerable<WristbandPage> Pages => Tabs.SelectMany(t => t.Pages);
+    public static IEnumerable<GameMenuPage> Pages => Tabs.SelectMany(t => t.Pages);
 }
 ```
 

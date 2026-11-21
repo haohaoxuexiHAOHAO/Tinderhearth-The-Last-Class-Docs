@@ -26,7 +26,7 @@ last_verified: 2026-10-31
 - [x] 可测试：主角在地里收获走生产那条管道的四个环节（[生产系统 · 一条管道，四个环节，顺序固定](../../design/生产系统.md)）：产出是这一株的件数与品质，归属是主角，不付酬，入库进主角的背包。管道在代码仓 `rules/Economy/Production.cs`，收获那一道闸在 `rules/Economy/Harvesting.cs`；用例在 `tests/Economy/HarvestingTests.cs` 与 `tests/Economy/ProductionPipelineTests.cs`，四个环节的结果各断言一次。
 - [x] 可测试：变异那一株收上来是变异品质；没变的是寻常。寻常是种植技能落地之前的占位，代码那一处注释指向 `GP-45`。两档不在册时农场启动就报错，有一条用例，另一条核工程里那一份两档都在。
 - [x] 可测试：放不下时那一格照旧待收，件数、品质与变异那一位都不变；腾出位置再收，收到的与第一次本该收到的一样。代码仓 `rules/Economy/Plot.cs` 的 `TryHarvest` 要拆成先算、放得下再改。拆成 `PeekHarvest` 与 `TryHarvest`，后者算的就是前者那一份；放不下时比的是那一格的全部公开属性。「腾出位置」是在同一个背包里丢掉那一堆（丢弃随 `GP-160` 落地）。
-- [ ] 可观察：放不下时屏上当场出现一行字，说清是背包满了；它不进手环的事件流。那一句接在即时提示那一行上（`UI-64`，键在代码仓 `rules/Economy/FarmNotices.cs`），看得见要实机。
+- [ ] 可观察：放不下时屏上当场出现一行字，说清是背包满了；它不进游戏菜单的事件流。那一句接在即时提示那一行上（`UI-64`，键在代码仓 `rules/Economy/FarmNotices.cs`），看得见要实机。
 - [ ] **作者实机确认**：背包满了再收，看得出被拒、那一株还在；丢掉一堆再收，收进来了。串在 `GP-163` 的清单里。
 - [x] 可核对：代码仓 `python tools/verify.py` 全绿；设计仓 `python tools/check_docs.py` 0 FAIL。
 

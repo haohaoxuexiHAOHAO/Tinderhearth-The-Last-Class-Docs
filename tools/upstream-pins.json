@@ -4,6 +4,6 @@
   "decisions/ADR-0009-编辑器主导的开发模式.md#分工边界": "dfb51c2a9d59ca39",
   "design/存档系统.md#写入是一次事务": "92760cb048f70c62",
   "design/存档系统.md#进哪一侧：判据一句话": "459637e76207d34b",
-  "design/数值模型.md#尚未给值的量，各自写明校准办法": "cacb585ff397f72f",
+  "design/数值模型.md#尚未给值的量，各自写明校准办法": "af1e2a98d45bd3ab",
   "production/像素绘制原则.md#像素基准": "5f2d6f26805595ca"
 }
