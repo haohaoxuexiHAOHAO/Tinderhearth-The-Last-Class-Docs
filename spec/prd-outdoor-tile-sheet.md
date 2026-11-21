@@ -116,8 +116,8 @@ last_verified: 2026-11-11
 
 - [ ] 可核对：「铺天然地形」那一步照新做法重写：数据层的标记瓦片换到图块表上，旧的那片地怎么用油漆桶换过来；显示层一种地形一层怎么搭、怎么接上代码；刷一片地；「让水挡住人」里标记瓦片那张表跟着换；新加一小节搭崖，写两层各刷什么、碰撞怎么画、拼崖的规矩，以及测试场景照样板「拼好的样子」拼；改图块表怎么改、交图检查的报错怎么读。「给地面铺上纹理」那一小节删掉，「把草与浅水那一套画成石壁」与「另外两套照同一个办法」改成照图块表改。
 - [ ] 可核对：「跑一遍验收」的行跟着改，各带行名：地形那几行照新做法写，水边那几行照旧，新加崖那几行与崖配错会报那几行；「卡住了：按症状查」跟着改。
-- [ ] 可核对：[场景绘制约定](../production/场景绘制约定.md)照[俯视地图用图块表拼 · 下游同步](../design/proposals/俯视地图用图块表拼.md)那一节改完，提案的结论迁出之后归档。
-- [ ] 可核对：两个仓加 `.kiro`，除归档件与已接受的 ADR 外，按这几个词搜，剩下的都不是在讲旧做法：`check_dualgrid`、`DualGridPair`、`TerrainFill`、`grass-dirt`、`grass-shallow`、`shallow-deep`、`emit-ring`、`dualgrid-16-guide`、`tiles/fill`、纹理图、规范边、主色。
+- [ ] 可核对：[场景绘制约定](../production/场景绘制约定.md)照[俯视地图用图块表拼 · 下游同步](../design/proposals/俯视地图用图块表拼.md)那一节改完，提案的结论迁出之后删掉。
+- [ ] 可核对：两个仓加 `.kiro`，除已接受的 ADR 外，按这几个词搜，剩下的都不是在讲旧做法：`check_dualgrid`、`DualGridPair`、`TerrainFill`、`grass-dirt`、`grass-shallow`、`shallow-deep`、`emit-ring`、`dualgrid-16-guide`、`tiles/fill`、纹理图、规范边、主色。
 - [ ] 可核对：设计仓 `python tools/check_docs.py` 0 FAIL。
 
 ### US-007：图块表接进游戏的端到端验证

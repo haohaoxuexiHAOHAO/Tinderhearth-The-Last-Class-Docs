@@ -23,7 +23,8 @@
 `null` 表示只指到那份文件；`relabel` 列出按旧文档身份起的链接文字（例如「正典」），
 改指时整个换成新目标的名字；`drop_leads` 列出「只是指过去」的句首（例如「理由在」）：
 没有改指的链接前面紧挨着这几个字、后面紧跟句号或格末时，连这几个字整句删掉，
-而不是留下一句「理由在条目文件」这样指向空处的话。
+而不是留下一句「理由在条目文件」这样指向空处的话；`drop_trails` 列出紧跟在链接后面、
+只为那条链接而写的标注（例如「（**历史背景·非依据**）」），链接变成纯文字时一起删掉。
 
 每一处 `[文字](路径)`，路径落在 `delete` 里时：
 
@@ -33,7 +34,7 @@
   这样改完的链接一定过得了节名引用那条守卫。别的链接文字原样留着，只换路径。
 - **没有改指的**：整个链接换成它的文字，不再是链接。
 
-不碰 `archive/` 与 `decisions/`（ADR-0036：这两处的断链不再修），也不碰要删的文件本身。
+不碰 `decisions/`（ADR-0036：已接受的 ADR 冻结，断链不再修），也不碰要删的文件本身。
 只改链接，不改别的字；一个文件里的改动全部算完再一次写回，UTF-8、LF。
 """
 from __future__ import annotations
@@ -47,7 +48,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import check_docs as cd  # noqa: E402  复用同一个链接正则与节名判法
 
 ROOT = cd.ROOT
-SKIP_PREFIXES = ("archive/", "decisions/")
+SKIP_PREFIXES = ("decisions/",)
 
 
 def rel_to_root(p: Path) -> str | None:
@@ -124,6 +125,15 @@ def plan_for(doc_path: Path, text: str, plan: dict, cache: dict) -> tuple[str, l
             continue
         if rule is None:
             new = label
+            trail = next((t for t in plan.get("drop_trails", []) if text.startswith(t, m.end())), None)
+            if trail is not None:
+                # 「[某份](…)（历史背景·非依据）」：链接没了，跟着它的那句标注也没了着落
+                out.append(text[last:m.start()])
+                out.append(new)
+                last = m.end() + len(trail)
+                line_no = text.count("\n", 0, m.start()) + 1
+                changes.append(f"L{line_no}: {m.group(0)}{trail}  →  {new}")
+                continue
         else:
             _, section = split_label(label)
             if section is None and bare(label) != old_stem:

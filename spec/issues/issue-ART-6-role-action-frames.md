@@ -15,7 +15,7 @@ last_verified: 2026-10-27
 
 ## 来源
 
-- SPEC：[`A1/spec.md`](../../archive/spec/A1-combat-feel-core/spec.md) §1.3「主角美术」与 §6（**历史背景·非依据**）
+- SPEC：`A1` 那一轮的 spec §1.3「主角美术」与 §6（文件已删，在 git 历史里）
 - 正典：[像素绘制原则 · 像素基准](../../production/像素绘制原则.md)「动作帧的画布可以大于精灵格」
 - 制作规范：[像素绘制原则 §12](../../production/像素绘制原则.md) 逐帧交付与脚底锚点
 

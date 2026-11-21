@@ -13,7 +13,7 @@ last_verified: 2026-10-20
 
 ## 来源
 
-- [`GP-82` 那一轮的 PRD](../../archive/spec/GP-82-view-and-sprite-scale/prd.md)（**历史背景·非依据**）的 `US-007`：那一轮是纯文档批次，**刻意不改代码**，落点记账在本条。新口径的现行出处是正典与制作规格，清单在那份归档件的「归档三问」里。
+- `GP-82` 那一轮的 PRD的 `US-007`：那一轮是纯文档批次，**刻意不改代码**，落点记账在本条。新口径在 desc 与制作规格里；逐处清单在那份 PRD 里，文件已删，在 git 历史里。
 - [ADR-0021](../../decisions/ADR-0021-每个朝向各画一套不做水平翻转.md)：朝向改成按朝向取表，于是为翻转存在的那条路变成死代码。
 
 ## 依赖
@@ -54,7 +54,7 @@ last_verified: 2026-10-20
 ### 指向改过名字的那几处注释
 
 - [x] `rules/UI/UIMetrics.cs` 图标两档那句注释指着[人物](../../../desc/人物.md)里一个**已经改名**的节名（原先叫「32×32 像素可读性规则」）。**代码注释没有守卫查得到**，所以它只能靠这一条记着。**由 `UI-41` 改**（它连带改写那段注释的理由），落地时在这里勾掉
-- [ ] [战斗规则](../../../desc/战斗规则.md)那笔几何账的节名也改过（原先带旧带宽那个数）。**归档时按旧节名搜过代码仓，落在四处**：`rules/Combat/CombatFeel.cs` 两处、`rules/Combat/DepthBand.cs` 一处、`tests/Combat/DepthBandTests.cs` 一处。四处都改成新节名
+- [ ] [战斗规则](../../../desc/战斗规则.md)那笔几何账的节名也改过（原先带旧带宽那个数）。**按旧节名搜过代码仓，落在四处**：`rules/Combat/CombatFeel.cs` 两处、`rules/Combat/DepthBand.cs` 一处、`tests/Combat/DepthBandTests.cs` 一处。四处都改成新节名
 - [ ] `tests/Combat/DepthBandTests.cs` 那段注释里还抄着旧的「一排几人、要几排」，**按新账改或改成写链接不复述**（正典是那笔账的家）
 - [x] 死代码删干净：`rules/Combat/DepthRendering.cs` 的 `GroundSpan.Mirrored()`、`PlayerActor` 里「朝左时要镜像」那一段，连带 `tests/Combat/DepthRenderingTests.cs` 里测它的那条
       （随 `ENG-26` 删的：侧视影子改成作者画之后不再按本体范围取宽，`GroundSpan` 整个没了）

@@ -17,7 +17,7 @@
     固定 UTF-8；每条问题打成 [FAIL] 或 [WARN]；末尾打一行 EXIT= 摘要。
     [FAIL] 必须修复；[WARN] 不阻断。
 
-判什么：文件头、断链、归档边界、单一台账、编号引用得出来、入口可达、工作区行尾，
+判什么：文件头、断链、单一台账、编号引用得出来、入口可达、工作区行尾，
 外加体裁归位、四条引用纪律（ADR-0010 与 WORKFLOW §3.5）、退役名与代码仓 C# 里编号的写法 ——
 后面这些的共同点是**它们过期时链接仍然有效**，所以非得专门判一次才查得出来。
 """
@@ -57,9 +57,11 @@ CONDITIONAL_KEYS = ("status", "last_verified")
 # 别处抄一遍文件头就又有了，而那不报错。
 FORBIDDEN_KEYS = ("status", "last_verified")
 # 没有 status 类型：动态状态不再单独成页，进度由 spec/ 下的 issue 勾选框承载。
+# 也没有 canon 与 archive：游戏规则只在 desc 写一份，删掉的文档不归档（ADR-0036），
+# 新写一份带这两种文件头的文档就报错，而不是悄悄又开一个家。
 VALID_TYPES = {
-    "index", "governance", "backlog", "canon", "design", "system", "model",
-    "adr", "template", "workdoc", "production", "reference", "archive",
+    "index", "governance", "backlog", "design", "system", "model",
+    "adr", "template", "workdoc", "production", "reference",
 }
 
 # 长期规格有两个体裁，差别只在「它是什么」与因此该叫什么名字；位置、骨架、寿命都一样。
@@ -161,24 +163,14 @@ LIST_ITEM_RE = re.compile(r"^(?:[-*]|\d+\.)\s")
 CODE_PATH_RE = re.compile(
     r"`((?:rules|src|tests|tools|scenes|assets|config|data|content)/[A-Za-z0-9_./-]+\.[A-Za-z0-9]+)`")
 CODE_REPO = ROOT.parent / "Tinderhearth-The-Last-Class"
-# 冻结的体裁不判引用纪律：归档件与已接受的 ADR 描述的是当时的事实，按规则不许
-# 用今天的路径改写它们（WORKFLOW §4）。
-FROZEN_PREFIXES = ("archive/", "decisions/", "templates/")
+# 冻结的体裁不判引用纪律：已接受的 ADR 描述的是当时的事实，按规则不许用今天的
+# 路径改写它们（WORKFLOW §4）；模板里的路径与名字是占位。
+FROZEN_PREFIXES = ("decisions/", "templates/")
 VALID_STATUS = {
     "active", "draft", "awaiting-answer", "approved", "in-progress",
-    "testing", "awaiting-verify", "archived", "superseded",
+    "testing", "awaiting-verify", "superseded",
     "accepted", "proposed", "rejected",
 }
-ARCHIVE_STATUS = {"archived", "superseded"}
-
-# 归档边界用语（WORKFLOW §4）。单独出现“历史”二字不算边界。
-ARCHIVE_BOUNDARY_WORDS = ("只读", "历史归档", "已废弃", "不得作为", "非依据")
-# 引用 archive 时必须同行标注这个
-CITE_ARCHIVE_MARK = "历史背景·非依据"
-# 只对「会被当成现行依据」的文档类型强制上面的标注。
-# WORKFLOW §4 的原文是「归档不得被正典/设计/制作/ADR 当作现行依据」——
-# README、WORKFLOW、索引指向归档属于导航，不是拿它当依据，不该被拦。
-CITE_ARCHIVE_ENFORCED_TYPES = {"canon", "design", "production", "adr"}
 
 # ── 退役名（角色改名之后的旧名）────────────────────────────────────────
 # 为什么这条守卫非有不可：人名是**标签**，按定义要在几十处散文里出现，收不成
@@ -194,7 +186,6 @@ CITE_ARCHIVE_ENFORCED_TYPES = {"canon", "design", "production", "adr"}
 # 的 ADR 写的是当时的事实，按规则不许用今天的说法改写；人名不豁免，新写的 ADR 也要
 # 用现行名字。
 RETIRED_NAMES_REL = "tools/retired-names.json"
-# 归档只反映当时状态，改它等于重写历史，所以豁免。
 # 必须在活文档散文里提到旧名时（例如某次改名的需求文档），同行写上这个标记。
 RETIRED_NAME_MARK = "已退役"
 
@@ -208,8 +199,10 @@ ISSUE_ID_RE = re.compile(r"\b(?:GP|NR|UI|ART|ENG|DOC)-\d+\b")
 LEDGER_ROW_ID_RE = re.compile(r"^\|\s*`((?:GP|NR|UI|ART|ENG|DOC)-\d+)`\s*\|", re.MULTILINE)
 
 # ── 指向已关闭编号的引用（DOC-100）────────────────────────────────
-# 台账那张「已归档编号」表的标题，以及域表整行（要取备注那一格判状态词）。
-ARCHIVED_HEADING = "## 已归档编号"
+# 台账那张「已关闭编号」表的标题，以及域表整行（要取备注那一格判状态词）。
+# 找不到这个标题时 `check_ledger_unique_ids` 判失败：否则那张表里的编号全被当成还开着，
+# 指向它们的卡点与引用一条都报不出来，而那是静默的。
+CLOSED_HEADING = "## 已关闭编号"
 LEDGER_ROW_RE = re.compile(
     r"^\|\s*`((?:GP|NR|UI|ART|ENG|DOC)-\d+)`\s*\|[^|]*\|[^|]*\|(.*)$", re.MULTILINE)
 # 状态词表的家在台账那一页「状态词」那一节（`DOC-98`）。**这里只需要「哪个算关闭」**，
@@ -221,8 +214,8 @@ UPSTREAM_SECTION_RE = re.compile(r"^## 上游约束\s*?$(.*?)(?=^## )", re.M | r
 # 台账单行备注的字数上限。**这个数只写在这里**，台账与技能文件都不复述它。
 # 定它的依据与它为什么是棘轮写在 `check_ledger_note_length` 的文档字符串里。
 LEDGER_NOTE_LIMIT = 500
-# 只判长期权威文档。台账自己是状态的家；`archive/` 与已接受的 ADR 不许用今天的说法
-# 改写；`spec/` 下是过程文件，会随需求归档走掉。
+# 只判长期权威文档。台账自己是状态的家；已接受的 ADR 不许用今天的说法改写；
+# `spec/` 下是过程文件，需求做完就删。
 CLOSED_REF_SCOPE = ("design/",)
 # 域表备注里那个「卡在」标签，取它到行尾（也就是那一格的余下部分）。判定面为什么
 # 只收这一格，理由在 `check_ledger_blockers` 的文档字符串里。
@@ -231,8 +224,8 @@ LEDGER_BLOCKER_RE = re.compile(r"\*\*卡在\*\*：(.*)$")
 LEDGER_LINK_RE = re.compile(
     r"\[`((?:GP|NR|UI|ART|ENG|DOC)-\d+)`\]\([^)]*spec/issues/README\.md\)")
 # **只认反引号里的编号。** 全库引编号一律加反引号，而不加反引号的那些恰恰不是引用：
-# 归档目录名里就带编号（`archive/spec/GP-2-numeric-model/`），按裸编号判会把路径
-# 判成过期指针 —— 实测第一次跑就撞到这一处。捕获组 1 是编号本身。
+# 条目文件名里就带编号（`issue-GP-173-grid-bag-e2e.md`），按裸编号判会把链接里的
+# 路径判成过期指针。捕获组 1 是编号本身。
 ISSUE_ID_TICKED_RE = re.compile(r"`((?:GP|NR|UI|ART|ENG|DOC)-\d+)`")
 
 # ── 内容规模基准表的「谁在等它」那一列 ───────────────────────────────
@@ -275,10 +268,6 @@ class Doc:
     @property
     def chars(self) -> int:
         return len(self.text)
-
-    @property
-    def in_archive(self) -> bool:
-        return self.rel.startswith("archive/")
 
     @property
     def is_template(self) -> bool:
@@ -442,10 +431,7 @@ def check_front_matter(doc: Doc, rep: Report) -> None:
                           "长期规格之外的体裁还要 status/last_verified）")
         return
     t, s = doc.meta.get("type"), doc.meta.get("status")
-    # 排除归档件：`check_archive_boundary` 要求 archive/ 下的 status 是 archived 或
-    # superseded，所以一份被归档的长期规格会同时撞上两条守卫 —— 而归档件只读，改不了。
-    # 与 `check_longlived_home` 同一个排除法。
-    longlived = t in LONGLIVED_TYPES and not doc.is_template and not doc.in_archive
+    longlived = t in LONGLIVED_TYPES and not doc.is_template
     for key in REQUIRED_KEYS:
         if key not in doc.meta:
             rep.fail(doc.rel, f"文件头缺少必填字段 `{key}`")
@@ -470,8 +456,8 @@ def check_front_matter(doc: Doc, rep: Report) -> None:
 
 
 def check_links(doc: Doc, rep: Report) -> None:
-    # 归档件与已接受的 ADR 冻结在当时，它们指向的文档删了就断了，不再修（ADR-0036）。
-    if doc.rel.startswith(("archive/", "decisions/")):
+    # 已接受的 ADR 冻结在当时，它们指向的文档删了就断了，不再修（ADR-0036）。
+    if doc.rel.startswith("decisions/"):
         return
     for m in MD_LINK_RE.finditer(doc.text):
         target = m.group(2)
@@ -481,24 +467,6 @@ def check_links(doc: Doc, rep: Report) -> None:
         if not resolved.exists():
             line_no = doc.text[: m.start()].count("\n") + 1
             rep.fail(doc.rel, f"L{line_no} 断链：`{target}`")
-
-
-def check_archive_boundary(doc: Doc, rep: Report) -> None:
-    """archive/ 下必须自证只读；现行文档引用 archive 必须同行标注。"""
-    if doc.in_archive:
-        if doc.meta.get("status") not in ARCHIVE_STATUS:
-            # 目录索引是维护中的活文档，允许 active
-            if not (doc.path.name == "README.md" and doc.meta.get("type") == "index"):
-                rep.fail(doc.rel, f"archive/ 下的文档 status 必须是 {sorted(ARCHIVE_STATUS)} 之一")
-        head = "\n".join(doc.text.splitlines()[:20])
-        if not any(w in head for w in ARCHIVE_BOUNDARY_WORDS):
-            rep.fail(doc.rel, f"归档件文首 20 行必须写明只读边界（{'/'.join(ARCHIVE_BOUNDARY_WORDS)}）")
-        return
-    if doc.is_template or doc.meta.get("type") not in CITE_ARCHIVE_ENFORCED_TYPES:
-        return
-    for i, line in enumerate(doc.text.splitlines(), 1):
-        if re.search(r"\]\([^)]*archive/", line) and CITE_ARCHIVE_MARK not in line:
-            rep.fail(doc.rel, f"L{i} 引用 archive/ 必须同行标注「{CITE_ARCHIVE_MARK}」")
 
 
 def retired_names(rep: Report) -> tuple[dict[str, str], dict[str, str]] | None:
@@ -539,8 +507,6 @@ def check_retired_names(docs: list[Doc], rep: Report) -> tuple[int, int, int]:
     names, terms = tables
     scanned = 0
     for doc in docs:
-        if doc.in_archive:      # 归档只反映当时状态，改它等于重写历史
-            continue
         scanned += 1
         frozen = doc.rel.startswith(FROZEN_PREFIXES)
         for i, line in enumerate(doc.text.splitlines(), 1):
@@ -568,7 +534,7 @@ def check_genre_home(doc: Doc, rep: Report) -> None:
     「稳定后上升进正典、本目录只留活跃部分」这条规则对其中一种永远不成立，而没有
     任何机制能发现。
     """
-    if doc.is_template or doc.in_archive:
+    if doc.is_template:
         return
     t = doc.meta.get("type")
     if t in LONGLIVED_TYPES:
@@ -591,7 +557,7 @@ def check_skeleton(doc: Doc, rep: Report) -> None:
     为什么要判顺序：骨架的价值在于「同一个问题总在同一个位置」—— 顺序一变，读者就得
     每份重新找一遍，而那正是「骨架随意」的样子。末尾可以追加「附录」小节。
     """
-    if doc.is_template or doc.in_archive:
+    if doc.is_template:
         return
     t = doc.meta.get("type")
     want = SYSTEM_SECTIONS if t in LONGLIVED_TYPES else DESIGN_SECTIONS if t == "design" else None
@@ -785,12 +751,12 @@ def check_sentence_length(doc: Doc, rep: Report) -> int:
 
     **只判长期规格**（`type: system`／`model`），有两条理由而不是一条：① 那正是
     定上限时量过的那一群，把一个没量过的群体套上这个数，那个数就没有依据了；
-    ② 冻结的体裁（归档件、已接受的 ADR）按规则不许用今天的说法改写，而正典这一轮
-    明确不动 —— 对改不动的东西设门禁，只会逼人绕过它。别处的句长由人读时把握。
+    ② 已接受的 ADR 按规则不许用今天的说法改写，而 desc 归作者 —— 对改不动的东西
+    设门禁，只会逼人绕过它。别处的句长由人读时把握。
 
     返回量的句子数，供自报覆盖量用。
     """
-    if doc.meta.get("type") not in LONGLIVED_TYPES or doc.is_template or doc.in_archive:
+    if doc.meta.get("type") not in LONGLIVED_TYPES or doc.is_template:
         return 0
     sentences = prose_sentences(doc.text)
     for line_no, s in sentences:
@@ -811,7 +777,7 @@ def check_diagrams(doc: Doc, rep: Report) -> tuple[int, int]:
     标签按**子串**比，所以「超时」对得上「超时自然站起」。返回（图数, 标签数）
     供自报覆盖量用。
     """
-    if doc.is_template or doc.in_archive:
+    if doc.is_template:
         return 0, 0
     blocks = mermaid_blocks(doc.text)
     if not blocks:
@@ -894,7 +860,7 @@ def check_ordinal_refs(doc: Doc, rep: Report) -> None:
     实测起因：每日结算的步序插进两步之后，另一份文档里「第 4、6、8 步」三处全部
     静默指错 —— 序号会随插步整体平移，而按步名写永远不会。
     """
-    if doc.rel.startswith(FROZEN_PREFIXES) or doc.in_archive:
+    if doc.rel.startswith(FROZEN_PREFIXES):
         return
     hits = ORDINAL_REF_RE.findall(doc.text)
     if not hits or NUMBERED_LIST_RE.search(doc.text):
@@ -910,7 +876,7 @@ def check_self_count(doc: Doc, rep: Report) -> None:
     计数词 ≥2 ＋ 紧跟清单」这一种形状，因为「一个失败模式：」这类说法里的数字不是
     清单长度 —— 收窄到这一形状之后，实测 81 份文档里两处命中都是真的。
     """
-    if doc.rel.startswith(FROZEN_PREFIXES) or doc.in_archive:
+    if doc.rel.startswith(FROZEN_PREFIXES):
         return
     lines = doc.text.splitlines()
     for i, line in enumerate(lines):
@@ -943,7 +909,7 @@ def check_code_paths(doc: Doc, rep: Report) -> None:
     随 `ADR-0009` 删掉的 `tools/check_scaling.py`、`tools/import_role_sheets.py` 与
     `tools/selfcheck_docs_guard.py` 在正典、踩坑记录与 README 里仍被写成现行执行体。
     """
-    if doc.rel.startswith(FROZEN_PREFIXES) or doc.in_archive:
+    if doc.rel.startswith(FROZEN_PREFIXES):
         return
     for m in CODE_PATH_RE.finditer(doc.text):
         p = m.group(1)
@@ -966,8 +932,8 @@ def check_single_ledger(docs: list[Doc], rep: Report) -> None:
 
     这里替代了原先的 STATUS.md 结构检查。取消 STATUS.md 的理由见 ADR-0006：
     进度由 spec/ 下 issue 文件的验收勾选框承载，再单独维护一页动态状态就是第二个
-    状态源。但「待办只有一处」这条必须留着守卫 —— 台账编号被正典、制作规格与
-    归档三问跨文档引用，出现第二份台账会让那些引用指向不确定的地方。
+    状态源。但「待办只有一处」这条必须留着守卫 —— 台账编号被系统文档、制作规格与
+    代码注释跨文档引用，出现第二份台账会让那些引用指向不确定的地方。
 
     目标消失时静默放过等于守卫没执行，所以台账缺失判失败，不是跳过。
     """
@@ -998,7 +964,7 @@ def strip_fenced(text: str) -> str:
 def check_issue_ids(docs: list[Doc], rep: Report) -> None:
     """正文引用的待办编号必须在台账里定义（WORKFLOW §1）。
 
-    编号是跨文档引用的稳定标识，正典、制作规格与归档三问都会引它。引用一个台账里
+    编号是跨文档引用的稳定标识，系统文档、制作规格与代码注释都会引它。引用一个台账里
     没有的编号，等于把一件事记在了不存在的账上 —— 读者点不进去，而且那件事实际上
     没有人在跟。
     """
@@ -1007,7 +973,7 @@ def check_issue_ids(docs: list[Doc], rep: Report) -> None:
         return                      # check_single_ledger 已经报过缺失
     defined = set(LEDGER_ROW_ID_RE.findall(ledger.text))
     for doc in docs:
-        if doc.in_archive or doc.rel == LEDGER_REL:
+        if doc.rel == LEDGER_REL:
             continue
         body = strip_fenced(doc.text)
         seen = set()
@@ -1022,10 +988,10 @@ def check_issue_ids(docs: list[Doc], rep: Report) -> None:
 
 
 def check_ledger_unique_ids(docs: list[Doc], rep: Report) -> int:
-    """一个编号在台账里只许登一行，域表与「已归档编号」那张表合起来算（`DOC-143`）。
+    """一个编号在台账里只许登一行，域表与「已关闭编号」那张表合起来算（`DOC-143`）。
 
     **为什么要它**：`check_issue_ids` 只问「引到的编号有没有定义」，同一个号登了两行它照样放过 ——
-    而那正是 `GP-131` 撞过的样子：一行在域表、一行在已归档那张表，两件不相干的事共用一个号，引它的人
+    而那正是 `GP-131` 撞过的样子：一行在域表、一行在已关闭那张表，两件不相干的事共用一个号，引它的人
     分不出指的是哪一件，关闭判定也会把两件一起算成关了或开着。「不重编号、不复用」靠的就是这一条。
 
     返回核过的编号个数；**一个都没解析出来判失败**，否则行的形状一变它就静默空转。
@@ -1044,16 +1010,19 @@ def check_ledger_unique_ids(docs: list[Doc], rep: Report) -> int:
     if not lines_of:
         rep.fail(LEDGER_REL, "台账里一行编号都没解析出来，重号这一条**没有执行**（不是通过）"
                              "—— 行的形状变了")
+    if CLOSED_HEADING not in ledger.text:
+        rep.fail(LEDGER_REL, f"找不到「{CLOSED_HEADING.lstrip('# ')}」那一节 —— 那张表里的编号会被当成"
+                             f"还开着，指向它们的卡点与引用都判不出来；改了标题就要连着改 CLOSED_HEADING")
     return len(lines_of)
 
 
 def closed_issue_ids(ledger_text: str) -> set[str]:
     """哪些编号已经关闭。两处都要读，少读一处守卫就只覆盖一半。
 
-    ① 域表里状态词为「已完成」的；② 「已归档编号」那张表里的全部。
+    ① 域表里状态词为「已完成」的；② 「已关闭编号」那张表里的全部。
     状态词那张词表的家在台账自己那一页（`DOC-98`），**这里按它解析，不另立一套**。
     """
-    split = ledger_text.find(ARCHIVED_HEADING)
+    split = ledger_text.find(CLOSED_HEADING)
     open_part = ledger_text if split < 0 else ledger_text[:split]
     arch_part = "" if split < 0 else ledger_text[split:]
 
@@ -1070,18 +1039,18 @@ def check_closed_issue_refs(docs: list[Doc], rep: Report) -> None:
 
     **为什么原来的门禁接不住它**：链接仍然有效、编号在台账里也仍然解析得到，
     所以断链检查与 `check_issue_ids` 都为真。指针指错的唯一症状是「读者顺着它
-    走会得出反结论」—— 而在这条之前，那件事没有任何执行体在判。实测起因：正典
-    与 `design/` 合起来有上百处指向已归档或已完成的编号，其中「归 `GP-2`」那一批
-    会让人以为那个值还没定，而它的现行事实早就在别处了。
+    走会得出反结论」—— 而在这条之前，那件事没有任何执行体在判。实测起因：规则文档
+    与 `design/` 合起来有上百处指向已关闭的编号，其中「归 `GP-2`」那一批会让人以为
+    那个值还没定，而它的现行事实早就在别处了。
 
     **放过形式只有一种：写成指台账的链接。** 那样读者一跳就落到台账那一行，看得
     到它已经关闭、现行事实在哪 —— 过期于是从「查不出来的错」变成「一跳就看见的
     重定向」。历史引用（某条判断当初记在哪）本来就该用这个形式，所以它不是例外，
     是同一条纪律。
 
-    **判定面只有 `canon/` 与 `design/`**，理由是它们是长期权威文档：台账自己就是
-    状态的家；`archive/` 与已接受的 ADR 按规则不许用今天的说法改写；`spec/` 下的
-    过程文件会随需求归档走掉。
+    **判定面只有 `design/`**，理由是它是仓里的长期权威文档：台账自己就是状态的家；
+    已接受的 ADR 按规则不许用今天的说法改写；`spec/` 下的过程文件需求做完就删；
+    desc 不在仓里，检查器看不到它。
 
     **不判「所有裸编号都要写成链接」**：那条形式上更整齐，但要动的面大得多（全库
     裸编号是这一批的好几倍），而收益只落在已关闭那一小撮上 —— 判法却要动全部。
@@ -1093,12 +1062,12 @@ def check_closed_issue_refs(docs: list[Doc], rep: Report) -> None:
     closed = closed_issue_ids(ledger.text)
     if not closed:
         rep.fail(LEDGER_REL, "台账里解析不出任何已关闭的编号，这一轮「指向已关闭编号」"
-                             "**没有执行**（不是通过）—— 状态词或已归档那张表的形状变了")
+                             "**没有执行**（不是通过）—— 状态词或已关闭那张表的形状变了")
         return
 
     checked = 0
     for doc in docs:
-        if not doc.rel.startswith(CLOSED_REF_SCOPE) or doc.in_archive:
+        if not doc.rel.startswith(CLOSED_REF_SCOPE):
             continue
         body = strip_fenced(doc.text)
         # 先把「写成指台账链接」的那些编号的位置圈出来，再逐个引用看它落不落在里面。
@@ -1135,7 +1104,7 @@ def check_ledger_blockers(docs: list[Doc], rep: Report) -> int:
     if ledger is None:
         return 0                    # check_single_ledger 已经报过缺失
     closed = closed_issue_ids(ledger.text)
-    split = ledger.text.find(ARCHIVED_HEADING)
+    split = ledger.text.find(CLOSED_HEADING)
     open_part = ledger.text if split < 0 else ledger.text[:split]
 
     checked = 0
@@ -1416,7 +1385,7 @@ def check_ledger_note_length(docs: list[Doc], rep: Report) -> int:
     ledger = next((d for d in docs if d.rel == LEDGER_REL), None)
     if ledger is None:
         return 0                    # check_single_ledger 已经报过缺失
-    open_part = ledger.text.split(ARCHIVED_HEADING)[0]
+    open_part = ledger.text.split(CLOSED_HEADING)[0]
     counted = 0
     for m in LEDGER_ROW_RE.finditer(open_part):
         note = m.group(2).strip().rstrip("|").strip()
@@ -1501,7 +1470,7 @@ def upstream_pins(docs: list[Doc]) -> dict[str, str]:
     by_rel = {d.rel: d for d in docs}
     out: dict[str, str] = {}
     for doc in docs:
-        if doc.meta.get("type") not in LONGLIVED_TYPES or doc.is_template or doc.in_archive:
+        if doc.meta.get("type") not in LONGLIVED_TYPES or doc.is_template:
             continue
         m = UPSTREAM_SECTION_RE.search(doc.text)
         if not m:
@@ -1517,7 +1486,7 @@ def upstream_pins(docs: list[Doc]) -> dict[str, str]:
                     rel = (doc.path.parent / target).resolve().relative_to(ROOT).as_posix()
                 except ValueError:
                     continue
-                if rel not in by_rel or by_rel[rel].in_archive or rel == doc.rel:
+                if rel not in by_rel or rel == doc.rel:
                     continue
                 section = label.split(SECTION_SEP)[-1].replace("**", "").replace("`", "").strip()
                 body = heading_body(by_rel[rel].text, section)
@@ -1573,7 +1542,7 @@ def check_upstream_pins(docs: list[Doc], rep: Report, repin: bool = False) -> in
 
 
 def check_reachable(docs: list[Doc], rep: Report) -> None:
-    """从 README.md 出发能否走到每份非归档文档（WORKFLOW §6 入口可达）。"""
+    """从 README.md 出发能否走到每份文档（WORKFLOW §6 入口可达）。"""
     by_rel = {d.rel: d for d in docs}
     if "README.md" not in by_rel:
         rep.fail("README.md", "设计仓缺少唯一入口 README.md")
@@ -1596,7 +1565,7 @@ def check_reachable(docs: list[Doc], rep: Report) -> None:
                 seen.add(rel)
                 queue.append(rel)
     for d in docs:
-        if d.rel in seen or d.in_archive or d.rel == "README.md":
+        if d.rel in seen or d.rel == "README.md":
             continue
         rep.warn(d.rel, "从 README.md 无法经链接到达（接入文档地图，或确认它确实只是被引用的附件）")
 
@@ -1717,7 +1686,6 @@ def main() -> int:
     for doc in scope:
         check_front_matter(doc, rep)
         check_links(doc, rep)
-        check_archive_boundary(doc, rep)
         check_genre_home(doc, rep)
         check_skeleton(doc, rep)
         check_ordinal_refs(doc, rep)
@@ -1735,11 +1703,11 @@ def main() -> int:
     check_single_ledger(all_docs, rep)
     check_issue_ids(all_docs, rep)
     unique_ids = check_ledger_unique_ids(all_docs, rep)
-    rep.note(f"台账重号覆盖量：核了 {unique_ids} 个编号（域表与已归档那张表合起来）")
+    rep.note(f"台账重号覆盖量：核了 {unique_ids} 个编号（域表与已关闭那张表合起来）")
     check_closed_issue_refs(all_docs, rep)
     retired_scanned, retired_count, retired_terms = check_retired_names(all_docs, rep)
     rep.note(f"退役名覆盖量：拿 {retired_count} 个旧名、{retired_terms} 个退役术语扫了 "
-             f"{retired_scanned} 份活文档（archive/ 豁免；术语另豁免冻结的体裁）")
+             f"{retired_scanned} 份活文档（术语另豁免冻结的体裁）")
     baseline_rows = check_content_baseline_owners(all_docs, rep)
     rep.note(f"内容规模基准覆盖量：核了 {baseline_rows} 行的「谁在等它」")
     blocker_cells = check_ledger_blockers(all_docs, rep)

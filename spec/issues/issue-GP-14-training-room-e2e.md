@@ -24,10 +24,9 @@ last_verified: 2026-09-18
 
 ## 来源
 
-- PRD：[`A1/prd.md`](../../archive/spec/A1-combat-feel-core/prd.md) 的 `US-006`（**历史背景·非依据**）
-- SPEC：[`A1/spec.md`](../../archive/spec/A1-combat-feel-core/spec.md) 的 §2、§8（**历史背景·非依据**）
-- 纵深三条（**历史背景·非依据**）：[`GP-15`](../../archive/spec/A1-combat-feel-core/issue-GP-15-depth-axis-motion.md)、[`GP-16`](../../archive/spec/A1-combat-feel-core/issue-GP-16-depth-hit-tolerance.md)、[`ENG-15`](../../archive/spec/A1-combat-feel-core/issue-ENG-15-depth-sorting-shadow.md)
-- 工具：[`ENG-6`](../../archive/spec/A1-combat-feel-core/issue-ENG-6-frame-tuning-tools.md) 的 `CombatDebugOverlay`（**历史背景·非依据**）
+- PRD：`A1` 那一轮的 `US-006`；SPEC：同一轮 spec 的 §2、§8（两份文件已删，在 git 历史里）
+- 纵深三条（已关闭）：`GP-15`、`GP-16`、`ENG-15`
+- 工具：`ENG-6` 的 `CombatDebugOverlay`（那一条已关闭）
 
 ## 依赖
 

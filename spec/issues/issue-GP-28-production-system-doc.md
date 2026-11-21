@@ -13,7 +13,7 @@ last_verified: 2026-09-22
 
 ## 来源
 
-- PRD：[`archive/spec/GP-25-base-and-production/prd.md`](../../archive/spec/GP-25-base-and-production/prd.md) 的 `US-005` 与 `US-007`（**历史背景·非依据**）
+- PRD：`GP-25` 那一轮的 `US-005` 与 `US-007`（文件已删，在 git 历史里）
 
 ## 依赖
 
