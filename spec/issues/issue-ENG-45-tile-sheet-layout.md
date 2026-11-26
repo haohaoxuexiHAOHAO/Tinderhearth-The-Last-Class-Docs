@@ -17,7 +17,7 @@ last_verified: 2026-11-12
 
 ## 依赖
 
-- `GP-173`：背包那一份收尾之前不改代码，理由在那份需求的「概述」里。
+- `GP-178`：背包那一份与搭游戏框架的那几份需求收尾之前不改代码，理由在那份需求的「概述」里。
 - 作者：开工时把工作区根的 `total_texture.png` 放进代码仓 `res://assets/self-drawn/tiles/outdoor_summer.png`，在 Godot 里导入一次。
 
 ## 验收标准
