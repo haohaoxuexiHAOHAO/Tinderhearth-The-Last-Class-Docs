@@ -18,7 +18,7 @@ last_verified: 2026-11-28
 
 ## 依赖
 
-- `GP-183`：AI 出手用的是那一套。
+- `GP-183`（已关闭）：AI 出手用的是那一套，放招在代码仓 `rules/Combat/Battle.cs`，命中与伤害在代码仓 `rules/Combat/StrikeOdds.cs`。HP 扣到 0 为止，到 0 之后怎么办在这一条。
 
 ## 验收标准
 
