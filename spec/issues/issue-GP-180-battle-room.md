@@ -17,7 +17,7 @@ last_verified: 2026-11-28
 
 ## 依赖
 
-- `GP-179`：站位指的是角色定义。
+- `GP-179`（已关闭）：站位指的是角色定义，读法在代码仓 `rules/Combat/CombatContent.cs`。
 
 ## 验收标准
 
