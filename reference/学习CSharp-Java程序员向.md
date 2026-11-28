@@ -390,7 +390,7 @@ Tabs.SelectMany(t => t.Pages)                              // rules/UI/GameMenu.
 Enumerable.Range(0, value.Count).FirstOrDefault(i => value[i] < 1, -1)   // rules/Economy/CropDefinition.cs
 
 // 投影/转换（Java: .map(...)）
-catalog.Sources.Select(s => s.Name)                        // src/Main.cs
+catalog.Sources.Select(s => s.Name)                        // src/Startup.cs
 
 // 排序（Java: .sorted(...)）；字符串排序显式给比较器，见下面那条差异
 files.Keys.Where(p => p.StartsWith(relativeDirectory + "/", StringComparison.Ordinal))
@@ -508,19 +508,18 @@ Converters = { new JsonStringEnumConverter() },
 // src/World/GameCamera.cs：只在 new 的时候设一次，之后只读
 public bool ManualAdvance { get; init; }
 
-// src/World/PlayerActor.cs：同一形状，测试与探针用它接管帧推进
-public bool ManualPhysics { get; init; }
+// rules/Progression/ItemTier.cs：同一形状，再加 required，new 的时候漏设就编译不过
+public required int SortOrder { get; init; }
 ```
 
 配合对象初始化器就是"造好即定型"：
 
 ```csharp
-// src/World/TrainingRoom.cs：new 的时候设得上
-_player = new PlayerActor { ManualPhysics = true, Position = new Vector2(PlayerX, GroundY) };
-var spark = new HitSpark { Heavy = reaction.IsHeavy, ZIndex = SparkZ };
+// tests/Economy/BagArrangementTests.cs：new 的时候设得上
+new ItemTier { Id = Common, NameKey = "item_quality.common.name", SortOrder = 2, BasePriceFactor = null, DisplayColor = "ash 6" },
 ```
 
-之后再写 `_player.ManualPhysics = false` 就编译不过。
+之后再写 `tier.SortOrder = 3` 就编译不过。
 
 对照 Java：类似 Java 的 `final` 字段，但 `init` 配合对象初始化器，比 Java 的"全参构造函数 / Builder"简洁得多——既保证不可变，又不用写一堆构造参数。`sealed`＝不可被继承（相当于 Java 的 `final class`），本仓的 record 一律 `sealed`。
 
@@ -645,8 +644,8 @@ RegrowFromStage is int back ? StageDays.Skip(back).Sum() : null
 // rules/Economy/CropDefinition.cs：属性模式，读作"非空且至少一项"
 value is { Count: > 0 }
 
-// src/World/TrainingRoom.cs：类型 + 属性模式 + not，一句话筛掉不关心的输入事件
-if (@event is not InputEventKey { Pressed: true, Echo: false } key)
+// src/World/Base/BaseField.cs：类型 + 属性模式 + not，一句话筛掉不关心的输入事件
+if (@event is not InputEventKey { Pressed: true, Echo: false } key || _wake?.InputClosed == true)
 {
     return;
 }

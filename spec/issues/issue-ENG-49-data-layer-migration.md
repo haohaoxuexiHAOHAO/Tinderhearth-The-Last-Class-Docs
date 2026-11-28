@@ -22,10 +22,10 @@ last_verified: 2026-11-12
 
 ## 验收标准
 
-- [ ] 可核对（一次性，跑完删）：迁过去前后，逐格比农场数据层每一格是哪种地形，一格不差。怎么比的、删了什么写在「验证结果」里。
+- [ ] 可核对（一次性，跑完删）：迁过去前后，逐格比基地数据层每一格是哪种地形，一格不差。怎么比的、删了什么写在「验证结果」里。
 - [ ] 可核对：数据层那份 TileSet 只剩图块表一个图集源，每种地形一张标记瓦片，地形编号与迁之前一样。
 - [ ] 可核对：纹理图那一套删掉：着色器、`Fills` 与它的资源类型、配置判定与它的单测、`tools/check_art.py` 认纹理图目录那一条。
-- [ ] 可核对：`scenes/farm/farm.tscn` 不再引用配对图与 `DualGridPair` 之后，三张配对图与 `DualGridPair` 删掉；代码仓 `CONVENTIONS.md` 拿 `DualGridPair` 当范本的那一处，换成一个还在的。
+- [ ] 可核对：`scenes/base/base.tscn` 不再引用配对图与 `DualGridPair` 之后，三张配对图与 `DualGridPair` 删掉；代码仓 `CONVENTIONS.md` 拿 `DualGridPair` 当范本的那一处，换成一个还在的。
 - [ ] 可核对：代码仓 verify 全过。
 
 ## 作者那两步
