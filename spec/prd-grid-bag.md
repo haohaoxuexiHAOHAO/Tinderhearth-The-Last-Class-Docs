@@ -153,9 +153,9 @@ last_verified: 2026-11-06
 
 - [x] 可核对：[ADR-0034](../decisions/ADR-0034-背包与仓库改成网格.md) 接受时，[经营规则 · 背包与仓库](../../desc/经营规则.md)与[像素绘制原则 · 像素基准](../production/像素绘制原则.md)那两句改掉，引到这两句的地方一起改。
 - [x] 可核对：[`背包系统`](../design/背包系统.md)改成网格（一堆占一块、放得下与满载的定义、拿起放下、整理摆不下就不动、随身栏一排、C7 的分子）；[`界面系统`](../design/界面系统.md)的背包页与随身栏、[界面绘制约定](../production/界面绘制约定.md)的尺寸那张表、[数值模型](../design/数值模型.md)的 C7 跟着改。
-- [ ] 可核对：动了 `design/数值模型.md` 或 `design/numeric-model-params.json` 之后，`python tools/simulate_week.py --check-doc` 跑过且摘要里没有失败项。
-- [ ] 可核对：[东西能拿在手上](../reference/godot/东西能拿在手上.md)那一篇里背包页与随身栏那几步照新的写，「跑一遍验收」那张表里背包页那几行换成新的；[一块地能种出东西 · 第六步：接上地块状态机](../reference/godot/一块地能种出东西.md)里「随身栏就是背包开头那几格」那几句一起改。
-- [ ] 可核对：设计仓 `python tools/check_docs.py` 0 项必须修复。
+- [x] 可核对：动了 `design/数值模型.md` 或 `design/numeric-model-params.json` 之后，`python tools/simulate_week.py --check-doc` 跑过且摘要里没有失败项。
+- [x] 可核对：[东西能拿在手上](../reference/godot/东西能拿在手上.md)那一篇里背包页与随身栏那几步照新的写，「跑一遍验收」那张表里背包页那几行换成新的；[一块地能种出东西 · 第六步：接上地块状态机](../reference/godot/一块地能种出东西.md)里「随身栏就是背包开头那几格」那几句一起改。
+- [x] 可核对：设计仓 `python tools/check_docs.py` 0 项必须修复。
 
 ### US-010：网格背包的端到端
 
