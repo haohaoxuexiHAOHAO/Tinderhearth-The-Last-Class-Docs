@@ -17,7 +17,7 @@ last_verified: 2026-11-28
 
 ## 依赖
 
-- `GP-180`：走的是那一间屋。
+- `GP-180`（已关闭）：走的是那一间屋，在代码仓 `rules/Combat/BattleRoom.cs`。
 
 ## 验收标准
 
