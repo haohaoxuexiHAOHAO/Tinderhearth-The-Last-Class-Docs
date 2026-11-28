@@ -16,7 +16,6 @@
     "day_hard_end_hour": 25.5,
     "playable_hours": 19.0,
     "late_night_start": 22.0,
-    "late_night_heavy_start": 24.0,
     "season_days": 30
   },
 
@@ -30,8 +29,7 @@
     "health_normal": 0,
     "health_light_injury": -15,
     "health_heavy_injury": -30,
-    "late_night_light": -15,
-    "late_night_heavy": -30
+    "late_night": -15
   },
 
   "attributes": {
